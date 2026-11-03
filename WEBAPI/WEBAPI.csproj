@@ -7,8 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
         <PackageReference Include="MailKit" Version="4.18.2" />
         <PackageReference Include="MediatR" Version="14.2.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
@@ -20,22 +22,17 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <PackageReference Include="Serilog.AspNetCore" Version="10.0.1-dev-02312" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.3.1" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Common\Behaviors\" />
-      <Folder Include="Common\ExceptionHandlers\" />
-      <Folder Include="Common\Exceptions\" />
       <Folder Include="Common\Paging\" />
       <Folder Include="Common\Security\" />
       <Folder Include="Data\Configurations\" />
-      <Folder Include="Data\Repositories\" />
       <Folder Include="Entities\" />
-      <Folder Include="Extensions\" />
       <Folder Include="Features\" />
       <Folder Include="Logs\" />
-      <Folder Include="Middleware\" />
       <Folder Include="Migrations\" />
       <Folder Include="Models\" />
       <Folder Include="OpenApi\" />

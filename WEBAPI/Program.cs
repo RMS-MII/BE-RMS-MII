@@ -1,32 +1,76 @@
-namespace WEBAPI;
+using System.Security.Claims;
+using System.Text.Json.Serialization;
+using WEBAPI.Extensions;
+using Serilog;
 
-public class Program
+// Bootstrap logger: catches errors that happen BEFORE the host is built (a broken appsettings.json, for example).
+// AddHrisSerilog replaces it with the logger configured from appsettings.
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+try
 {
-    public static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
+    Log.Information("Starting HRIS API");
+    var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
-
-        builder.Services.AddControllers();
-        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-        builder.Services.AddOpenApi();
-
-        var app = builder.Build();
-
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
+    builder.AddRmsSerilog();
+    builder.Services.AddControllers()
+        .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    builder.Services.AddRmsServices(builder.Configuration);
+    // Program.cs
+    builder.Services.AddControllers(options =>
         {
-            app.MapOpenApi();
-        }
+            // Without this, MVC adds an implicit [Required] to every non-nullable string and answers with its own 400 format
+            // BEFORE FluentValidation runs. With it, FluentValidation is the only place that rejects missing values.
+            options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+        })
+        .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-        app.UseHttpsRedirection();
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.AllowAnyHeader();
+            policy.AllowAnyMethod();
+            policy.AllowAnyOrigin();   // class demo only; production lists the allowed origins
+        });
+    });
 
-        app.UseAuthorization();
+    builder.Services.AddOpenApi();                    // built-in OpenAPI document, from Module 1
+    // builder.Services.AddHrisSecurity(builder.Configuration);
+    // builder.Services.AddHrisOpenApi();     
 
+    var app = builder.Build();
+        
+    // if (app.Environment.IsDevelopment())
+    //     await app.SeedBootstrapAdminAsync();   // Module 10: admin@hris.local (update the database first)
 
-        app.MapControllers();
+    // app.UseRequestTiming();
+    // app.UseHrisRequestLogging();                      // one structured line per request
+    app.UseExceptionHandler(); 
+    // app.UseMaintenanceMode();
+    // app.UseHrisOpenApi();
+    app.UseHttpsRedirection();
+    app.UseCors();
+    app.UseAuthentication();
+    app.Use(async (context, next) =>
+    {
+        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+        using (Serilog.Context.LogContext.PushProperty("UserId", userId))
+            await next(context);
+    });
+    app.UseAuthorization();
+    app.MapControllers();
 
-        app.Run();
-    }
+    await app.RunAsync();
+}
+catch (Exception ex) when (ex is not HostAbortedException)   // 'dotnet ef' stops the host on purpose: not a failure
+{
+    Log.Fatal(ex, "HRIS API terminated unexpectedly");
+}
+finally
+{
+    Log.Information("HRIS API stopped");
+    Log.CloseAndFlush();                              // write the last buffered events before the process exits
 }
