@@ -6,6 +6,8 @@ public class QuestionBank : BaseEntity
     public Guid StageTypeId { get; set; }
     public Guid CreatedBy { get; set; }
 
-    // Navigation property (Question -> QuestionOptions)
+    // Navigation properties
+    public Department Department { get; set; } = null!;
+    public StageType StageType { get; set; } = null!;
     public ICollection<Question> Questions { get; set; } = [];
 }

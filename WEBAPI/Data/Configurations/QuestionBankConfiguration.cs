@@ -24,6 +24,16 @@ public class QuestionBankConfiguration : IEntityTypeConfiguration<QuestionBank>
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 
+        builder.HasOne(x => x.Department)
+            .WithMany()
+            .HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.StageType)
+            .WithMany()
+            .HasForeignKey(x => x.StageTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(x => x.Questions)
             .WithOne(x => x.QuestionBank)
             .HasForeignKey(x => x.QuestionBankId)
