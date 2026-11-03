@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using WEBAPI.Common.Behaviors;
+using WEBAPI.Common.ExceptionHandlers;
 using WEBAPI.Data;
 using WEBAPI.Data.Repositories;
 
@@ -14,6 +16,15 @@ public static class ServiceCollectionExtension
         // services.AddScoped<IEmployeeService, EFEmployeeService>();
         //Ini opsional, karena sudah didaftarkan sendiri sendiri
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        services.AddExceptionHandler<ValidationExceptionHandler>();
+        services.AddExceptionHandler<DomainExceptionHandler>();
+        services.AddExceptionHandler<GlobalExceptionHandler>();  
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssemblyContaining<Program>();
+            cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
+            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));   // Module 7
+        });
         
         return services;
     }
