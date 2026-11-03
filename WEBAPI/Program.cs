@@ -39,7 +39,7 @@ try
 
     builder.Services.AddOpenApi();                    // built-in OpenAPI document, from Module 1
     // builder.Services.AddHrisSecurity(builder.Configuration);
-    // builder.Services.AddHrisOpenApi();     
+    builder.Services.AddRmsOpenApi();
 
     var app = builder.Build();
         
