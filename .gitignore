@@ -1,0 +1,17 @@
+## Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio & Rider cache / user files
+.vs/
+.idea/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+## Publish / Deployment
+appsettings.Production.json
+publish/
