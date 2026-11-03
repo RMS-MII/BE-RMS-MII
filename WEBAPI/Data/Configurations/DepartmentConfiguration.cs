@@ -8,18 +8,36 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<Department>
 {
     public void Configure(EntityTypeBuilder<Department> builder)
     {
-        builder.HasKey(d => d.Id);
-        builder.Property(d => d.Code)
-            .HasMaxLength(10)
+        builder.ToTable("Department");
+
+        builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.Code)
+            .HasMaxLength(50)
             .IsRequired();
-        builder.Property(d => d.Name)
-            .HasMaxLength(100)
+
+        builder.Property(x => x.Name)
+            .HasMaxLength(50)
             .IsRequired();
-        builder.Property(d => d.Description)
-            .HasMaxLength(500);
-        
-        //check
-        builder.HasIndex(d => d.Code)
+
+        builder.Property(x => x.Description)
+            .HasColumnType("nvarchar(max)");
+
+        builder.Property(x => x.CreatedAt)
+            .HasColumnType("datetime2")
+            .IsRequired();
+
+        builder.Property(x => x.UpdatedAt)
+            .HasColumnType("datetime2");
+
+        builder.HasIndex(x => x.Code)
             .IsUnique();
+
+        builder.HasIndex(x => x.ParentDepartmentId);
+
+        builder.HasOne(x => x.ParentDepartment)
+            .WithMany(x => x.SubDepartments)
+            .HasForeignKey(x => x.ParentDepartmentId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
