@@ -25,7 +25,7 @@ public static class OpenApiExtensions
             return app;
 
         app.MapOpenApi().AllowAnonymous();
-        app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "HRIS API"));
+        app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "RMS API"));
         return app;
     }
     

@@ -21,7 +21,6 @@ public static class ServiceCollectionExtension
         //Ini opsional, karena sudah didaftarkan sendiri sendiri
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddSingleton(TimeProvider.System);
-        services.AddScoped<ITestRepository, TestRepository>();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddSingleton<RequestTimingMiddleware>();
         services.AddValidatorsFromAssembly(typeof(Program).Assembly);

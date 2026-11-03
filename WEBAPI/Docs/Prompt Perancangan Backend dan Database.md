@@ -84,13 +84,14 @@ Enum disimpan sebagai integer di database dan disediakan method ekstensi/helper 
 4. **BatchStatus**: `Draft = 1`, `Open = 2`, `Closed = 3`
 5. **OfferingLetterStatus**: `Pending = 1`, `Approved = 2`, `Rejected = 3`, `Negotiate = 4`
 6. **ApplicationStatus**: `InProcess = 1`, `Rejected = 2`, `Dropped = 3` (gugur), `Accepted = 4`
-7. **ApplicationStageStatus**: `InProgress = 1`, `Submitted = 2`, `Expired = 3`, `Prioritized = 4`, `Considered = 5`, `Rejected = 6`, `Dropped = 7`
-8. **StageEmployeeStatus**: `Pending = 1`, `Accepted = 2`, `Declined = 3`
-9. **SessionInterviewStatus**: `InProgress = 1`, `Completed = 2`, `Cancelled = 3`
-10. **InterviewSessionStatus**: `Scheduled = 1`, `PendingConfirmation = 2`, `Rescheduled = 3`, `AcceptedByInterviewer = 4`, `AcceptedByCandidate = 5`
-11. **Recommendation**: `StronglyRecommend = 1`, `Recommend = 2`, `Consider = 3`, `NotRecommend = 4`
-12. **RescheduleStatus**: `Pending = 1`, `Approved = 2`, `Rejected = 3`
-13. **EmailType**: `StageInvitation = 1`, `InterviewerInvitation = 2`, `InterviewInvitation = 3`, `RescheduleRequest = 4`, `RescheduleResult = 5`, `TakeHome = 6`, `Rejection = 7`, `FinalResult = 8` (dinamis dapat diperluas)
+7. **FinalResultStatus**: `Accepted = 1`, `Rejected = 2` (status kelulusan akhir kandidat di batch application)
+8. **ApplicationStageStatus**: `InProgress = 1`, `Submitted = 2`, `Expired = 3`, `Prioritized = 4`, `Considered = 5`, `Rejected = 6`, `Dropped = 7`
+9. **StageEmployeeStatus**: `Pending = 1`, `Accepted = 2`, `Declined = 3`
+10. **SessionInterviewStatus**: `InProgress = 1`, `Completed = 2`, `Cancelled = 3`
+11. **InterviewSessionStatus**: `Scheduled = 1`, `PendingConfirmation = 2`, `Rescheduled = 3`, `AcceptedByInterviewer = 4`, `AcceptedByCandidate = 5`
+12. **Recommendation**: `StronglyRecommend = 1`, `Recommend = 2`, `Consider = 3`, `NotRecommend = 4`
+13. **RescheduleStatus**: `Pending = 1`, `Approved = 2`, `Rejected = 3`
+14. **EmailType**: `StageInvitation = 1`, `InterviewerInvitation = 2`, `InterviewInvitation = 3`, `RescheduleRequest = 4`, `RescheduleResult = 5`, `TakeHome = 6`, `Rejection = 7`, `FinalResult = 8` (dinamis dapat diperluas)
 
 ### 5.3 Tabel (20) Berdasarkan ERD Drawio Terbaru
 
@@ -107,7 +108,7 @@ Tanda `?` berarti nullable. Kolom `CreatedAt` wajib dan `UpdatedAt` nullable di 
 9. `RecruitmentBatch`: Id, DepartmentId (FK), BatchCode (unique), Name, Description, StartDate, EndDate, Status (int enum), CreatedBy (Guid), CreatedAt, UpdatedAt?
 10. `BatchStage`: Id, NextStageId? (FK), RecruitmentBatchId (FK), StageTypeId (FK), StageName (unique per batch), IsActive (bool), PassingScore?, StartDate, EndDate, CreatedAt, UpdatedAt?
 11. `Candidates`: Id, FullName, Email (unique), Gender (int enum), PhoneNumber (unique), BirthDate, CV, ExpectedSalary?, Portfolio?, Education, Institution, Address, GPA, CreatedAt, UpdatedAt?
-12. `BatchApplications`: Id, CandidateId (FK), RecruitmentBatchId (FK), CodeApplication (unique), AppliedAt, FinalResult?, Status (int enum), Note?, OfferingLetterStatus? (int enum), FileOfferingLetter?, CreatedAt, UpdatedAt?
+12. `BatchApplications`: Id, CandidateId (FK), RecruitmentBatchId (FK), CodeApplication (unique), AppliedAt, FinalResultStatus? (int enum), Status (int enum), Note?, OfferingLetterStatus? (int enum), FileOfferingLetter?, CreatedAt, UpdatedAt?
 13. `ApplicationStage`: Id, BatchApplicationId (FK), BatchStageId (FK), Status (int enum), TotalScore?, StartedAt, EndedAt, CompletedAt?, Notes?, IsAttempts (default false), DurationTest?, CreatedAt, UpdatedAt?
 14. `CandidateAnswer`: Id, ApplicationStageId (FK), QuestionText, QuestionOptionText, Score, CreatedAt
 15. `StageEmployee`: Id, BatchStageId (FK), EmployeeId (FK), Status (int enum), IsActive, Note?, CreatedAt, UpdatedAt?
@@ -123,8 +124,7 @@ Tanda `?` berarti nullable. Kolom `CreatedAt` wajib dan `UpdatedAt` nullable di 
 - Unique `(CandidateId, RecruitmentBatchId)` pada `BatchApplications` (satu kandidat satu kali per batch).
 - Unique `(BatchApplicationId, BatchStageId)` pada `ApplicationStage`.
 - Unique `(BatchStageId, EmployeeId)` pada `StageEmployee`.
-- Unique `(StageEmployeeId, InterviewSessionId)` pada `SessionInterview`.
-- Unique `SessionInterviewId` pada `InterviewAssessment` (satu penilaian per pewawancara per sesi).
+- Unique `(StageEmployeeId, InterviewSessionId)` pada `SessionInterview`.\n- Unique `SessionInterviewId` pada `InterviewAssessment` (satu penilaian per pewawancara per sesi).
 - `InterviewSession` boleh banyak per `ApplicationStage` (karena reschedule yang disetujui membatalkan sesi lama dan membuat sesi baru).
 - Indeks pada FK yang sering difilter: `BatchApplications.RecruitmentBatchId`, `ApplicationStage.BatchApplicationId`, `InterviewSession.ScheduledStart`, `RescheduleRequest.Status`.
 
@@ -134,8 +134,7 @@ Seeder dijalankan saat startup di environment Development dan bersifat idempoten
 
 - Department: minimal 3, termasuk satu relasi induk dan anak (contoh: Technology dengan anak Engineering; Finance; Human Resources).
 - Role: HR, Interviewer.
-- Employee: 1 sampai 2 HR, minimal 4 pewawancara dari departemen berbeda, dengan relasi `ManagerId` bertingkat.
-- Account: satu untuk tiap HR dan pewawancara. Kata sandi demo di-hash saat seeding.
+- Employee: 1 sampai 2 HR, minimal 4 pewawancara dari departemen berbeda, dengan relasi `ManagerId` bertingkat.\n- Account: satu untuk tiap HR dan pewawancara. Kata sandi demo di-hash saat seeding.
 - StageType: Psikotes (Test), Technical & Logical Test (Test), Interview HR (Interview), Interview User (Interview).
 - QuestionBank dan Question: satu bank per kombinasi departemen dan tipe tes, masing-masing sekitar 10 soal pilihan ganda dengan skor tiap opsi.
 
@@ -151,7 +150,7 @@ Seeder dijalankan saat startup di environment Development dan bersifat idempoten
 8. Reschedule: permintaan dari pewawancara atau kandidat dicatat di `RescheduleRequest` (status Pending) untuk ditinjau HR. Disetujui: sesi lama menjadi Cancelled/Rescheduled dan HR menjadwalkan ulang. Ditolak: jadwal tetap; jika pemohon kandidat dan tidak hadir, status menjadi Dropped.
 9. Take-home test: pewawancara menetapkan `EndedSubmissionAt`; instruksi tugas dikirim lewat email (tercatat di `EmailLog`). Kandidat mengunggah file ke `FileSubmission` sebelum tenggat.
 10. Penilaian: tiap pewawancara pada sesi wajib mengisi `InterviewAssessment` (Notes, Recommendation, Score). HR hanya bisa memutuskan kelulusan tahap wawancara setelah semua pewawancara pada sesi itu selesai menilai.
-11. Hasil akhir: setelah semua tahap aktif selesai, HR melihat rekap lalu menetapkan `FinalResult`, `Status`, `OfferingLetterStatus`, dan `Note`. Diterima: HR mengunggah offering letter (`FileOfferingLetter`) dan sistem mengirim email beserta lampiran. Ditolak: kirim email penolakan akhir.
+11. Hasil akhir: setelah semua tahap aktif selesai, HR melihat rekap lalu menetapkan `FinalResultStatus`, `Status`, `OfferingLetterStatus`, dan `Note`. Diterima: HR mengunggah offering letter (`FileOfferingLetter`) dan sistem mengirim email beserta lampiran. Ditolak: kirim email penolakan akhir.
 12. Setiap email yang terkirim dicatat di `EmailLog`.
 
 ## 7. API per developer
@@ -218,4 +217,4 @@ Prioritas: alur wawancara, lalu rekrutmen dan batch, lalu tes online dan evaluas
 - **Primary Key**: Semua PK berjenis GUID diseragamkan memakai `Guid.CreateVersion7()`, termasuk `Candidates.Id`.
 - **CreatedBy & ReviewedBy**: Kolom audit `CreatedBy` dan `ReviewedBy` disimpan sebagai `Guid` / `Guid?` mandiri tanpa foreign key ke tabel `Employee`, dan diisi langsung melalui logika backend.
 - **Penyimpanan Enum**: Disimpan dalam bentuk `int` pada database, lalu disediakan method helper/ekstensi dalam satu class terpadu.
-- **Perubahan Atribut ERD**: Sesuai file ERD drawio terbaru, terdapat penambahan kolom `ExpectedSalary` dan `Gender` pada `Candidates`, `OfferingLetterStatus` pada `BatchApplications`, penyesuaian status pada `BatchStage` (menjadi `IsActive`), tipe `enum` pada `EmailLog.Type`, dsb.
+- **Perubahan Atribut ERD**: Sesuai file ERD drawio terbaru, terdapat penambahan kolom `ExpectedSalary` dan `Gender` pada `Candidates`, `OfferingLetterStatus` dan `FinalResultStatus` (enum int) pada `BatchApplications`, penyesuaian status pada `BatchStage` (menjadi `IsActive`), tipe `enum` pada `EmailLog.Type`, dsb.

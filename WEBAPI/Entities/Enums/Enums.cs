@@ -45,6 +45,12 @@ public enum ApplicationStatus
     Accepted = 4
 }
 
+public enum FinalResultStatus
+{
+    Accepted = 1,
+    Rejected = 2
+}
+
 public enum ApplicationStageStatus
 {
     InProgress = 1,
@@ -113,7 +119,7 @@ public enum EmailType
 /// - Parsing dari string/int
 /// - Format dan label representasi tampilan (Display Name)
 /// - Validasi keberadaan nilai enum
-/// - Aturan transisi status bisnis (Batch, Application, Reschedule, Interview, Offering Letter)
+/// - Aturan transisi status bisnis (Batch, Application, Reschedule, Interview, Offering Letter, Final Result)
 /// - Konversi daftar pilihan (Options list) untuk dropdown DTO/Frontend
 /// </summary>
 public static class EnumHelper
@@ -194,6 +200,13 @@ public static class EnumHelper
         ApplicationStatus.Rejected => "Ditolak",
         ApplicationStatus.Dropped => "Gugur",
         ApplicationStatus.Accepted => "Diterima",
+        _ => status.ToString()
+    };
+
+    public static string ToDisplayName(this FinalResultStatus status) => status switch
+    {
+        FinalResultStatus.Accepted => "Lolos / Diterima",
+        FinalResultStatus.Rejected => "Tidak Lolos / Ditolak",
         _ => status.ToString()
     };
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="app.diagrams.net" pages="11">
   <diagram id="SHmtY8e3uzaJ9BATUX7A" name="ERD">
-    <mxGraphModel dx="2388" dy="798" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="2115" dy="659" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -701,7 +701,7 @@
             <mxRectangle height="30" width="60" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Y3jVaBpkGW-p0XrtYrB6-31" parent="Y3jVaBpkGW-p0XrtYrB6-29" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;html=1;whiteSpace=wrap;" value="FinalResult : varchar(30)" vertex="1">
+        <mxCell id="Y3jVaBpkGW-p0XrtYrB6-31" parent="Y3jVaBpkGW-p0XrtYrB6-29" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;html=1;whiteSpace=wrap;" value="FinalStatus : enum" vertex="1">
           <mxGeometry height="30" width="195" x="60" as="geometry">
             <mxRectangle height="30" width="195" as="alternateBounds" />
           </mxGeometry>
@@ -1789,7 +1789,7 @@
             <mxRectangle height="30" width="30" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="9mgvTgr9zOqUdC9oKu9_-3" parent="9mgvTgr9zOqUdC9oKu9_-1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="DurationTest: Time()" vertex="1">
+        <mxCell id="9mgvTgr9zOqUdC9oKu9_-3" parent="9mgvTgr9zOqUdC9oKu9_-1" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="DurationTest: int" vertex="1">
           <mxGeometry height="30" width="200" x="30" as="geometry">
             <mxRectangle height="30" width="200" as="alternateBounds" />
           </mxGeometry>
