@@ -1,16 +1,16 @@
-using System.ComponentModel.DataAnnotations;
+// Common/ExceptionHandlers/ValidationExceptionHandler.cs
+using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WEBAPI.Common.ExceptionHandlers;
 
-// <summary>FluentValidation failures (thrown by ValidationBehavior) become 400 with an "errors" dictionary.</summary>
+/// <summary>FluentValidation failures (thrown by ValidationBehavior) become 400 with an "errors" dictionary.</summary>
 public class ValidationExceptionHandler(IProblemDetailsService problemDetailsService) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken ct)
     {
-        var validationException = exception as ValidationException;
-        if (validationException == null)
+        if (exception is not ValidationException validationException)
             return false;   // not mine: the next handler in the chain gets it
 
         // The command wraps the request, so FluentValidation reports "Request.FullName". The client reads "FullName".
