@@ -9,7 +9,8 @@ public class ValidationExceptionHandler(IProblemDetailsService problemDetailsSer
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken ct)
     {
-        if (exception is not ValidationException validationException)
+        var validationException = exception as ValidationException;
+        if (validationException == null)
             return false;   // not mine: the next handler in the chain gets it
 
         // The command wraps the request, so FluentValidation reports "Request.FullName". The client reads "FullName".
