@@ -11,7 +11,7 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    Log.Information("Starting HRIS API");
+    Log.Information("Starting RMS API");
     var builder = WebApplication.CreateBuilder(args);
 
     builder.AddRmsSerilog();
@@ -67,10 +67,10 @@ try
 }
 catch (Exception ex) when (ex is not HostAbortedException)   // 'dotnet ef' stops the host on purpose: not a failure
 {
-    Log.Fatal(ex, "HRIS API terminated unexpectedly");
+    Log.Fatal(ex, "RMS API terminated unexpectedly");
 }
 finally
 {
-    Log.Information("HRIS API stopped");
+    Log.Information("RMS API stopped");
     Log.CloseAndFlush();                              // write the last buffered events before the process exits
 }
