@@ -36,7 +36,6 @@
       <Folder Include="Migrations\" />
       <Folder Include="Models\" />
       <Folder Include="OpenApi\" />
-      <Folder Include="Services\" />
       <Folder Include="Templates\" />
     </ItemGroup>
 
