@@ -12,6 +12,7 @@ public class CandidateDto
     public DateOnly BirthDate { get; set; }
     public string? Cv { get; set; }
     public string? Portfolio { get; set; }
+    public string Education { get; set; } = string.Empty;
     public string Institution { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public decimal ExpectedSalary { get; set; }
@@ -29,6 +30,7 @@ public record CreateCandidateDto
     public DateOnly BirthDate { get; init; }
     public string? Cv { get; init; }
     public string? Portfolio { get; init; }
+    public string Education { get; init; } = string.Empty;
     public string Institution { get; init; } = string.Empty;
     public string Address { get; init; } = string.Empty;
     public decimal ExpectedSalary { get; init; }
@@ -44,6 +46,7 @@ public record UpdateCandidateDto
     public DateOnly BirthDate { get; init; }
     public string? Cv { get; init; }
     public string? Portfolio { get; init; }
+    public string Education { get; init; } = string.Empty;
     public string Institution { get; init; } = string.Empty;
     public string Address { get; init; } = string.Empty;
     public decimal ExpectedSalary { get; init; }

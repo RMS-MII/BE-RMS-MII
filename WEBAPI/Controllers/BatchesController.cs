@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
+using WEBAPI.Features.Applications.Commands.RegisterCandidates;
+using WEBAPI.Features.Applications.Queries.GetApplications;
 using WEBAPI.Features.Batches.Commands.ConfigureBatchStages;
 using WEBAPI.Features.Batches.Commands.CreateBatch;
 using WEBAPI.Features.Batches.Queries.GetBatchDetail;
@@ -51,6 +53,36 @@ public sealed class BatchesController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(command with { BatchId = id }, ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    [HttpGet("{id:guid}/applications")]
+    [ProducesResponseType<PagedResult<BatchApplicationDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetApplications(
+        Guid id, [FromQuery] GetApplicationsQuery query, CancellationToken ct)
+    {
+        var result = await sender.Send(query with { BatchId = id }, ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    [HttpPost("{id:guid}/applications")]
+    [ProducesResponseType<IReadOnlyCollection<BatchApplicationDto>>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RegisterCandidates(
+        Guid id, [FromBody] RegisterCandidatesCommand command, CancellationToken ct)
+    {
+        var result = await sender.Send(command with { BatchId = id }, ct);
+        return result.IsSuccess
+            ? Created($"/api/batches/{id}/applications", result.Value)
+            : result.ToProblemDetails(this);
     }
 
     [HttpPost]
