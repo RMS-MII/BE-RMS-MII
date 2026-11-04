@@ -5,6 +5,7 @@ using WEBAPI.Common.Behaviors;
 using WEBAPI.Common.ExceptionHandlers;
 using WEBAPI.Data;
 using WEBAPI.Data.Repositories;
+using WEBAPI.Data.Seeders;
 using WEBAPI.Middleware;
 using WEBAPI.Services;
 
@@ -19,6 +20,7 @@ public static class ServiceCollectionExtension
             => options.UseSqlServer(connectionString));
         
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        services.AddScoped<DbSeeder>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();

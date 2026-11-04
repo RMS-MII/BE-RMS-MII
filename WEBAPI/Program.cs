@@ -13,7 +13,11 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     builder.AddRmsSerilog();
-
+    builder.Services.AddControllers()
+        .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    builder.Services.AddRmsServices(builder.Configuration);
+    builder.Services.AddRmsAuthentication(builder.Configuration);
+    // Program.cs
     builder.Services.AddControllers(options =>
         {
             options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
@@ -37,11 +41,15 @@ try
     var app = builder.Build();
 
     if (app.Environment.IsDevelopment())
-    {
-        await app.SeedRmsDataAsync();
-    }
+        await app.SeedDatabaseAsync();
 
+    // if (app.Environment.IsDevelopment())
+    //     await app.SeedBootstrapAdminAsync();   // Module 10: admin@hris.local (update the database first)
+
+    // app.UseRequestTiming();
+    // app.UseHrisRequestLogging();                      // one structured line per request
     app.UseExceptionHandler(); 
+    // app.UseMaintenanceMode();
     app.UseRmsOpenApi();
     app.UseHttpsRedirection();
     app.UseCors();
