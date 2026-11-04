@@ -64,4 +64,65 @@ public static class InterviewMapping
         Note = se.Note,
         RespondedAt = respondedAt
     };
+
+    public static ScheduledInterviewerDto ToScheduledInterviewerDto(this SessionInterview si) => new()
+    {
+        SessionInterviewId = si.Id,
+        StageEmployeeId = si.StageEmployeeId,
+        EmployeeId = si.StageEmployee?.EmployeeId ?? Guid.Empty,
+        FullName = si.StageEmployee?.Employee?.FullName ?? string.Empty,
+        Email = si.StageEmployee?.Employee?.Email ?? string.Empty,
+        JobTitle = si.StageEmployee?.Employee?.JobTitle ?? string.Empty,
+        DepartmentName = si.StageEmployee?.Employee?.Department?.Name ?? string.Empty,
+        Status = si.Status
+    };
+
+    public static List<ScheduledInterviewerDto> ToScheduledInterviewerDtoList(
+        this IEnumerable<SessionInterview> sessionInterviews)
+        => sessionInterviews.Select(ToScheduledInterviewerDto).ToList();
+
+    public static InterviewSessionDto ToInterviewSessionDto(this InterviewSession session) => new()
+    {
+        Id = session.Id,
+        ApplicationStageId = session.ApplicationStageId,
+        CandidateName = session.ApplicationStage?.BatchApplication?.Candidate?.FullName ?? string.Empty,
+        CandidateEmail = session.ApplicationStage?.BatchApplication?.Candidate?.Email ?? string.Empty,
+        BatchName = session.ApplicationStage?.BatchStage?.RecruitmentBatch?.Name ?? string.Empty,
+        StageName = session.ApplicationStage?.BatchStage?.StageName ?? string.Empty,
+        SessionName = session.SessionName,
+        ScheduledStart = session.ScheduledStart,
+        ScheduledEnd = session.ScheduledEnd,
+        IsOnline = session.IsOnline,
+        Location = session.Location,
+        MeetingUrl = session.MeetingUrl,
+        Status = session.Status,
+        Interviewers = session.SessionInterviews.ToScheduledInterviewerDtoList(),
+        CreatedAt = session.CreatedAt
+    };
+
+    public static ConfirmSessionResponse ToConfirmSessionResponse(
+        this SessionInterview sessionInterview,
+        bool emailSent,
+        string message)
+    {
+        var session = sessionInterview.InterviewSession;
+        var candidate = session.ApplicationStage?.BatchApplication?.Candidate;
+
+        return new ConfirmSessionResponse
+        {
+            SessionInterviewId = sessionInterview.Id,
+            InterviewSessionId = session.Id,
+            SessionName = session.SessionName,
+            ScheduledStart = session.ScheduledStart,
+            ScheduledEnd = session.ScheduledEnd,
+            IsOnline = session.IsOnline,
+            MeetingUrl = session.MeetingUrl,
+            Location = session.Location,
+            SessionStatus = session.Status,
+            CandidateName = candidate?.FullName ?? string.Empty,
+            CandidateEmail = candidate?.Email ?? string.Empty,
+            CandidateInvitationEmailSent = emailSent,
+            Message = message
+        };
+    }
 }

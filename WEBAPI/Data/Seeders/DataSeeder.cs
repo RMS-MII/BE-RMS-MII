@@ -50,6 +50,12 @@ public static class DataSeeder
     // Sample Batch & Stage (untuk flow Wawancara)
     public static readonly Guid SampleBatchId = Guid.Parse("66666666-6666-6666-6666-666666666661");
     public static readonly Guid SampleInterviewStageId = Guid.Parse("77777777-7777-7777-7777-777777777771");
+    public static readonly Guid SampleCandidateId = Guid.Parse("01930009-0000-7000-8000-000000000001");
+    public static readonly Guid SampleBatchApplicationId = Guid.Parse("0193000a-0000-7000-8000-000000000001");
+    public static readonly Guid SampleApplicationStageId = Guid.Parse("0193000b-0000-7000-8000-000000000001");
+    public static readonly Guid SampleStageEmployeeId = Guid.Parse("0193000c-0000-7000-8000-000000000001");
+    public static readonly Guid SampleInterviewSessionId = Guid.Parse("0193000d-0000-7000-8000-000000000001");
+    public static readonly Guid SampleSessionInterviewId = Guid.Parse("0193000e-0000-7000-8000-000000000001");
 
     #endregion
 
@@ -597,37 +603,136 @@ public static class DataSeeder
 
     private static async Task SeedSampleBatchAndStageAsync(RmsDbContext context)
     {
-        if (await context.RecruitmentBatches.AnyAsync(x => x.Id == SampleBatchId || x.BatchCode == "BATCH-2026-TECH")) return;
-
         var now = DateTime.UtcNow;
-        var batch = new RecruitmentBatch
-        {
-            Id = SampleBatchId,
-            DepartmentId = DeptTechId,
-            BatchCode = "BATCH-2026-TECH",
-            Name = "Batch 2026 Tech & Engineering",
-            Description = "Recruitment batch for Tech team 2026",
-            StartDate = now.AddDays(-5),
-            EndDate = now.AddDays(30),
-            Status = BatchStatus.Open,
-            CreatedBy = EmpHrManagerId,
-            CreatedAt = now
-        };
 
-        var stage = new BatchStage
+        if (!await context.RecruitmentBatches.AnyAsync(x => x.Id == SampleBatchId || x.BatchCode == "BATCH-2026-TECH"))
         {
-            Id = SampleInterviewStageId,
-            RecruitmentBatchId = SampleBatchId,
-            StageTypeId = StageTypeInterviewHrId,
-            StageName = "Wawancara HR & User",
-            IsActive = true,
-            StartDate = now.AddDays(-2),
-            EndDate = now.AddDays(15),
-            CreatedAt = now
-        };
+            var batch = new RecruitmentBatch
+            {
+                Id = SampleBatchId,
+                DepartmentId = DeptTechId,
+                BatchCode = "BATCH-2026-TECH",
+                Name = "Batch 2026 Tech & Engineering",
+                Description = "Recruitment batch for Tech team 2026",
+                StartDate = now.AddDays(-5),
+                EndDate = now.AddDays(30),
+                Status = BatchStatus.Open,
+                CreatedBy = EmpHrManagerId,
+                CreatedAt = now
+            };
+            context.RecruitmentBatches.Add(batch);
+        }
 
-        context.RecruitmentBatches.Add(batch);
-        context.BatchStages.Add(stage);
+        if (!await context.BatchStages.AnyAsync(x => x.Id == SampleInterviewStageId))
+        {
+            var stage = new BatchStage
+            {
+                Id = SampleInterviewStageId,
+                RecruitmentBatchId = SampleBatchId,
+                StageTypeId = StageTypeInterviewHrId,
+                StageName = "Wawancara HR & User",
+                IsActive = true,
+                StartDate = now.AddDays(-2),
+                EndDate = now.AddDays(15),
+                CreatedAt = now
+            };
+            context.BatchStages.Add(stage);
+        }
+
+        if (!await context.StageEmployees.AnyAsync(x => x.BatchStageId == SampleInterviewStageId && x.EmployeeId == EmpVpEngId))
+        {
+            context.StageEmployees.Add(new StageEmployee
+            {
+                Id = SampleStageEmployeeId,
+                BatchStageId = SampleInterviewStageId,
+                EmployeeId = EmpVpEngId,
+                Status = StageEmployeeStatus.Accepted,
+                IsActive = true,
+                CreatedAt = now
+            });
+        }
+
+        if (!await context.Candidates.AnyAsync(x => x.Id == SampleCandidateId || x.Email == "john.doe.candidate@example.com"))
+        {
+            context.Candidates.Add(new Candidate
+            {
+                Id = SampleCandidateId,
+                FullName = "John Doe (Candidate)",
+                Email = "john.doe.candidate@example.com",
+                Gender = Gender.Male,
+                PhoneNumber = "081234567890",
+                BirthDate = new DateOnly(2000, 1, 1),
+                Education = "S1 Teknik Informatika",
+                Institution = "Institut Teknologi Bandung",
+                Address = "Jl. Ganesha No. 10, Bandung",
+                Gpa = 3.85m,
+                ExpectedSalary = 12000000m,
+                Cv = "cv_john_doe.pdf",
+                CreatedAt = now
+            });
+        }
+
+        if (!await context.BatchApplications.AnyAsync(x => x.Id == SampleBatchApplicationId || x.CodeApplication == "APP-2026-001"))
+        {
+            context.BatchApplications.Add(new BatchApplication
+            {
+                Id = SampleBatchApplicationId,
+                CandidateId = SampleCandidateId,
+                RecruitmentBatchId = SampleBatchId,
+                CodeApplication = "APP-2026-001",
+                AppliedAt = now.AddDays(-3),
+                Status = ApplicationStatus.InProcess,
+                CreatedAt = now
+            });
+        }
+
+        if (!await context.ApplicationStages.AnyAsync(x => x.Id == SampleApplicationStageId))
+        {
+            context.ApplicationStages.Add(new ApplicationStage
+            {
+                Id = SampleApplicationStageId,
+                BatchApplicationId = SampleBatchApplicationId,
+                BatchStageId = SampleInterviewStageId,
+                Status = ApplicationStageStatus.InProgress,
+                StartedAt = now.AddDays(-1),
+                EndAt = now.AddDays(7),
+                CreatedAt = now
+            });
+        }
+
+        if (!await context.InterviewSessions.AnyAsync(x => x.Id == SampleInterviewSessionId))
+        {
+            context.InterviewSessions.Add(new InterviewSession
+            {
+                Id = SampleInterviewSessionId,
+                ApplicationStageId = SampleApplicationStageId,
+                SessionName = "Wawancara Teknis Kandidat",
+                ScheduledStart = now.AddDays(2).Date.AddHours(9),
+                ScheduledEnd = now.AddDays(2).Date.AddHours(10),
+                IsOnline = true,
+                MeetingUrl = "https://meet.google.com/abc-defg-hij",
+                Status = InterviewSessionStatus.PendingConfirmation,
+                CreatedBy = EmpHrManagerId,
+                CreatedAt = now
+            });
+        }
+
+        var stageEmp = await context.StageEmployees.FirstOrDefaultAsync(x => x.BatchStageId == SampleInterviewStageId && x.EmployeeId == EmpVpEngId);
+        if (stageEmp is not null)
+        {
+            if (!await context.SessionInterviews.AnyAsync(x => x.Id == SampleSessionInterviewId))
+            {
+                context.SessionInterviews.Add(new SessionInterview
+                {
+                    Id = SampleSessionInterviewId,
+                    InterviewSessionId = SampleInterviewSessionId,
+                    StageEmployeeId = stageEmp.Id,
+                    Status = SessionInterviewStatus.InProgress,
+                    CreatedAt = now
+                });
+            }
+        }
+
         await context.SaveChangesAsync();
     }
 }
