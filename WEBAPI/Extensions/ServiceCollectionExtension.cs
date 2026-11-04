@@ -5,6 +5,7 @@ using WEBAPI.Common.Behaviors;
 using WEBAPI.Common.ExceptionHandlers;
 using WEBAPI.Data;
 using WEBAPI.Data.Repositories;
+using WEBAPI.Data.Seeders;
 using WEBAPI.Middleware;
 using WEBAPI.Services;
 
@@ -20,6 +21,7 @@ public static class ServiceCollectionExtension
         // services.AddScoped<IEmployeeService, EFEmployeeService>();
         //Ini opsional, karena sudah didaftarkan sendiri sendiri
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        services.AddScoped<DbSeeder>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddSingleton<RequestTimingMiddleware>();
