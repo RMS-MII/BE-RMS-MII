@@ -33,6 +33,11 @@ public class RmsDbContext(DbContextOptions<RmsDbContext> options) : DbContext(op
 
     // Email Domain Entities
     public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
+    
+    // Batch Domain Entities
+    public DbSet<RecruitmentBatch> RecruitmentBatches => Set<RecruitmentBatch>();
+    public DbSet<BatchStage> BatchStages => Set<BatchStage>();
+    public DbSet<StageType> StageTypes => Set<StageType>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
