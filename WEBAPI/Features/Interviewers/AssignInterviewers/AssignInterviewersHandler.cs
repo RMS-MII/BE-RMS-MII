@@ -72,16 +72,8 @@ public class AssignInterviewersHandler(
                         ct);
                 }
 
-                assignedDtos.Add(new AssignedInterviewerDto
-                {
-                    StageEmployeeId = existingAssignment.Id,
-                    EmployeeId = employee.Id,
-                    FullName = employee.FullName,
-                    Email = employee.Email,
-                    JobTitle = employee.JobTitle,
-                    DepartmentName = employee.Department.Name,
-                    Status = existingAssignment.Status
-                });
+                existingAssignment.Employee = employee;
+                assignedDtos.Add(existingAssignment.ToAssignedInterviewerDto());
             }
             else
             {
@@ -104,30 +96,13 @@ public class AssignInterviewersHandler(
                     EmailType.InterviewerInvitation,
                     ct);
 
-                assignedDtos.Add(new AssignedInterviewerDto
-                {
-                    StageEmployeeId = newAssignment.Id,
-                    EmployeeId = employee.Id,
-                    FullName = employee.FullName,
-                    Email = employee.Email,
-                    JobTitle = employee.JobTitle,
-                    DepartmentName = employee.Department.Name,
-                    Status = newAssignment.Status
-                });
+                newAssignment.Employee = employee;
+                assignedDtos.Add(newAssignment.ToAssignedInterviewerDto());
             }
         }
 
         await db.SaveChangesAsync(ct);
 
-        var response = new AssignInterviewersResponse
-        {
-            BatchId = stage.RecruitmentBatchId,
-            BatchName = stage.RecruitmentBatch.Name,
-            StageId = stage.Id,
-            StageName = stage.StageName,
-            Interviewers = assignedDtos
-        };
-
-        return Result<AssignInterviewersResponse>.Success(response);
+        return Result<AssignInterviewersResponse>.Success(stage.ToAssignInterviewersResponse(assignedDtos));
     }
 }
