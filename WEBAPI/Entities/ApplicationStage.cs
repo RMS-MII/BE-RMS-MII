@@ -17,5 +17,6 @@ public class ApplicationStage : BaseEntity
 
     public BatchApplication BatchApplication { get; set; } = null!;
     public ICollection<InterviewSession> InterviewSessions { get; set; } = [];
+    public ICollection<CandidateAnswer> CandidateAnswers { get; set; } = [];
     public BatchStage BatchStage { get; set; } = null!;
 }
