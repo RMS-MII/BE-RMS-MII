@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Data;
 using WEBAPI.Data.Seeders;
+using WEBAPI.Entities;
 
 namespace WEBAPI.Extensions;
 
@@ -9,7 +11,7 @@ public static class SeederExtension
     public static async Task SeedDatabaseAsync(this WebApplication app)
     {
         using var scope = app.Services.CreateScope();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<DbSeeder>>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<RmsDbContext>>();
 
         try
         {
@@ -20,8 +22,8 @@ public static class SeederExtension
                 return;
             }
 
-            var seeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
-            await seeder.SeedAsync();
+            var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<Account>>();
+            await DataSeeder.SeedAsync(db, passwordHasher);
         }
         catch (Exception ex)
         {

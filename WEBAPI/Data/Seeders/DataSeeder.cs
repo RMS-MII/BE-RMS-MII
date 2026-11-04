@@ -4,7 +4,7 @@ using Serilog;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 
-namespace WEBAPI.Data;
+namespace WEBAPI.Data.Seeders;
 
 public static class DataSeeder
 {
@@ -47,6 +47,10 @@ public static class DataSeeder
     public static readonly Guid QBankLogicalId = Guid.Parse("01930006-0000-7000-8000-000000000002");
     public static readonly Guid QBankTechnicalId = Guid.Parse("01930006-0000-7000-8000-000000000003");
 
+    // Sample Batch & Stage (untuk flow Wawancara)
+    public static readonly Guid SampleBatchId = Guid.Parse("66666666-6666-6666-6666-666666666661");
+    public static readonly Guid SampleInterviewStageId = Guid.Parse("77777777-7777-7777-7777-777777777771");
+
     #endregion
 
     public static async Task SeedAsync(RmsDbContext context, IPasswordHasher<Account> passwordHasher)
@@ -59,6 +63,7 @@ public static class DataSeeder
         await SeedAccountsAsync(context, passwordHasher);
         await SeedStageTypesAsync(context);
         await SeedQuestionBanksAndQuestionsAsync(context);
+        await SeedSampleBatchAndStageAsync(context);
 
         Log.Information("Database seeder completed successfully.");
     }
@@ -589,4 +594,40 @@ public static class DataSeeder
     }
 
     #endregion
+
+    private static async Task SeedSampleBatchAndStageAsync(RmsDbContext context)
+    {
+        if (await context.RecruitmentBatches.AnyAsync(x => x.Id == SampleBatchId || x.BatchCode == "BATCH-2026-TECH")) return;
+
+        var now = DateTime.UtcNow;
+        var batch = new RecruitmentBatch
+        {
+            Id = SampleBatchId,
+            DepartmentId = DeptTechId,
+            BatchCode = "BATCH-2026-TECH",
+            Name = "Batch 2026 Tech & Engineering",
+            Description = "Recruitment batch for Tech team 2026",
+            StartDate = now.AddDays(-5),
+            EndDate = now.AddDays(30),
+            Status = BatchStatus.Open,
+            CreatedBy = EmpHrManagerId,
+            CreatedAt = now
+        };
+
+        var stage = new BatchStage
+        {
+            Id = SampleInterviewStageId,
+            RecruitmentBatchId = SampleBatchId,
+            StageTypeId = StageTypeInterviewHrId,
+            StageName = "Wawancara HR & User",
+            IsActive = true,
+            StartDate = now.AddDays(-2),
+            EndDate = now.AddDays(15),
+            CreatedAt = now
+        };
+
+        context.RecruitmentBatches.Add(batch);
+        context.BatchStages.Add(stage);
+        await context.SaveChangesAsync();
+    }
 }

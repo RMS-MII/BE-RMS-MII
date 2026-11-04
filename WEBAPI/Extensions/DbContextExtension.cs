@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Data;
+using WEBAPI.Data.Seeders;
 using WEBAPI.Entities;
 
 namespace WEBAPI.Extensions;

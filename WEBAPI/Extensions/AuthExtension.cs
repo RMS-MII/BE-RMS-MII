@@ -33,6 +33,7 @@ public static class AuthExtension
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
+                options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -50,10 +51,17 @@ public static class AuthExtension
             });
 
         services.AddAuthorizationBuilder()
-            .AddPolicy(Policies.HrOnly, policy => policy.RequireRole(RmsRoles.Hr))
-            .AddPolicy(Policies.InterviewerOnly, policy => policy.RequireRole(RmsRoles.Interviewer))
+            .AddPolicy(Policies.HrOnly, policy => policy.RequireAssertion(ctx =>
+                ctx.User.IsInRole(RmsRoles.Hr) ||
+                ctx.User.HasClaim(HrisClaimTypes.Role, RmsRoles.Hr) ||
+                ctx.User.HasClaim(ClaimTypes.Role, RmsRoles.Hr)))
+            .AddPolicy(Policies.InterviewerOnly, policy => policy.RequireAssertion(ctx =>
+                ctx.User.IsInRole(RmsRoles.Interviewer) ||
+                ctx.User.HasClaim(HrisClaimTypes.Role, RmsRoles.Interviewer) ||
+                ctx.User.HasClaim(ClaimTypes.Role, RmsRoles.Interviewer)))
             .AddPolicy(Policies.HasEmployeeProfile,
-                policy => policy.RequireClaim(HrisClaimTypes.EmployeeId));
+                policy => policy.RequireAssertion(ctx =>
+                    ctx.User.HasClaim(c => c.Type == HrisClaimTypes.EmployeeId && !string.IsNullOrWhiteSpace(c.Value))));
 
         return services;
     }
