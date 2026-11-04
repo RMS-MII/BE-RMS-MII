@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
+using WEBAPI.Features.Applications.Commands.SetFinalResult;
 using WEBAPI.Features.Applications.Commands.StartApplicationStage;
 using WEBAPI.Features.Applications.Queries.GetApplicationRecap;
 using WEBAPI.Models;
@@ -37,6 +38,20 @@ public sealed class ApplicationsController(ISender sender) : ControllerBase
     public async Task<IActionResult> StartStage(Guid id, CancellationToken ct)
     {
         var result = await sender.Send(new StartApplicationStageCommand(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    [HttpPut("{id:guid}/final-result")]
+    [ProducesResponseType<BatchApplicationDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> SetFinalResult(
+        Guid id, [FromBody] SetFinalResultCommand command, CancellationToken ct)
+    {
+        var result = await sender.Send(command with { ApplicationId = id }, ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 }
