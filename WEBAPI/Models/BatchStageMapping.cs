@@ -1,0 +1,49 @@
+using WEBAPI.Entities;
+
+namespace WEBAPI.Models;
+
+public static class BatchStageMapping
+{
+    public static BatchStageDto ToDto(this BatchStage stage) => new()
+    {
+        Id = stage.Id,
+        RecruitmentBatchId = stage.RecruitmentBatchId,
+        StageTypeId = stage.StageTypeId,
+        StageTypeName = stage.StageType?.Name,
+        StageCategory = stage.StageType?.StageCategory,
+        StageName = stage.StageName,
+        IsActive = stage.IsActive,
+        PassingScore = stage.PassingScore,
+        StartDate = stage.StartDate,
+        EndDate = stage.EndDate,
+        NextStageId = stage.NextStageId,
+        CreatedAt = stage.CreatedAt,
+        UpdatedAt = stage.UpdatedAt
+    };
+
+    public static IReadOnlyCollection<BatchStageDto> ToDtoList(this IEnumerable<BatchStage> stages)
+        => stages.Select(ToDto).ToList();
+
+    public static BatchStage ToEntity(this CreateBatchStageDto dto) => new()
+    {
+        RecruitmentBatchId = dto.RecruitmentBatchId,
+        StageTypeId = dto.StageTypeId,
+        StageName = dto.StageName.Trim(),
+        IsActive = dto.IsActive,
+        PassingScore = dto.PassingScore,
+        StartDate = dto.StartDate,
+        EndDate = dto.EndDate,
+        NextStageId = dto.NextStageId
+    };
+
+    public static void ApplyTo(this UpdateBatchStageDto dto, BatchStage stage)
+    {
+        stage.StageTypeId = dto.StageTypeId;
+        stage.StageName = dto.StageName.Trim();
+        stage.IsActive = dto.IsActive;
+        stage.PassingScore = dto.PassingScore;
+        stage.StartDate = dto.StartDate;
+        stage.EndDate = dto.EndDate;
+        stage.NextStageId = dto.NextStageId;
+    }
+}
