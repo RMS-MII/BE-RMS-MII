@@ -9,6 +9,7 @@ public class StageType : BaseEntity
     public StageCategory StageCategory { get; set; }
     public bool IsActive { get; set; } = true;
 
-    // Navigation property
+    // Navigation properties
     public ICollection<BatchStage> BatchStages { get; set; } = [];
+    public ICollection<QuestionBank> QuestionBanks { get; set; } = [];
 }

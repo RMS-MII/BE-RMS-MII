@@ -18,10 +18,10 @@ public static class ServiceCollectionExtension
         var connectionString = configuration.GetConnectionString("RmsDB");
         services.AddDbContext<RmsDbContext>(options
             => options.UseSqlServer(connectionString));
-        // services.AddScoped<IEmployeeService, EFEmployeeService>();
-        //Ini opsional, karena sudah didaftarkan sendiri sendiri
+        
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<DbSeeder>();
+        services.AddScoped<IEmailService, EmailService>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddSingleton<RequestTimingMiddleware>();
@@ -31,13 +31,11 @@ public static class ServiceCollectionExtension
             var problem = context.ProblemDetails;
             problem.Instance ??= context.HttpContext.Request.Path.Value;
 
-            // The exception handler has already cleared the response headers, so read the id from Items (Step 5).
             if (context.HttpContext.Items.TryGetValue("X-Correlation-Id", out var correlationId))
             {
                 problem.Extensions["correlationId"] = correlationId?.ToString();
             }
-            // inside CustomizeProblemDetails, after the correlationId block
-            // A 400 that MVC wrote itself (broken JSON, "abc" for a Guid) is not a FluentValidation failure.
+
             if (problem is ValidationProblemDetails && !problem.Extensions.ContainsKey(ProblemDetailsWriter.ErrorCodeKey))
             {
                 problem.Extensions[ProblemDetailsWriter.ErrorCodeKey] = "MALFORMED_REQUEST";
@@ -50,7 +48,7 @@ public static class ServiceCollectionExtension
         {
             cfg.RegisterServicesFromAssemblyContaining<Program>();
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
-            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));   // Module 7
+            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
         
         return services;

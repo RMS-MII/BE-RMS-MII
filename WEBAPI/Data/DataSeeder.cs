@@ -1,0 +1,592 @@
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Serilog;
+using WEBAPI.Entities;
+using WEBAPI.Entities.Enums;
+
+namespace WEBAPI.Data;
+
+public static class DataSeeder
+{
+    #region Fixed Seed GUIDs
+
+    // Departments
+    public static readonly Guid DeptTechId = Guid.Parse("01930001-0000-7000-8000-000000000001");
+    public static readonly Guid DeptSoftwareEngId = Guid.Parse("01930001-0000-7000-8000-000000000002");
+    public static readonly Guid DeptQaId = Guid.Parse("01930001-0000-7000-8000-000000000003");
+    public static readonly Guid DeptHrId = Guid.Parse("01930001-0000-7000-8000-000000000004");
+    public static readonly Guid DeptFinanceId = Guid.Parse("01930001-0000-7000-8000-000000000005");
+
+    // Roles
+    public static readonly Guid RoleHrId = Guid.Parse("01930002-0000-7000-8000-000000000001");
+    public static readonly Guid RoleInterviewerId = Guid.Parse("01930002-0000-7000-8000-000000000002");
+
+    // Employees
+    public static readonly Guid EmpHrManagerId = Guid.Parse("01930003-0000-7000-8000-000000000001");
+    public static readonly Guid EmpVpEngId = Guid.Parse("01930003-0000-7000-8000-000000000002");
+    public static readonly Guid EmpLeadDevId = Guid.Parse("01930003-0000-7000-8000-000000000003");
+    public static readonly Guid EmpQaLeadId = Guid.Parse("01930003-0000-7000-8000-000000000004");
+    public static readonly Guid EmpFinanceLeadId = Guid.Parse("01930003-0000-7000-8000-000000000005");
+
+    // Accounts
+    public static readonly Guid AccHrManagerId = Guid.Parse("01930004-0000-7000-8000-000000000001");
+    public static readonly Guid AccVpEngId = Guid.Parse("01930004-0000-7000-8000-000000000002");
+    public static readonly Guid AccLeadDevId = Guid.Parse("01930004-0000-7000-8000-000000000003");
+    public static readonly Guid AccQaLeadId = Guid.Parse("01930004-0000-7000-8000-000000000004");
+    public static readonly Guid AccFinanceLeadId = Guid.Parse("01930004-0000-7000-8000-000000000005");
+
+    // Stage Types
+    public static readonly Guid StageTypePsikotesId = Guid.Parse("01930005-0000-7000-8000-000000000001");
+    public static readonly Guid StageTypeTechnicalTestId = Guid.Parse("01930005-0000-7000-8000-000000000002");
+    public static readonly Guid StageTypeLogicalTestId = Guid.Parse("01930005-0000-7000-8000-000000000003");
+    public static readonly Guid StageTypeInterviewHrId = Guid.Parse("01930005-0000-7000-8000-000000000004");
+    public static readonly Guid StageTypeInterviewUserId = Guid.Parse("01930005-0000-7000-8000-000000000005");
+
+    // Question Banks
+    public static readonly Guid QBankPsikotesId = Guid.Parse("01930006-0000-7000-8000-000000000001");
+    public static readonly Guid QBankLogicalId = Guid.Parse("01930006-0000-7000-8000-000000000002");
+    public static readonly Guid QBankTechnicalId = Guid.Parse("01930006-0000-7000-8000-000000000003");
+
+    #endregion
+
+    public static async Task SeedAsync(RmsDbContext context, IPasswordHasher<Account> passwordHasher)
+    {
+        Log.Information("Checking and running idempotent database seeder...");
+
+        await SeedDepartmentsAsync(context);
+        await SeedRolesAsync(context);
+        await SeedEmployeesAsync(context);
+        await SeedAccountsAsync(context, passwordHasher);
+        await SeedStageTypesAsync(context);
+        await SeedQuestionBanksAndQuestionsAsync(context);
+
+        Log.Information("Database seeder completed successfully.");
+    }
+
+    private static async Task SeedDepartmentsAsync(RmsDbContext context)
+    {
+        if (await context.Departments.AnyAsync()) return;
+
+        var tech = new Department
+        {
+            Id = DeptTechId,
+            Code = "TECH",
+            Name = "Technology",
+            Description = "Divisi Teknologi dan Rekayasa Sistem Perusahaan",
+            ParentDepartmentId = null,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var se = new Department
+        {
+            Id = DeptSoftwareEngId,
+            Code = "SE",
+            Name = "Software Engineering",
+            Description = "Departemen Pengembangan Perangkat Lunak dan Aplikasi",
+            ParentDepartmentId = DeptTechId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var qa = new Department
+        {
+            Id = DeptQaId,
+            Code = "QA",
+            Name = "Quality Assurance",
+            Description = "Departemen Penjaminan Kualitas dan Pengujian Sistem",
+            ParentDepartmentId = DeptTechId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var hr = new Department
+        {
+            Id = DeptHrId,
+            Code = "HR",
+            Name = "Human Resources",
+            Description = "Departemen Manajemen Sumber Daya Manusia dan Rekrutmen",
+            ParentDepartmentId = null,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var fin = new Department
+        {
+            Id = DeptFinanceId,
+            Code = "FIN",
+            Name = "Finance",
+            Description = "Departemen Keuangan dan Akuntansi",
+            ParentDepartmentId = null,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.Departments.AddRange(tech, se, qa, hr, fin);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedRolesAsync(RmsDbContext context)
+    {
+        if (await context.Roles.AnyAsync()) return;
+
+        var hrRole = new Role
+        {
+            Id = RoleHrId,
+            Name = "HR",
+            Description = "Hak akses administrator HR dan pengelola rekrutmen",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var interviewerRole = new Role
+        {
+            Id = RoleInterviewerId,
+            Name = "Interviewer",
+            Description = "Hak akses pewawancara teknis dan user",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.Roles.AddRange(hrRole, interviewerRole);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedEmployeesAsync(RmsDbContext context)
+    {
+        if (await context.Employees.AnyAsync()) return;
+
+        // 1. HR Manager
+        var hrManager = new Employee
+        {
+            Id = EmpHrManagerId,
+            DepartmentId = DeptHrId,
+            ManagerId = null,
+            EmployeeNumber = "EMP-HR-001",
+            FullName = "Jane Doe",
+            Email = "jane.doe@rms.local",
+            Gender = Gender.Female,
+            JobTitle = "HR Recruitment Manager",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // 2. VP of Engineering (Manager untuk dev & QA)
+        var vpEng = new Employee
+        {
+            Id = EmpVpEngId,
+            DepartmentId = DeptTechId,
+            ManagerId = null,
+            EmployeeNumber = "EMP-TECH-001",
+            FullName = "Budi Santoso",
+            Email = "budi.santoso@rms.local",
+            Gender = Gender.Male,
+            JobTitle = "VP of Engineering",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // 3. Lead Software Engineer (Subordinate Budi Santoso)
+        var leadDev = new Employee
+        {
+            Id = EmpLeadDevId,
+            DepartmentId = DeptSoftwareEngId,
+            ManagerId = EmpVpEngId,
+            EmployeeNumber = "EMP-SE-001",
+            FullName = "Fariz Irza",
+            Email = "fariz.irza@rms.local",
+            Gender = Gender.Male,
+            JobTitle = "Lead Software Engineer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // 4. QA Lead (Subordinate Budi Santoso)
+        var qaLead = new Employee
+        {
+            Id = EmpQaLeadId,
+            DepartmentId = DeptQaId,
+            ManagerId = EmpVpEngId,
+            EmployeeNumber = "EMP-QA-001",
+            FullName = "Siti Rahma",
+            Email = "siti.rahma@rms.local",
+            Gender = Gender.Female,
+            JobTitle = "QA Lead",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // 5. Finance Lead
+        var finLead = new Employee
+        {
+            Id = EmpFinanceLeadId,
+            DepartmentId = DeptFinanceId,
+            ManagerId = null,
+            EmployeeNumber = "EMP-FIN-001",
+            FullName = "Ahmad Fauzi",
+            Email = "ahmad.fauzi@rms.local",
+            Gender = Gender.Male,
+            JobTitle = "Finance Lead",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.Employees.AddRange(hrManager, vpEng, leadDev, qaLead, finLead);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedAccountsAsync(RmsDbContext context, IPasswordHasher<Account> passwordHasher)
+    {
+        if (await context.Accounts.AnyAsync()) return;
+
+        var defaultPassword = "Password123!";
+
+        var accounts = new List<Account>
+        {
+            new()
+            {
+                Id = AccHrManagerId,
+                EmployeeId = EmpHrManagerId,
+                RoleId = RoleHrId,
+                Username = "hr_manager",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = AccVpEngId,
+                EmployeeId = EmpVpEngId,
+                RoleId = RoleInterviewerId,
+                Username = "budi_santoso",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = AccLeadDevId,
+                EmployeeId = EmpLeadDevId,
+                RoleId = RoleInterviewerId,
+                Username = "fariz_irza",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = AccQaLeadId,
+                EmployeeId = EmpQaLeadId,
+                RoleId = RoleInterviewerId,
+                Username = "siti_rahma",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = AccFinanceLeadId,
+                EmployeeId = EmpFinanceLeadId,
+                RoleId = RoleInterviewerId,
+                Username = "ahmad_fauzi",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        foreach (var acc in accounts)
+        {
+            acc.PasswordHash = passwordHasher.HashPassword(acc, defaultPassword);
+        }
+
+        context.Accounts.AddRange(accounts);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedStageTypesAsync(RmsDbContext context)
+    {
+        if (await context.StageTypes.AnyAsync()) return;
+
+        var stageTypes = new List<StageType>
+        {
+            new()
+            {
+                Id = StageTypePsikotesId,
+                Name = "Psikotes",
+                Description = "Tahap evaluasi profil psikologis, kepribadian, dan gaya kerja kandidat",
+                StageCategory = StageCategory.Test,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = StageTypeTechnicalTestId,
+                Name = "Technical Test",
+                Description = "Uji kompetensi teknis dan keahlian spesifik bidang pekerjaan",
+                StageCategory = StageCategory.Test,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = StageTypeLogicalTestId,
+                Name = "Logical Test",
+                Description = "Uji kemampuan berpikir kritis, logika komputasi, dan pemecahan masalah",
+                StageCategory = StageCategory.Test,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = StageTypeInterviewHrId,
+                Name = "Interview HR",
+                Description = "Wawancara kompetensi umum, riwayat pengalaman, dan kesesuaian budaya organisasi",
+                StageCategory = StageCategory.Interview,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = StageTypeInterviewUserId,
+                Name = "Interview User",
+                Description = "Wawancara teknis mendalam bersama calon atasan dan rekan tim kerja",
+                StageCategory = StageCategory.Interview,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        context.StageTypes.AddRange(stageTypes);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedQuestionBanksAndQuestionsAsync(RmsDbContext context)
+    {
+        if (await context.QuestionBanks.AnyAsync()) return;
+
+        // 1. Bank Soal Psikotes
+        var bankPsikotes = new QuestionBank
+        {
+            Id = QBankPsikotesId,
+            DepartmentId = DeptHrId,
+            StageTypeId = StageTypePsikotesId,
+            CreatedBy = EmpHrManagerId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // 2. Bank Soal Logical Test
+        var bankLogical = new QuestionBank
+        {
+            Id = QBankLogicalId,
+            DepartmentId = DeptTechId,
+            StageTypeId = StageTypeLogicalTestId,
+            CreatedBy = EmpHrManagerId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // 3. Bank Soal Technical Test
+        var bankTechnical = new QuestionBank
+        {
+            Id = QBankTechnicalId,
+            DepartmentId = DeptSoftwareEngId,
+            StageTypeId = StageTypeTechnicalTestId,
+            CreatedBy = EmpLeadDevId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.QuestionBanks.AddRange(bankPsikotes, bankLogical, bankTechnical);
+
+        // Tambahkan masing-masing 10 Soal + 4 Opsi Jawaban
+        var questions = new List<Question>();
+        var options = new List<QuestionOptions>();
+
+        // Psikotes Questions (10)
+        AddPsikotesQuestions(bankPsikotes.Id, questions, options);
+
+        // Logical Test Questions (10)
+        AddLogicalQuestions(bankLogical.Id, questions, options);
+
+        // Technical Test Questions (10)
+        AddTechnicalQuestions(bankTechnical.Id, questions, options);
+
+        context.Questions.AddRange(questions);
+        context.QuestionOptions.AddRange(options);
+
+        await context.SaveChangesAsync();
+    }
+
+    #region Question Seeding Helpers
+
+    private static void AddPsikotesQuestions(Guid bankId, List<Question> questions, List<QuestionOptions> options)
+    {
+        var data = new (string QuestionText, string[] Opts, int CorrectIndex)[]
+        {
+            ("Saat menghadapi perubahan mendadak dalam prioritas tugas, bagaimana sikap Anda?",
+                ["Menolak karena mengganggu rencana awal", "Beradaptasi dengan menyusun ulang jadwal prioritas", "Menunggu instruksi lebih lanjut tanpa mengambil inisiatif", "Mengeluh kepada rekan kerja"], 1),
+            ("Ketika rekan satu tim mengalami kendala dan proyek terancam terlambat, apa yang Anda lakukan?",
+                ["Menyelesaikan tugas sendiri saja", "Menyalahkan rekan tersebut ke atasan", "Menawarkan bantuan dan mendiskusikan solusi bersama", "Membiarkan karena itu bukan tanggung jawab saya"], 2),
+            ("Bagaimana cara Anda mengelola stres saat beban kerja meningkat pesat?",
+                ["Mengabaikan deadline dan bersantai", "Membuat skala prioritas dan beristirahat berkala secara teratur", "Bekerja tanpa tidur hingga jatuh sakit", "Menyerahkan tugas ke orang lain"], 1),
+            ("Jika Anda menemukan kesalahan minor pada pekerjaan rekan yang sudah diserahkan ke klien:",
+                ["Mendiamkannya agar tidak timbul masalah", "Menginfokan rekan tersebut secara privat dan membantunya memperbaikinya", "Menertawakannya di depan umum", "Segera melaporkan ke direktur"], 1),
+            ("Sikap yang paling tepat saat menerima umpan balik kritis yang membangun dari atasan adalah:",
+                ["Menerima dengan objektif dan menjadikannya rencana perbaikan diri", "Merasa tersinggung dan membela diri secara agresif", "Mengabaikan masukan tersebut", "Langsung mengajukan resign"], 0),
+            ("Ketika Anda dihadapkan pada dua pilihan penting dengan data yang terbatas, Anda:",
+                ["Menunda keputusan tanpa batas waktu", "Mengumpulkan fakta kunci yang relevan dan mengambil keputusan berbasis analisis risiko", "Memilih secara acak dengan melempar koin", "Meminta orang lain memutuskan agar terhindar dari tanggung jawab"], 1),
+            ("Menurut Anda, kunci utama keberhasilan kolaborasi tim lintas fungsi adalah:",
+                ["Menonjolkan kehebatan individu sendiri", "Komunikasi terbuka, rasa saling percaya, dan tujuan yang selaras", "Bekerja secara terisolasi tanpa interaksi", "Mengikuti hanya apa yang diinginkan pihak yang paling vokal"], 1),
+            ("Jika Anda diberi tugas baru yang belum pernah Anda kerjakan sebelumnya:",
+                ["Menolak tugas karena bukan bidang keahlian", "Mempelajari dasar-dasarnya, bertanya kepada ahli, dan mengerjakannya bertahap", "Mengerjakan asal-asalan tanpa panduan", "Menunggu hingga ada yang mengambil alih"], 1),
+            ("Bagaimana Anda menyikapi perbedaan pendapat yang tajam dalam rapat diskusi tim?",
+                ["Memaksakan argumen sendiri sampai diterima", "Mendengarkan perspektif rekan lain dan mencari titik temu yang solutif", "Meninggalkan ruangan rapat dengan marah", "Diam saja meski tahu rencana tersebut cacat"], 1),
+            ("Apa yang Anda lakukan saat target pribadi Anda selesai lebih awal dari jadwal yang ditentukan?",
+                ["Langsung pulang tanpa koordinasi", "Mengecek kembali kualitas hasil kerja dan menawarkan bantuan ke tim jika dibutuhkan", "Bermain game di meja kerja", "Menyembunyikan bahwa tugas sudah selesai"], 1)
+        };
+
+        for (int i = 0; i < data.Length; i++)
+        {
+            var qId = Guid.NewGuid();
+            questions.Add(new Question
+            {
+                Id = qId,
+                QuestionBankId = bankId,
+                QuestionText = data[i].QuestionText,
+                QuestionType = QuestionType.SingleChoice,
+                Weight = 1.0m,
+                SequenceNumber = i + 1,
+                IsRequired = true,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            var labels = new[] { "A", "B", "C", "D" };
+            for (int j = 0; j < 4; j++)
+            {
+                options.Add(new QuestionOptions
+                {
+                    Id = Guid.NewGuid(),
+                    QuestionId = qId,
+                    OptionLabel = labels[j],
+                    OptionText = data[i].Opts[j],
+                    Score = (j == data[i].CorrectIndex) ? 10.0m : 0.0m,
+                    SequenceNumber = j + 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+    }
+
+    private static void AddLogicalQuestions(Guid bankId, List<Question> questions, List<QuestionOptions> options)
+    {
+        var data = new (string QuestionText, string[] Opts, int CorrectIndex)[]
+        {
+            ("Deret angka: 2, 4, 8, 16, 32, ... Angka berikutnya adalah:",
+                ["48", "64", "54", "72"], 1),
+            ("Jika SEMUA programmer menyukai kopi, dan Fariz adalah programmer, maka kesimpulannya:",
+                ["Fariz menyukai kopi", "Fariz tidak menyukai kopi", "Fariz hanya minum teh", "Tidak dapat disimpulkan"], 0),
+            ("Deret angka: 3, 5, 9, 17, 33, ... Pola penambahan deret ini adalah:",
+                ["+2, +4, +8, +16", "+2, +3, +4, +5", "+1, +2, +3, +4", "+3, +6, +9, +12"], 0),
+            ("Sebuah tangki air terisi penuh dalam 20 menit dengan pipa A, dan 30 menit dengan pipa B. Berapa menit tangki terisi jika kedua pipa dibuka bersama?",
+                ["10 menit", "12 menit", "15 menit", "25 menit"], 1),
+            ("Jika HARI INI adalah hari Rabu, hari apakah 100 hari setelah hari ini?",
+                ["Kamis", "Jumat", "Sabtu", "Minggu"], 1),
+            ("Deret huruf: B, D, G, K, P, ... Huruf selanjutnya adalah:",
+                ["U", "V", "W", "T"], 1),
+            ("Semua mobil butuh bahan bakar. Beberapa kendaraan adalah mobil. Kesimpulannya:",
+                ["Semua kendaraan butuh bahan bakar", "Beberapa kendaraan butuh bahan bakar", "Tidak ada kendaraan butuh bahan bakar", "Semua motor butuh bensin"], 1),
+            ("Jika 5 mesin dapat membuat 5 produk dalam 5 menit, berapa menit yang dibutuhkan 100 mesin untuk membuat 100 produk?",
+                ["100 menit", "5 menit", "50 menit", "1 menit"], 1),
+            ("Deret angka: 1, 1, 2, 3, 5, 8, 13, ... Angka selanjutnya dalam deret Fibonacci ini adalah:",
+                ["19", "20", "21", "24"], 2),
+            ("Jika X > Y dan Y > Z, maka pernyataan yang PASTI BENAR adalah:",
+                ["Z > X", "X > Z", "X == Z", "Y == Z"], 1)
+        };
+
+        for (int i = 0; i < data.Length; i++)
+        {
+            var qId = Guid.NewGuid();
+            questions.Add(new Question
+            {
+                Id = qId,
+                QuestionBankId = bankId,
+                QuestionText = data[i].QuestionText,
+                QuestionType = QuestionType.SingleChoice,
+                Weight = 1.0m,
+                SequenceNumber = i + 1,
+                IsRequired = true,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            var labels = new[] { "A", "B", "C", "D" };
+            for (int j = 0; j < 4; j++)
+            {
+                options.Add(new QuestionOptions
+                {
+                    Id = Guid.NewGuid(),
+                    QuestionId = qId,
+                    OptionLabel = labels[j],
+                    OptionText = data[i].Opts[j],
+                    Score = (j == data[i].CorrectIndex) ? 10.0m : 0.0m,
+                    SequenceNumber = j + 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+    }
+
+    private static void AddTechnicalQuestions(Guid bankId, List<Question> questions, List<QuestionOptions> options)
+    {
+        var data = new (string QuestionText, string[] Opts, int CorrectIndex)[]
+        {
+            ("Di dalam C# dan EF Core, apa fungsi utama dari pemanggilan method AsNoTracking() pada query?",
+                ["Mempercepat eksekusi dengan tidak melacak perubahan entity di memory snapshot", "Menghapus data secara permanen", "Mengunci tabel dari transaksi lain", "Membuat transaksi rollback otomatis"], 0),
+            ("Apa perbedaan mendasar antara Value Type dan Reference Type dalam platform .NET?",
+                ["Value type disimpan di Heap, Reference type disimpan di Stack", "Value type menyimpan data langsung, Reference type menyimpan referensi ke memori Heap", "Keduanya memiliki alokasi memori yang sama persis", "Value type tidak bisa bernilai null sama sekali meskipun nullable"], 1),
+            ("Dalam pola arsitektur CQRS, apa prinsip pemisahan utama antara Command dan Query?",
+                ["Command mengubah state data tanpa mengembalikan data entity langsung, sedangkan Query hanya membaca data (Idempotent/Read-only)", "Command hanya dipakai untuk delete, Query untuk update", "Command memakai GET, Query memakai POST", "Keduanya menjalankan operasi yang identik"], 0),
+            ("Status HTTP Code yang paling tepat dikembalikan ketika validasi payload request klien gagal adalah:",
+                ["200 OK", "400 Bad Request / 422 Unprocessable Entity", "500 Internal Server Error", "404 Not Found"], 1),
+            ("Dalam Entity Framework Core, DeleteBehavior apakah yang mencegah penghapusan jika masih ada anak entitas yang berelasi?",
+                ["DeleteBehavior.Cascade", "DeleteBehavior.Restrict", "DeleteBehavior.SetNull", "DeleteBehavior.ClientCascade"], 1),
+            ("Apa keuntungan menggunakan Guid Version 7 (Guid.CreateVersion7()) dibandingkan Guid v4 (Guid.NewGuid())?",
+                ["Menghemat ukuran byte menjadi 4 byte", "Mengandung komponen timestamp urut (time-ordered) yang meminimalkan fragmentasi indeks B-Tree database", "Tidak bisa diduplikasi di jaringan internet", "Dapat dienkripsi dengan SHA-256"], 1),
+            ("Dalam arsitektur ASP.NET Core, apa fungsi dari MediatR IPipelineBehavior?",
+                ["Menjadi middleware sebelum request masuk ke controller", "Mencegat (interception) eksekusi request handler untuk logging, validasi, atau transaksional (Cross-Cutting Concerns)", "Mengatur routing URL", "Menghubungkan langsung controller ke basis data"], 1),
+            ("Apa yang dimaksud dengan prinsip 'Dependency Inversion Principle' (DIP) pada SOLID?",
+                ["Modul tingkat tinggi tidak boleh bergantung pada modul tingkat rendah; keduanya harus bergantung pada abstraksi", "Semua class harus memiliki turunan interface", "Class hanya boleh memiliki satu method", "Database harus dipisahkan menjadi microservices"], 0),
+            ("Kapan sebaiknya kita menggunakan index komposit (composite index) pada tabel SQL Server?",
+                ["Ketika kolom selalu dicari secara independen satu per satu", "Ketika kueri filter (WHERE) atau JOIN sering melibatkan kombinasi dua kolom atau lebih secara bersamaan", "Hanya pada kolom bertipe teks panjang nvarchar(max)", "Tidak pernah dianjurkan dalam database relasional"], 1),
+            ("Di ASP.NET Core, interface manakah yang dianjurkan untuk mocking waktu sistem saat unit test dijalankan?",
+                ["DateTime.Now", "TimeProvider / IDateTimeProvider", "Thread.Sleep", "Stopwatch"], 1)
+        };
+
+        for (int i = 0; i < data.Length; i++)
+        {
+            var qId = Guid.NewGuid();
+            questions.Add(new Question
+            {
+                Id = qId,
+                QuestionBankId = bankId,
+                QuestionText = data[i].QuestionText,
+                QuestionType = QuestionType.SingleChoice,
+                Weight = 1.0m,
+                SequenceNumber = i + 1,
+                IsRequired = true,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            var labels = new[] { "A", "B", "C", "D" };
+            for (int j = 0; j < 4; j++)
+            {
+                options.Add(new QuestionOptions
+                {
+                    Id = Guid.NewGuid(),
+                    QuestionId = qId,
+                    OptionLabel = labels[j],
+                    OptionText = data[i].Opts[j],
+                    Score = (j == data[i].CorrectIndex) ? 10.0m : 0.0m,
+                    SequenceNumber = j + 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+    }
+
+    #endregion
+}
