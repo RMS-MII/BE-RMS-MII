@@ -71,7 +71,7 @@ WEBAPI/
 - Semua FK memakai `DeleteBehavior.Restrict` (menghindari galat multiple cascade paths di SQL Server).
 - Kolom audit `CreatedBy` dan `ReviewedBy` disimpan sebagai `Guid` / `Guid?` biasa tanpa Foreign Key ke tabel Employee, karena akan diisi langsung melalui business logic di backend.
 - Enum disimpan dalam bentuk **`int`** di database, dan dikelola/diparsing di backend melalui kelas terpadu dengan berbagai method pembantu (display name, validasi transisi, parsing, list opsi).
-- `decimal` untuk skor dan bobot memakai presisi `decimal(18,2)`; `GPA` memakai `decimal(3,2)`; `ExpectedSalary` memakai `decimal(18,2)`.
+- `decimal` untuk skor dan bobot memakai presisi `decimal(18,2)`; `GPA` memakai `decimal(3,2)`; `ExpectedSalary` memakai tipe `money`.
 - Satu `IEntityTypeConfiguration<T>` per entity. Nama kolom dan tipe data mengikuti ERD drawio terbaru (`Diagram Interviewer.drawio.xml`).
 
 ### 5.2 Enum & Metode Pembantu (Disimpan sebagai INT di Database)

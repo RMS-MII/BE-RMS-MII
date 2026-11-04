@@ -25,12 +25,12 @@ public class QuestionBankConfiguration : IEntityTypeConfiguration<QuestionBank>
             .IsRequired();
 
         builder.HasOne(x => x.Department)
-            .WithMany()
+            .WithMany(d => d.QuestionBanks)
             .HasForeignKey(x => x.DepartmentId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.StageType)
-            .WithMany()
+            .WithMany(st => st.QuestionBanks)
             .HasForeignKey(x => x.StageTypeId)
             .OnDelete(DeleteBehavior.Restrict);
 
