@@ -2,8 +2,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
-using WEBAPI.Features.Auth.GetCurrentUser;
-using WEBAPI.Features.Auth.Login;
+using WEBAPI.Features.Auth.Commands.Login;
+using WEBAPI.Features.Auth.Queries.GetCurrentUser;
 using WEBAPI.Models;
 
 namespace WEBAPI.Controllers;

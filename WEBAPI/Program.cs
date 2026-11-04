@@ -36,7 +36,7 @@ try
     });
 
     builder.Services.AddRmsServices(builder.Configuration);
-    builder.Services.AddRmsSecurity(builder.Configuration);
+    // builder.Services.AddRmsSecurity(builder.Configuration);
     builder.Services.AddRmsOpenApi();
 
     var app = builder.Build();
@@ -47,15 +47,14 @@ try
     // if (app.Environment.IsDevelopment())
     //     await app.SeedBootstrapAdminAsync();   // Module 10: admin@hris.local (update the database first)
 
-    if (app.Environment.IsDevelopment())
-    {
-        await app.SeedRmsDataAsync();
-    }
+    // if (app.Environment.IsDevelopment())
+    // {
+    //     await app.SeedRmsDataAsync();
+    // }
 
     app.UseExceptionHandler(); 
     app.UseRmsOpenApi();
     // app.UseMaintenanceMode();
-    app.UseRmsOpenApi();
     app.UseHttpsRedirection();
     app.UseCors();
     app.UseAuthentication();
