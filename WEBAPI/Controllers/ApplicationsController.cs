@@ -5,6 +5,7 @@ using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
 using WEBAPI.Features.Applications.Commands.SetFinalResult;
 using WEBAPI.Features.Applications.Commands.StartApplicationStage;
+using WEBAPI.Features.Applications.Commands.UploadOfferingLetter;
 using WEBAPI.Features.Applications.Queries.GetApplicationRecap;
 using WEBAPI.Models;
 
@@ -50,6 +51,20 @@ public sealed class ApplicationsController(ISender sender) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> SetFinalResult(
         Guid id, [FromBody] SetFinalResultCommand command, CancellationToken ct)
+    {
+        var result = await sender.Send(command with { ApplicationId = id }, ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    [HttpPost("{id:guid}/offering-letter")]
+    [ProducesResponseType<BatchApplicationDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> UploadOfferingLetter(
+        Guid id, [FromBody] UploadOfferingLetterCommand command, CancellationToken ct)
     {
         var result = await sender.Send(command with { ApplicationId = id }, ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
