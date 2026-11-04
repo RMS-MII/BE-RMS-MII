@@ -17,4 +17,5 @@ public class BatchStage : BaseEntity
     public RecruitmentBatch RecruitmentBatch { get; set; } = null!;
     public StageType StageType { get; set; } = null!;
     public ICollection<ApplicationStage> ApplicationStages { get; set; } = [];
+    public ICollection<StageEmployee> StageEmployees { get; set; } = [];
 }

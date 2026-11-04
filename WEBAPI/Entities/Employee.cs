@@ -18,4 +18,5 @@ public class Employee : BaseEntity
     public ICollection<Employee> Subordinates { get; set; } = [];
     public Department Department { get; set; } = null!;
     public Account? Account { get; set; }
+    public ICollection<StageEmployee> StageEmployees { get; set; } = [];
 }

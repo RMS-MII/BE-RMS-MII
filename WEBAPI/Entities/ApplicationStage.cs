@@ -16,5 +16,6 @@ public class ApplicationStage : BaseEntity
     public Guid BatchStageId { get; set; }
 
     public BatchApplication BatchApplication { get; set; } = null!;
+    public ICollection<InterviewSession> InterviewSessions { get; set; } = [];
     public BatchStage BatchStage { get; set; } = null!;
 }
