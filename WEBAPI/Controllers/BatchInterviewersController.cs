@@ -1,5 +1,6 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -11,6 +12,7 @@ namespace WEBAPI.Controllers;
 [ApiController]
 [Route("api/batches/{batchId:guid}/stages/{stageId:guid}/interviewers")]
 [Authorize(Policy = Policies.HrOnly)]
+[Tags("Batches")]
 public sealed class BatchInterviewersController(ISender sender) : ControllerBase
 {
     /// <summary>

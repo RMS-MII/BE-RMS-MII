@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Features.Auth.Commands.Login;
@@ -10,6 +11,7 @@ namespace WEBAPI.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[Tags("Auth")]
 public sealed class AuthController(ISender sender) : ControllerBase
 {
     [HttpPost("login")]

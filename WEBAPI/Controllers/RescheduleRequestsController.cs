@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -13,6 +14,7 @@ namespace WEBAPI.Controllers;
 
 [ApiController]
 [Route("api/reschedule-requests")]
+[Tags("Reschedule")]
 public sealed class RescheduleRequestsController(ISender sender) : ControllerBase
 {
     /// <summary>
@@ -95,4 +97,3 @@ public sealed class RescheduleRequestsController(ISender sender) : ControllerBas
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 }
-

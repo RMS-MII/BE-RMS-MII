@@ -1,11 +1,14 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Features.Portal.Commands.ConfirmSchedule;
 using WEBAPI.Features.Portal.Commands.SubmitTest;
 using WEBAPI.Features.Portal.Queries.GetCandidateTasks;
 using WEBAPI.Features.Portal.Queries.GetTest;
+using WEBAPI.Features.Portal.UploadSubmission;
+using WEBAPI.Features.RescheduleRequests.Commands.RequestReschedule;
 using WEBAPI.Models;
 
 namespace WEBAPI.Controllers;
@@ -13,6 +16,7 @@ namespace WEBAPI.Controllers;
 [ApiController]
 [Route("api/portal")]
 [AllowAnonymous]
+[Tags("Portal")]
 public sealed class PortalController(ISender sender) : ControllerBase
 {
     [HttpGet("{candidateId:guid}/tasks")]
@@ -70,6 +74,55 @@ public sealed class PortalController(ISender sender) : ControllerBase
         CancellationToken ct)
     {
         var result = await sender.Send(new ConfirmScheduleCommand(candidateId, id), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengunggah tautan berkas Google Drive untuk tugas take-home test kandidat pada sesi wawancara.
+    /// </summary>
+    [HttpPost("{candidateId:guid}/sessions/{id:guid}/submission")]
+    [ProducesResponseType<SubmissionDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> UploadSubmission(
+        [FromRoute] Guid candidateId,
+        [FromRoute] Guid id,
+        [FromBody] UploadSubmissionRequest request,
+        CancellationToken ct)
+    {
+        var command = new UploadSubmissionCommand(candidateId, id, request.FileSubmission);
+        var result = await sender.Send(command, ct);
+
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengajukan permohonan reschedule jadwal sesi wawancara oleh kandidat melalui portal kandidat.
+    /// </summary>
+    [HttpPost("{candidateId:guid}/sessions/{id:guid}/reschedule")]
+    [ProducesResponseType<RescheduleRequestDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RequestRescheduleByCandidate(
+        [FromRoute] Guid candidateId,
+        [FromRoute] Guid id,
+        [FromBody] CandidateRequestRescheduleRequest request,
+        CancellationToken ct)
+    {
+        var command = new RequestRescheduleCommand(
+            id,
+            request.ProposedStart,
+            request.ProposedEnd,
+            request.Reason,
+            candidateId);
+
+        var result = await sender.Send(command, ct);
 
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
