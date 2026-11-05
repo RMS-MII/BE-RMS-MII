@@ -16,11 +16,11 @@ public class CandidateAnswerConfiguration : IEntityTypeConfiguration<CandidateAn
             .IsRequired();
 
         builder.Property(x => x.QuestionText)
-            .HasMaxLength(100)
+            .HasColumnType("nvarchar(max)")
             .IsRequired();
 
         builder.Property(x => x.QuestionOptionText)
-            .HasMaxLength(100)
+            .HasColumnType("nvarchar(max)")
             .IsRequired();
 
         builder.Property(x => x.Score)
