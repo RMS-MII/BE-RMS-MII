@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using WEBAPI.Entities;
@@ -77,153 +77,30 @@ public static class DataSeeder
     /// <summary>
     /// Checkpoint reset: membersihkan semua data pengujian development (transaksional & testing)
     /// dan mengembalikan data sample dan master ke status pristine (checkpoint awal).
+    /// Dihapus secara berurutan dari child ke parent untuk menghindari pelanggaran foreign key.
     /// </summary>
     public static async Task ResetToCheckpointAsync(RmsDbContext context, IPasswordHasher<Account> passwordHasher)
     {
         Log.Information("Resetting database to seed checkpoint...");
 
-        // 1. Bersihkan data transaksional dan hasil pengujian
+        // 1. Bersihkan tabel transaksional dari entitas anak (child) ke entitas induk (parent)
         await context.CandidateAnswers.ExecuteDeleteAsync();
         await context.EmailLogs.ExecuteDeleteAsync();
         await context.InterviewAssessments.ExecuteDeleteAsync();
         await context.RescheduleRequests.ExecuteDeleteAsync();
+        await context.SessionInterviews.ExecuteDeleteAsync();
+        await context.InterviewSessions.ExecuteDeleteAsync();
+        await context.StageEmployees.ExecuteDeleteAsync();
+        await context.ApplicationStages.ExecuteDeleteAsync();
+        await context.BatchApplications.ExecuteDeleteAsync();
+        await context.Candidates.ExecuteDeleteAsync();
 
-        // Hapus sesi wawancara selain sample awal
-        await context.SessionInterviews
-            .Where(x => x.Id != SampleSessionInterviewId)
-            .ExecuteDeleteAsync();
+        // Putus relasi self-referencing NextStageId sebelum menghapus BatchStages
+        await context.BatchStages.ExecuteUpdateAsync(s => s.SetProperty(x => x.NextStageId, (Guid?)null));
+        await context.BatchStages.ExecuteDeleteAsync();
+        await context.RecruitmentBatches.ExecuteDeleteAsync();
 
-        await context.InterviewSessions
-            .Where(x => x.Id != SampleInterviewSessionId)
-            .ExecuteDeleteAsync();
-
-        // Hapus penugasan pewawancara selain sample awal
-        await context.StageEmployees
-            .Where(x => x.Id != SampleStageEmployeeId)
-            .ExecuteDeleteAsync();
-
-        // Hapus tahapan aplikasi & aplikasi selain sample awal
-        await context.ApplicationStages
-            .Where(x => x.Id != SampleApplicationStageId)
-            .ExecuteDeleteAsync();
-
-        await context.BatchApplications
-            .Where(x => x.Id != SampleBatchApplicationId)
-            .ExecuteDeleteAsync();
-
-        // Hapus kandidat tambahan selain sample awal
-        await context.Candidates
-            .Where(x => x.Id != SampleCandidateId)
-            .ExecuteDeleteAsync();
-
-        // Hapus tahapan batch & batch tambahan selain sample awal
-        await context.BatchStages
-            .Where(x => x.Id != SampleInterviewStageId)
-            .ExecuteDeleteAsync();
-
-        await context.RecruitmentBatches
-            .Where(x => x.Id != SampleBatchId)
-            .ExecuteDeleteAsync();
-
-        // 2. Kembalikan data sample ke kondisi awal (pristine checkpoint)
-        var now = DateTime.UtcNow;
-
-        var sampleSession = await context.InterviewSessions.FirstOrDefaultAsync(x => x.Id == SampleInterviewSessionId);
-        if (sampleSession is not null)
-        {
-            sampleSession.SessionName = "Wawancara Teknis Kandidat";
-            sampleSession.ScheduledStart = now.AddDays(2).Date.AddHours(9);
-            sampleSession.ScheduledEnd = now.AddDays(2).Date.AddHours(10);
-            sampleSession.IsOnline = true;
-            sampleSession.MeetingUrl = "https://meet.google.com/abc-defg-hij";
-            sampleSession.Location = null;
-            sampleSession.Status = InterviewSessionStatus.PendingConfirmation;
-            sampleSession.FileSubmission = null;
-            sampleSession.EndedSubmissionAt = null;
-            sampleSession.UpdatedAt = null;
-        }
-
-        var sampleSessionInterview = await context.SessionInterviews.FirstOrDefaultAsync(x => x.Id == SampleSessionInterviewId);
-        if (sampleSessionInterview is not null)
-        {
-            sampleSessionInterview.Status = SessionInterviewStatus.InProgress;
-            sampleSessionInterview.UpdatedAt = null;
-        }
-
-        var sampleStageEmp = await context.StageEmployees.FirstOrDefaultAsync(x => x.Id == SampleStageEmployeeId);
-        if (sampleStageEmp is not null)
-        {
-            sampleStageEmp.Status = StageEmployeeStatus.Accepted;
-            sampleStageEmp.IsActive = true;
-            sampleStageEmp.Note = null;
-            sampleStageEmp.UpdatedAt = null;
-        }
-
-        var sampleAppStage = await context.ApplicationStages.FirstOrDefaultAsync(x => x.Id == SampleApplicationStageId);
-        if (sampleAppStage is not null)
-        {
-            sampleAppStage.Status = ApplicationStageStatus.InProgress;
-            sampleAppStage.StartedAt = now.AddDays(-1);
-            sampleAppStage.EndAt = now.AddDays(7);
-            sampleAppStage.CompletedAt = null;
-            sampleAppStage.Notes = null;
-            sampleAppStage.IsAttempts = false;
-            sampleAppStage.DurationTest = null;
-            sampleAppStage.TotalScore = null;
-            sampleAppStage.UpdatedAt = null;
-        }
-
-        var sampleApp = await context.BatchApplications.FirstOrDefaultAsync(x => x.Id == SampleBatchApplicationId);
-        if (sampleApp is not null)
-        {
-            sampleApp.Status = ApplicationStatus.InProcess;
-            sampleApp.FinalResultStatus = null;
-            sampleApp.OfferingLetterStatus = OfferingLetterStatus.Pending;
-            sampleApp.FileOfferingLetter = string.Empty;
-            sampleApp.Notes = string.Empty;
-            sampleApp.UpdatedAt = null;
-        }
-
-        var sampleCandidate = await context.Candidates.FirstOrDefaultAsync(x => x.Id == SampleCandidateId);
-        if (sampleCandidate is not null)
-        {
-            sampleCandidate.FullName = "John Doe (Candidate)";
-            sampleCandidate.Email = "john.doe.candidate@example.com";
-            sampleCandidate.Gender = Gender.Male;
-            sampleCandidate.PhoneNumber = "081234567890";
-            sampleCandidate.BirthDate = new DateOnly(2000, 1, 1);
-            sampleCandidate.Education = "S1 Teknik Informatika";
-            sampleCandidate.Institution = "Institut Teknologi Bandung";
-            sampleCandidate.Address = "Jl. Ganesha No. 10, Bandung";
-            sampleCandidate.Gpa = 3.85m;
-            sampleCandidate.ExpectedSalary = 12000000m;
-            sampleCandidate.Cv = "cv_john_doe.pdf";
-            sampleCandidate.UpdatedAt = null;
-        }
-
-        var sampleStage = await context.BatchStages.FirstOrDefaultAsync(x => x.Id == SampleInterviewStageId);
-        if (sampleStage is not null)
-        {
-            sampleStage.StageName = "Wawancara HR & User";
-            sampleStage.IsActive = true;
-            sampleStage.StartDate = now.AddDays(-2);
-            sampleStage.EndDate = now.AddDays(15);
-            sampleStage.UpdatedAt = null;
-        }
-
-        var sampleBatch = await context.RecruitmentBatches.FirstOrDefaultAsync(x => x.Id == SampleBatchId);
-        if (sampleBatch is not null)
-        {
-            sampleBatch.Name = "Batch 2026 Tech & Engineering";
-            sampleBatch.Status = BatchStatus.Open;
-            sampleBatch.StartDate = now.AddDays(-5);
-            sampleBatch.EndDate = now.AddDays(30);
-            sampleBatch.UpdatedAt = null;
-        }
-
-        await context.SaveChangesAsync();
-
-        // 3. Pastikan kelengkapan master data
+        // 2. Pastikan master data terisi dan bangun ulang data sample awal
         await SeedAsync(context, passwordHasher);
 
         Log.Information("Database checkpoint restored successfully.");

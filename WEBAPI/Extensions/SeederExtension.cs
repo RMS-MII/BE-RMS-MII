@@ -8,7 +8,7 @@ namespace WEBAPI.Extensions;
 
 public static class SeederExtension
 {
-    public static async Task SeedDatabaseAsync(this WebApplication app)
+    public static async Task SeedDatabaseAsync(this WebApplication app, string[]? args = null)
     {
         using var scope = app.Services.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<RmsDbContext>>();
@@ -24,10 +24,11 @@ public static class SeederExtension
 
             var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<Account>>();
             var resetOnStartup = app.Configuration.GetValue<bool>("Seed:ResetToCheckpointOnStartup", false);
+            var isResetRequested = resetOnStartup || (args != null && (args.Contains("--seed-reset") || args.Contains("--reset-checkpoint")));
 
-            if (resetOnStartup)
+            if (isResetRequested)
             {
-                logger.LogInformation("Seed:ResetToCheckpointOnStartup aktif. Me-reset database ke checkpoint seeder...");
+                logger.LogInformation("Perintah reset checkpoint seeder aktif. Me-reset database ke checkpoint seeder...");
                 await DataSeeder.ResetToCheckpointAsync(db, passwordHasher);
             }
             else
