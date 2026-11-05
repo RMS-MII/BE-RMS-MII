@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -23,23 +23,24 @@ public class GetInterviewerDashboardHandler(
                 Error.Forbidden("Akun Anda tidak terhubung dengan profil pegawai pewawancara."));
         }
 
+        var empId = currentEmployeeId.Value;
         var now = DateTime.UtcNow;
 
-        // 1. Ambil undangan penugasan tahapan yang masih pending untuk pewawancara ini (AsNoTracking untuk performa read-only)
+        // 1. Ambil undangan penugasan tahapan yang masih pending untuk pewawancara ini
         var pendingInvitations = await db.StageEmployees
             .AsNoTracking()
             .Include(se => se.BatchStage)
                 .ThenInclude(bs => bs.RecruitmentBatch)
             .Include(se => se.BatchStage)
                 .ThenInclude(bs => bs.StageType)
-            .Where(se => se.EmployeeId == currentEmployeeId.Value
+            .Where(se => se.EmployeeId == empId
                       && se.Status == StageEmployeeStatus.Pending
                       && se.IsActive)
             .OrderByDescending(se => se.CreatedAt)
             .ToListAsync(ct);
 
-        // 2. Ambil seluruh penugasan sesi wawancara untuk pewawancara ini (AsNoTracking)
-        var mySessionInterviews = await db.SessionInterviews
+        // 2. Base query untuk SessionInterviews milik pewawancara ini (tidak termasuk yang cancelled/rescheduled)
+        var baseQuery = db.SessionInterviews
             .AsNoTracking()
             .AsSplitQuery()
             .Include(si => si.InterviewSession)
@@ -52,33 +53,35 @@ public class GetInterviewerDashboardHandler(
                         .ThenInclude(ba => ba.Candidate)
             .Include(si => si.InterviewAssessment)
             .Include(si => si.StageEmployee)
-            .Where(si => si.StageEmployee.EmployeeId == currentEmployeeId.Value)
+            .Where(si => si.StageEmployee.EmployeeId == empId
+                      && si.Status != SessionInterviewStatus.Cancelled
+                      && si.InterviewSession.Status != InterviewSessionStatus.Rescheduled);
+
+        // 3. Sesi mendatang (upcoming) — filter di DB level
+        var upcomingSessions = await baseQuery
+            .Where(si => si.InterviewSession.ScheduledEnd >= now)
+            .OrderBy(si => si.InterviewSession.ScheduledStart)
             .ToListAsync(ct);
 
-        // 3. Filter sesi mendatang (upcoming)
-        var upcomingSessions = mySessionInterviews
-            .Where(si => si.InterviewSession.ScheduledEnd >= now
-                      && si.Status != SessionInterviewStatus.Cancelled
-                      && si.InterviewSession.Status != InterviewSessionStatus.Rescheduled)
-            .OrderBy(si => si.InterviewSession.ScheduledStart)
-            .ToList();
-
-        // 4. Filter sesi lampau / baru selesai (recent)
-        var recentSessions = mySessionInterviews
-            .Where(si => si.InterviewSession.ScheduledEnd < now
-                      && si.Status != SessionInterviewStatus.Cancelled
-                      && si.InterviewSession.Status != InterviewSessionStatus.Rescheduled)
+        // 4. Sesi lampau / baru selesai (recent) — filter di DB level, ambil 10 terakhir
+        var recentSessions = await baseQuery
+            .Where(si => si.InterviewSession.ScheduledEnd < now)
             .OrderByDescending(si => si.InterviewSession.ScheduledEnd)
             .Take(10)
-            .ToList();
+            .ToListAsync(ct);
 
-        // 5. Hitung metrik penilaian
-        var pendingAssessmentsCount = mySessionInterviews.Count(si =>
-            si.InterviewAssessment is null
-            && si.Status != SessionInterviewStatus.Cancelled
-            && si.InterviewSession.Status != InterviewSessionStatus.Rescheduled);
+        // 5. Hitung metrik penilaian — count di DB level (efisien tanpa load semua data)
+        var pendingAssessmentsCount = await db.SessionInterviews
+            .AsNoTracking()
+            .CountAsync(si => si.StageEmployee.EmployeeId == empId
+                           && si.InterviewAssessment == null
+                           && si.Status != SessionInterviewStatus.Cancelled
+                           && si.InterviewSession.Status != InterviewSessionStatus.Rescheduled, ct);
 
-        var completedAssessmentsCount = mySessionInterviews.Count(si => si.InterviewAssessment is not null);
+        var completedAssessmentsCount = await db.SessionInterviews
+            .AsNoTracking()
+            .CountAsync(si => si.StageEmployee.EmployeeId == empId
+                           && si.InterviewAssessment != null, ct);
 
         var dashboard = new InterviewerDashboardDto
         {

@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Data;
@@ -39,16 +39,19 @@ public class AssignInterviewersHandler(
             return Result<AssignInterviewersResponse>.Failure(
                 Error.BusinessRule($"Tahapan '{stage.StageName}' bukan merupakan tahapan Wawancara (Kategori: {stage.StageType.StageCategory}). Penugasan pewawancara hanya berlaku untuk tahapan Wawancara."));
 
+        // 3. Batch-load semua employee yang dibutuhkan dalam 1 query (hindari N+1)
+        var distinctIds = command.InterviewerEmployeeIds.Distinct().ToList();
+        var employeesDict = await db.Employees
+            .Include(e => e.Department)
+            .Where(e => distinctIds.Contains(e.Id))
+            .ToDictionaryAsync(e => e.Id, ct);
+
         var assignedDtos = new List<AssignedInterviewerDto>();
 
-        // 3. Proses penugasan per pewawancara
-        foreach (var employeeId in command.InterviewerEmployeeIds.Distinct())
+        // 4. Proses penugasan per pewawancara (tanpa query tambahan di loop)
+        foreach (var employeeId in distinctIds)
         {
-            var employee = await db.Employees
-                .Include(e => e.Department)
-                .FirstOrDefaultAsync(e => e.Id == employeeId, ct);
-
-            if (employee is null)
+            if (!employeesDict.TryGetValue(employeeId, out var employee))
                 return Result<AssignInterviewersResponse>.Failure(
                     Error.NotFound($"Karyawan dengan ID '{employeeId}' tidak ditemukan."));
 

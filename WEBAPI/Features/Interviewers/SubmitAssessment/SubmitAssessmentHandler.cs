@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -26,6 +26,7 @@ public class SubmitAssessmentHandler(
 
         // 1. Ambil SessionInterview beserta relasi InterviewSession, ApplicationStage, Candidate, Assessment
         var sessionInterview = await db.SessionInterviews
+            .AsSplitQuery()
             .Include(si => si.StageEmployee)
                 .ThenInclude(se => se.Employee)
             .Include(si => si.InterviewSession)

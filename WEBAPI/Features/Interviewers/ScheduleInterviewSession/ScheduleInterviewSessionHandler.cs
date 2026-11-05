@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -19,8 +19,9 @@ public class ScheduleInterviewSessionHandler(
         ScheduleInterviewSessionCommand command,
         CancellationToken ct)
     {
-        // 1. Ambil ApplicationStage beserta relasinya
+        // 1. Ambil ApplicationStage beserta relasinya (AsSplitQuery untuk hindari cartesian explosion)
         var appStage = await db.ApplicationStages
+            .AsSplitQuery()
             .Include(a => a.BatchStage)
                 .ThenInclude(bs => bs.StageType)
             .Include(a => a.BatchStage)
@@ -64,8 +65,10 @@ public class ScheduleInterviewSessionHandler(
 
             if (stageEmployee is null)
             {
-                var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId, ct);
-                var empName = employee?.FullName ?? employeeId.ToString();
+                // Cari nama employee dari data yang sudah ter-load di StageEmployees
+                var empName = appStage.BatchStage.StageEmployees
+                    .FirstOrDefault(se => se.EmployeeId == employeeId)?.Employee.FullName
+                    ?? employeeId.ToString();
                 return Result<InterviewSessionDto>.Failure(
                     Error.NotFound($"Pewawancara '{empName}' belum ditugaskan pada tahapan '{appStage.BatchStage.StageName}'."));
             }
@@ -118,7 +121,7 @@ public class ScheduleInterviewSessionHandler(
             ApplicationStage = appStage
         };
 
-        // 7. Buat SessionInterview untuk setiap pewawancara terpilih & kirim email undangan ke pewawancara
+        // 7. Buat SessionInterview untuk setiap pewawancara terpilih
         foreach (var se in matchedStageEmployees)
         {
             var sessionInterview = new SessionInterview
@@ -131,7 +134,14 @@ public class ScheduleInterviewSessionHandler(
                 StageEmployee = se
             };
             session.SessionInterviews.Add(sessionInterview);
+        }
 
+        db.InterviewSessions.Add(session);
+
+        // 8. Kirim email undangan ke pewawancara (setelah data siap, sebelum SaveChanges)
+        //    EmailService hanya Add ke change tracker, SaveChanges di bawah menyimpan semuanya
+        foreach (var se in matchedStageEmployees)
+        {
             await emailService.SendEmailAsync(
                 se.Employee.Email,
                 $"Jadwal Sesi Wawancara - {session.SessionName}",
@@ -140,7 +150,6 @@ public class ScheduleInterviewSessionHandler(
                 ct);
         }
 
-        db.InterviewSessions.Add(session);
         await db.SaveChangesAsync(ct);
 
         return Result<InterviewSessionDto>.Success(session.ToInterviewSessionDto());

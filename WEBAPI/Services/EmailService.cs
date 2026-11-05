@@ -1,4 +1,4 @@
-﻿using Serilog;
+using Serilog;
 using WEBAPI.Data;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
@@ -9,7 +9,7 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
 {
     private readonly string _senderEmail = configuration["MailSettings:SenderEmail"] ?? "no-reply@rms.local";
 
-    public async Task SendEmailAsync(
+    public Task SendEmailAsync(
         string recipientEmail,
         string subject,
         string body,
@@ -29,7 +29,10 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
             SentAt = DateTime.UtcNow
         };
 
+        // Hanya Add ke change tracker; SaveChangesAsync dilakukan oleh handler pemanggil
+        // agar semua perubahan (bisnis + log email) tersimpan dalam satu transaksi
         dbContext.EmailLogs.Add(log);
-        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Task.CompletedTask;
     }
 }

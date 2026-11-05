@@ -57,6 +57,7 @@ public static class SeederExtension
             // 2. Pre-warm connection pool with a fast query
             await db.Database.OpenConnectionAsync();
             _ = await db.Departments.AsNoTracking().FirstOrDefaultAsync();
+            await db.Database.CloseConnectionAsync();
 
             // 3. Pre-warm PBKDF2 PasswordHasher JIT & crypto provider
             var dummyAccount = new Account { Id = Guid.Empty };

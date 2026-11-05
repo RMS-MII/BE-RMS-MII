@@ -15,8 +15,9 @@ public static class ServiceCollectionExtension
     public static IServiceCollection AddRmsServices(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("RmsDB");
-        services.AddDbContext<RmsDbContext>(options
-            => options.UseSqlServer(connectionString));
+        services.AddDbContext<RmsDbContext>(options =>
+            options.UseSqlServer(connectionString, sqlOptions =>
+                sqlOptions.CommandTimeout(120))); // 120 detik untuk menghindari timeout saat cold start
         
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IEmailService, EmailService>();
