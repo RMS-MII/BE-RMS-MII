@@ -6,12 +6,15 @@ using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Interviewers.AssignInterviewers;
 
 public class AssignInterviewersHandler(
     RmsDbContext db,
-    IEmailService emailService) : IRequestHandler<AssignInterviewersCommand, Result<AssignInterviewersResponse>>
+    IEmailService emailService,
+    IConfiguration configuration,
+    ILogger<AssignInterviewersHandler> logger) : IRequestHandler<AssignInterviewersCommand, Result<AssignInterviewersResponse>>
 {
     public async Task<Result<AssignInterviewersResponse>> Handle(
         AssignInterviewersCommand command,
@@ -40,6 +43,8 @@ public class AssignInterviewersHandler(
                 Error.BusinessRule($"Tahapan '{stage.StageName}' bukan merupakan tahapan Wawancara (Kategori: {stage.StageType.StageCategory}). Penugasan pewawancara hanya berlaku untuk tahapan Wawancara."));
 
         var assignedDtos = new List<AssignedInterviewerDto>();
+        var emailsToSend = new List<(string Recipient, EmailContent Content)>();
+        var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
 
         // 3. Proses penugasan per pewawancara
         foreach (var employeeId in command.InterviewerEmployeeIds.Distinct())
@@ -64,12 +69,14 @@ public class AssignInterviewersHandler(
                     existingAssignment.Note = null;
                     existingAssignment.UpdatedAt = DateTime.UtcNow;
 
-                    await emailService.SendEmailAsync(
+                    emailsToSend.Add((
                         employee.Email,
-                        $"Undangan Penugasan Pewawancara - {stage.StageName}",
-                        $"Halo {employee.FullName},\n\nAnda kembali ditugaskan sebagai pewawancara pada tahapan '{stage.StageName}' untuk batch '{stage.RecruitmentBatch.Name}'. Silakan konfirmasi ketersediaan Anda di portal interviewer.",
-                        EmailType.InterviewerInvitation,
-                        ct);
+                        EmailTemplates.InterviewerAssignment(
+                            employee.FullName,
+                            stage.StageName,
+                            stage.RecruitmentBatch.Name,
+                            isReassignment: true,
+                            frontendUrl)));
                 }
 
                 existingAssignment.Employee = employee;
@@ -89,12 +96,14 @@ public class AssignInterviewersHandler(
 
                 db.StageEmployees.Add(newAssignment);
 
-                await emailService.SendEmailAsync(
+                emailsToSend.Add((
                     employee.Email,
-                    $"Undangan Penugasan Pewawancara - {stage.StageName}",
-                    $"Halo {employee.FullName},\n\nAnda telah ditugaskan sebagai pewawancara pada tahapan '{stage.StageName}' untuk batch '{stage.RecruitmentBatch.Name}'. Silakan masuk ke sistem untuk merespons ketersediaan jadwal Anda.",
-                    EmailType.InterviewerInvitation,
-                    ct);
+                    EmailTemplates.InterviewerAssignment(
+                        employee.FullName,
+                        stage.StageName,
+                        stage.RecruitmentBatch.Name,
+                        isReassignment: false,
+                        frontendUrl)));
 
                 newAssignment.Employee = employee;
                 assignedDtos.Add(newAssignment.ToAssignedInterviewerDto());
@@ -102,6 +111,25 @@ public class AssignInterviewersHandler(
         }
 
         await db.SaveChangesAsync(ct);
+
+        foreach (var email in emailsToSend)
+        {
+            try
+            {
+                await emailService.SendEmailAsync(
+                    email.Recipient,
+                    email.Content,
+                    EmailType.InterviewerInvitation,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Gagal mengirim email undangan penugasan untuk stage {StageId}",
+                    stage.Id);
+            }
+        }
 
         return Result<AssignInterviewersResponse>.Success(stage.ToAssignInterviewersResponse(assignedDtos));
     }

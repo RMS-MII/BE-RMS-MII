@@ -7,13 +7,16 @@ using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Interviewers.ScheduleInterviewSession;
 
 public class ScheduleInterviewSessionHandler(
     RmsDbContext db,
     ICurrentUser currentUser,
-    IEmailService emailService) : IRequestHandler<ScheduleInterviewSessionCommand, Result<InterviewSessionDto>>
+    IEmailService emailService,
+    IConfiguration configuration,
+    ILogger<ScheduleInterviewSessionHandler> logger) : IRequestHandler<ScheduleInterviewSessionCommand, Result<InterviewSessionDto>>
 {
     public async Task<Result<InterviewSessionDto>> Handle(
         ScheduleInterviewSessionCommand command,
@@ -118,7 +121,7 @@ public class ScheduleInterviewSessionHandler(
             ApplicationStage = appStage
         };
 
-        // 7. Buat SessionInterview untuk setiap pewawancara terpilih & kirim email undangan ke pewawancara
+        // 7. Buat SessionInterview untuk setiap pewawancara terpilih
         foreach (var se in matchedStageEmployees)
         {
             var sessionInterview = new SessionInterview
@@ -131,17 +134,45 @@ public class ScheduleInterviewSessionHandler(
                 StageEmployee = se
             };
             session.SessionInterviews.Add(sessionInterview);
-
-            await emailService.SendEmailAsync(
-                se.Employee.Email,
-                $"Jadwal Sesi Wawancara - {session.SessionName}",
-                $"Halo {se.Employee.FullName},\n\nAnda telah dijadwalkan oleh HR untuk sesi wawancara:\n- Sesi: {session.SessionName}\n- Kandidat: {appStage.BatchApplication.Candidate.FullName}\n- Tahapan: {appStage.BatchStage.StageName}\n- Waktu: {session.ScheduledStart:dd MMM yyyy HH:mm} - {session.ScheduledEnd:HH:mm} WIB\n- Moda: {(session.IsOnline ? $"Daring ({session.MeetingUrl})" : $"Tatap Muka di {session.Location}")}\n\nSilakan periksa dan konfirmasi kehadiran Anda di portal wawancara.",
-                EmailType.InterviewerInvitation,
-                ct);
         }
 
         db.InterviewSessions.Add(session);
         await db.SaveChangesAsync(ct);
+
+        // 8. Kirim email undangan ke pewawancara setelah sesi tersimpan
+        var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
+
+        foreach (var se in matchedStageEmployees)
+        {
+            try
+            {
+                var content = EmailTemplates.InterviewerSchedule(
+                    se.Employee.FullName,
+                    session.SessionName,
+                    appStage.BatchApplication.Candidate.FullName,
+                    appStage.BatchStage.StageName,
+                    session.ScheduledStart,
+                    session.ScheduledEnd,
+                    session.IsOnline,
+                    session.MeetingUrl,
+                    session.Location,
+                    frontendUrl);
+
+                await emailService.SendEmailAsync(
+                    se.Employee.Email,
+                    content,
+                    EmailType.InterviewerInvitation,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Gagal mengirim email undangan wawancara ke pewawancara {EmployeeId} untuk session {SessionId}",
+                    se.EmployeeId,
+                    session.Id);
+            }
+        }
 
         return Result<InterviewSessionDto>.Success(session.ToInterviewSessionDto());
     }

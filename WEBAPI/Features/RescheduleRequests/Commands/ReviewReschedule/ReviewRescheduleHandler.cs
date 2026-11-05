@@ -7,6 +7,7 @@ using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.RescheduleRequests.Commands.ReviewReschedule;
 
@@ -90,36 +91,23 @@ public class ReviewRescheduleHandler(
         {
             var isApproved = request.Status == RescheduleStatus.Approved;
             var decisionText = isApproved ? "DISETUJUI" : "DITOLAK";
-            var subject = $"Hasil Peninjauan Reschedule: {decisionText} - {session.SessionName}";
             var stageName = session.ApplicationStage?.BatchStage?.StageName ?? "Wawancara";
 
             var explanation = isApproved
                 ? "Permohonan reschedule Anda telah DISETUJUI oleh HR. Sesi wawancara sebelumnya telah dibatalkan/dijadwalkan ulang, dan tim HR akan segera menerbitkan undangan dengan jadwal baru."
                 : $"Permohonan reschedule Anda DITOLAK oleh HR. Jadwal wawancara semula ({session.ScheduledStart:dd MMM yyyy HH:mm} - {session.ScheduledEnd:HH:mm} WIB) tetap berlaku.";
 
-            var notesLine = !string.IsNullOrWhiteSpace(request.ReviewNotes)
-                ? $"\nCatatan HR: {request.ReviewNotes}\n"
-                : string.Empty;
-
-            var body =
-                $"""
-                Halo,
-
-                Berikut adalah hasil peninjauan permohonan reschedule sesi wawancara '{session.SessionName}' pada tahapan '{stageName}':
-
-                Keputusan: {decisionText}
-                {notesLine}
-                Keterangan:
-                {explanation}
-
-                Salam,
-                Tim Rekrutmen
-                """;
+            var content = EmailTemplates.RescheduleResult(
+                session.SessionName,
+                stageName,
+                isApproved,
+                decisionText,
+                explanation,
+                request.ReviewNotes);
 
             await emailService.SendEmailAsync(
                 request.RequesterEmail,
-                subject,
-                body,
+                content,
                 EmailType.RescheduleResult,
                 ct);
         }

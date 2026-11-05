@@ -763,12 +763,28 @@ public static class DataSeeder
     {
         var now = DateTime.UtcNow;
 
+        // Database development yang lebih lama dapat memiliki master data dengan ID berbeda
+        // dari konstanta seeder. Resolve berdasarkan kode/nama agar reset checkpoint tetap valid.
+        var techDepartmentId = await context.Departments
+            .Where(x => x.Code == "TECH")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync();
+        if (techDepartmentId == Guid.Empty)
+            techDepartmentId = DeptTechId;
+
+        var interviewHrStageTypeId = await context.StageTypes
+            .Where(x => x.Name == "Interview HR")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync();
+        if (interviewHrStageTypeId == Guid.Empty)
+            interviewHrStageTypeId = StageTypeInterviewHrId;
+
         if (!await context.RecruitmentBatches.AnyAsync(x => x.Id == SampleBatchId || x.BatchCode == "BATCH-2026-TECH"))
         {
             var batch = new RecruitmentBatch
             {
                 Id = SampleBatchId,
-                DepartmentId = DeptTechId,
+                DepartmentId = techDepartmentId,
                 BatchCode = "BATCH-2026-TECH",
                 Name = "Batch 2026 Tech & Engineering",
                 Description = "Recruitment batch for Tech team 2026",
@@ -787,7 +803,7 @@ public static class DataSeeder
             {
                 Id = SampleInterviewStageId,
                 RecruitmentBatchId = SampleBatchId,
-                StageTypeId = StageTypeInterviewHrId,
+                StageTypeId = interviewHrStageTypeId,
                 StageName = "Wawancara HR & User",
                 IsActive = true,
                 StartDate = now.AddDays(-2),

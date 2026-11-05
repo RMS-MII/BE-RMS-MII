@@ -6,6 +6,7 @@ using WEBAPI.Data;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Interviewers.RespondInvitation;
 
@@ -66,10 +67,16 @@ public class RespondInvitationHandler(
 
             if (hrEmployee is not null && !string.IsNullOrWhiteSpace(hrEmployee.Email))
             {
+                var content = EmailTemplates.InterviewerDeclined(
+                    hrEmployee.FullName,
+                    assignment.Employee.FullName,
+                    assignment.BatchStage.StageName,
+                    assignment.BatchStage.RecruitmentBatch.Name,
+                    assignment.Note);
+
                 await emailService.SendEmailAsync(
                     hrEmployee.Email,
-                    $"Penolakan Penugasan Pewawancara - {assignment.Employee.FullName}",
-                    $"Halo {hrEmployee.FullName},\n\nPewawancara {assignment.Employee.FullName} telah menolak penugasan pada tahapan '{assignment.BatchStage.StageName}' (Batch: {assignment.BatchStage.RecruitmentBatch.Name}).\n\nAlasan penolakan: {assignment.Note}\n\nSilakan tentukan pewawancara pengganti pada sistem RMS.",
+                    content,
                     EmailType.InterviewerInvitation,
                     ct);
             }

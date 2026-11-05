@@ -7,6 +7,7 @@ using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Applications.Commands.StartApplicationStage;
 
@@ -162,33 +163,21 @@ public sealed class StartApplicationStageHandler(
     {
         try
         {
-            var frontendUrl = configuration["App:FrontendUrl"]?.TrimEnd('/')
-                              ?? "https://localhost:5173";
+            var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
 
             var testUrl =
                 $"{frontendUrl}/portal/{application.CandidateId}/stages/{applicationStage.Id}/test";
 
-            var subject =
-                $"Undangan Tahap {batchStage.StageName} - {application.RecruitmentBatch.Name}";
-
-            var body =
-                $"""
-                Halo {application.Candidate.FullName},
-
-                Anda diundang mengikuti tahap {batchStage.StageName} pada batch {application.RecruitmentBatch.Name}.
-
-                Silakan akses tes melalui tautan berikut:
-                {testUrl}
-
-                Batas waktu: {applicationStage.EndAt:yyyy-MM-dd HH:mm} UTC.
-
-                Terima kasih.
-                """;
+            var content = EmailTemplates.StageInvitation(
+                application.Candidate.FullName,
+                application.RecruitmentBatch.Name,
+                batchStage.StageName,
+                testUrl,
+                applicationStage.EndAt);
 
             await emailService.SendEmailAsync(
                 application.Candidate.Email,
-                subject,
-                body,
+                content,
                 EmailType.StageInvitation,
                 ct);
         }

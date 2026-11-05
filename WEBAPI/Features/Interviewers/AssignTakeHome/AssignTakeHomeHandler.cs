@@ -7,6 +7,7 @@ using WEBAPI.Data;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Interviewers.AssignTakeHome;
 
@@ -14,7 +15,8 @@ public class AssignTakeHomeHandler(
     RmsDbContext db,
     ICurrentUser currentUser,
     IEmailService emailService,
-    IConfiguration configuration) : IRequestHandler<AssignTakeHomeCommand, Result<AssignTakeHomeResponse>>
+    IConfiguration configuration,
+    ILogger<AssignTakeHomeHandler> logger) : IRequestHandler<AssignTakeHomeCommand, Result<AssignTakeHomeResponse>>
 {
     public async Task<Result<AssignTakeHomeResponse>> Handle(
         AssignTakeHomeCommand command,
@@ -71,32 +73,44 @@ public class AssignTakeHomeHandler(
         // 5. Kirim email instruksi take-home test kepada kandidat (Aturan Bisnis #9)
         var candidate = session.ApplicationStage.BatchApplication.Candidate;
         var stageName = session.ApplicationStage.BatchStage.StageName;
-        var frontendUrl = configuration["App:FrontendUrl"] ?? "https://localhost:5173";
+        var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
         var submissionPortalLink = $"{frontendUrl}/portal/{candidate.Id}/sessions/{session.Id}/submission";
 
-        var emailSubject = $"Instruksi Take-Home Test: {command.TaskTitle} - {stageName}";
-        var emailBody =
-            $"Halo {candidate.FullName},\n\n" +
-            $"Pewawancara telah menetapkan tugas Take-Home Test untuk tahapan '{stageName}' dengan rincian sebagai berikut:\n\n" +
-            $"Judul Tugas: {command.TaskTitle}\n" +
-            $"Batas Waktu Pengumpulan: {command.EndedSubmissionAt:dd MMMM yyyy HH:mm} WIB\n\n" +
-            $"Instruksi Pengerjaan:\n" +
-            $"{command.Instructions}\n\n" +
-            $"Silakan unggah berkas hasil pengerjaan Anda melalui portal kandidat sebelum batas waktu berakhir pada tautan berikut:\n" +
-            $"{submissionPortalLink}\n\n" +
-            $"Salam,\n" +
-            $"Tim Rekrutmen";
+        var content = EmailTemplates.TakeHome(
+            candidate.FullName,
+            stageName,
+            command.TaskTitle,
+            command.EndedSubmissionAt,
+            command.Instructions,
+            submissionPortalLink);
 
         await db.SaveChangesAsync(ct);
 
-        await emailService.SendEmailAsync(
-            candidate.Email,
-            emailSubject,
-            emailBody,
-            EmailType.TakeHome,
-            ct);
+        var emailSent = false;
+
+        try
+        {
+            await emailService.SendEmailAsync(
+                candidate.Email,
+                content,
+                EmailType.TakeHome,
+                ct);
+
+            emailSent = true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Gagal mengirim email instruksi take-home untuk session {SessionId}",
+                session.Id);
+        }
+
+        var message = emailSent
+            ? "Tugas take-home test berhasil ditetapkan dan instruksi telah dikirimkan ke email kandidat."
+            : "Tugas take-home test berhasil ditetapkan, tetapi email instruksi gagal dikirim.";
 
         return Result<AssignTakeHomeResponse>.Success(
-            session.ToAssignTakeHomeResponse(true, "Tugas take-home test berhasil ditetapkan dan instruksi telah dikirimkan ke email kandidat."));
+            session.ToAssignTakeHomeResponse(emailSent, message));
     }
 }

@@ -6,6 +6,7 @@ using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Applications.Commands.UploadOfferingLetter;
 
@@ -58,26 +59,14 @@ public sealed class UploadOfferingLetterHandler(
     {
         try
         {
-            var subject = $"Surat Penawaran - {application.RecruitmentBatch.Name}";
-
-            var body =
-                $"""
-                Halo {application.Candidate.FullName},
-
-                Selamat! Anda diterima pada batch {application.RecruitmentBatch.Name}.
-
-                Surat penawaran dapat diakses melalui tautan berikut:
-                {application.FileOfferingLetter}
-
-                Silakan tinjau surat penawaran dan berikan respons sesuai instruksi.
-
-                Terima kasih.
-                """;
+            var content = EmailTemplates.OfferingLetter(
+                application.Candidate.FullName,
+                application.RecruitmentBatch.Name,
+                application.FileOfferingLetter);
 
             await emailService.SendEmailAsync(
                 application.Candidate.Email,
-                subject,
-                body,
+                content,
                 EmailType.FinalResult,
                 ct);
         }

@@ -7,6 +7,7 @@ using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.RescheduleRequests.Commands.RequestReschedule;
 
@@ -132,29 +133,19 @@ public class RequestRescheduleHandler(
         try
         {
             var stageName = session.ApplicationStage?.BatchStage?.StageName ?? "Wawancara";
-            var subject = $"Permohonan Reschedule Sesi Wawancara - {session.SessionName}";
-            var body =
-                $"""
-                Halo {requesterName},
-
-                Permohonan penjadwalan ulang (reschedule) untuk sesi '{session.SessionName}' pada tahapan '{stageName}' telah kami terima.
-
-                Detail Pengajuan:
-                - Jadwal Semula: {session.ScheduledStart:dd MMM yyyy HH:mm} - {session.ScheduledEnd:HH:mm} WIB
-                - Usulan Jadwal Baru: {request.ProposedStart:dd MMM yyyy HH:mm} - {request.ProposedEnd:HH:mm} WIB
-                - Alasan: {request.Reason}
-                - Status: Menunggu Peninjauan HR
-
-                Tim HR akan segera meninjau permohonan Anda dan memberikan konfirmasi melalui email.
-
-                Terima kasih,
-                Tim Rekrutmen
-                """;
+            var content = EmailTemplates.RescheduleRequestReceived(
+                requesterName,
+                session.SessionName,
+                stageName,
+                session.ScheduledStart,
+                session.ScheduledEnd,
+                request.ProposedStart,
+                request.ProposedEnd,
+                request.Reason);
 
             await emailService.SendEmailAsync(
                 request.RequesterEmail,
-                subject,
-                body,
+                content,
                 EmailType.RescheduleRequest,
                 ct);
         }

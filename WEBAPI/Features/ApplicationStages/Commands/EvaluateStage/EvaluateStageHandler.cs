@@ -6,6 +6,7 @@ using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.ApplicationStages.Commands.EvaluateStage;
 
@@ -124,25 +125,15 @@ public sealed class EvaluateStageHandler(
         {
             var application = stage.BatchApplication;
 
-            var subject =
-                $"Hasil Tahap {stage.BatchStage.StageName} - {application.RecruitmentBatch.Name}";
-
-            var body =
-                $"""
-                Halo {application.Candidate.FullName},
-
-                Kami menginformasikan bahwa Anda belum lolos pada tahap {stage.BatchStage.StageName} untuk batch {application.RecruitmentBatch.Name}.
-
-                Catatan dari HR:
-                {stage.Notes}
-
-                Terima kasih atas partisipasi Anda.
-                """;
+            var content = EmailTemplates.StageRejection(
+                application.Candidate.FullName,
+                stage.BatchStage.StageName,
+                application.RecruitmentBatch.Name,
+                stage.Notes);
 
             await emailService.SendEmailAsync(
                 application.Candidate.Email,
-                subject,
-                body,
+                content,
                 EmailType.Rejection,
                 ct);
         }

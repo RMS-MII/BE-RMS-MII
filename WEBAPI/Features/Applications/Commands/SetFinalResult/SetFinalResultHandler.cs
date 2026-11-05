@@ -6,6 +6,7 @@ using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Applications.Commands.SetFinalResult;
 
@@ -105,24 +106,14 @@ public sealed class SetFinalResultHandler(
     {
         try
         {
-            var subject = $"Hasil Akhir Rekrutmen - {application.RecruitmentBatch.Name}";
-
-            var body =
-                $"""
-                Halo {application.Candidate.FullName},
-
-                Setelah melalui seluruh tahap rekrutmen, kami menginformasikan bahwa Anda belum lolos pada batch {application.RecruitmentBatch.Name}.
-
-                Catatan dari HR:
-                {application.Notes}
-
-                Terima kasih atas partisipasi Anda.
-                """;
+            var content = EmailTemplates.FinalResultRejection(
+                application.Candidate.FullName,
+                application.RecruitmentBatch.Name,
+                application.Notes);
 
             await emailService.SendEmailAsync(
                 application.Candidate.Email,
-                subject,
-                body,
+                content,
                 EmailType.Rejection,
                 ct);
         }

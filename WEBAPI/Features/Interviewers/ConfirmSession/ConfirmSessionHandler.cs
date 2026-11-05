@@ -7,6 +7,7 @@ using WEBAPI.Data;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Interviewers.ConfirmSession;
 
@@ -14,7 +15,8 @@ public class ConfirmSessionHandler(
     RmsDbContext db,
     ICurrentUser currentUser,
     IEmailService emailService,
-    IConfiguration configuration) : IRequestHandler<ConfirmSessionCommand, Result<ConfirmSessionResponse>>
+    IConfiguration configuration,
+    ILogger<ConfirmSessionHandler> logger) : IRequestHandler<ConfirmSessionCommand, Result<ConfirmSessionResponse>>
 {
     public async Task<Result<ConfirmSessionResponse>> Handle(
         ConfirmSessionCommand command,
@@ -84,42 +86,49 @@ public class ConfirmSessionHandler(
             session.Status = InterviewSessionStatus.AcceptedByInterviewer;
             session.UpdatedAt = now;
 
+            await db.SaveChangesAsync(ct);
+
             // 6. Kirim email undangan ke kandidat (Aturan Bisnis #7)
             var candidate = session.ApplicationStage.BatchApplication.Candidate;
             var stageName = session.ApplicationStage.BatchStage.StageName;
-            var modeText = session.IsOnline
-                ? $"Daring melalui tautan meeting: {session.MeetingUrl}"
-                : $"Tatap Muka di lokasi: {session.Location}";
-
-            var frontendUrl = configuration["App:FrontendUrl"] ?? "https://localhost:5173";
+            var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
             var candidatePortalLink = $"{frontendUrl}/portal/{candidate.Id}/sessions/{session.Id}";
 
-            var emailBody =
-                $"Halo {candidate.FullName},\n\n" +
-                $"Selamat! Anda diundang untuk mengikuti sesi wawancara pada tahapan '{stageName}'.\n\n" +
-                $"Rincian Jadwal Wawancara:\n" +
-                $"- Nama Sesi: {session.SessionName}\n" +
-                $"- Waktu: {session.ScheduledStart:dd MMMM yyyy HH:mm} - {session.ScheduledEnd:HH:mm} WIB\n" +
-                $"- Moda: {modeText}\n\n" +
-                $"Silakan konfirmasi kehadiran Anda melalui portal kandidat pada tautan berikut:\n" +
-                $"{candidatePortalLink}\n\n" +
-                $"Salam,\n" +
-                $"Tim Rekrutmen";
+            var content = EmailTemplates.CandidateInterviewInvitation(
+                candidate.FullName,
+                stageName,
+                session.SessionName,
+                session.ScheduledStart,
+                session.ScheduledEnd,
+                session.IsOnline,
+                session.MeetingUrl,
+                session.Location,
+                candidatePortalLink);
 
-            await emailService.SendEmailAsync(
-                candidate.Email,
-                $"Undangan Sesi Wawancara - {session.SessionName}",
-                emailBody,
-                EmailType.InterviewInvitation,
-                ct);
+            try
+            {
+                await emailService.SendEmailAsync(
+                    candidate.Email,
+                    content,
+                    EmailType.InterviewInvitation,
+                    ct);
 
-            emailSent = true;
-            await db.SaveChangesAsync(ct);
+                emailSent = true;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Gagal mengirim email undangan wawancara untuk session {SessionId}",
+                    session.Id);
+            }
         }
 
         var message = emailSent
             ? "Kehadiran sesi wawancara berhasil dikonfirmasi dan email undangan resmi telah dikirimkan ke kandidat."
-            : "Kehadiran sesi wawancara sudah pernah dikonfirmasi sebelumnya.";
+            : alreadyConfirmed
+                ? "Kehadiran sesi wawancara sudah pernah dikonfirmasi sebelumnya."
+                : "Kehadiran sesi wawancara berhasil dikonfirmasi, tetapi email undangan gagal dikirim.";
 
         return Result<ConfirmSessionResponse>.Success(
             sessionInterview.ToConfirmSessionResponse(emailSent, message));
