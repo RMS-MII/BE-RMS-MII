@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -16,6 +17,7 @@ namespace WEBAPI.Controllers;
 [ApiController]
 [Route("api/batches")]
 [Authorize(Policy = Policies.HrOnly)]
+[Tags("Batches")]
 public sealed class BatchesController(ISender sender) : ControllerBase
 {
     [HttpGet]
@@ -31,6 +33,7 @@ public sealed class BatchesController(ISender sender) : ControllerBase
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<RecruitmentBatchDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]

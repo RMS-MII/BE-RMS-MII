@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -11,6 +12,7 @@ namespace WEBAPI.Controllers;
 [ApiController]
 [Route("api/application-stages")]
 [Authorize(Policy = Policies.HrOnly)]
+[Tags("Applications")]
 public sealed class ApplicationStagesController(ISender sender) : ControllerBase
 {
     [HttpPost("{id:guid}/evaluate")]

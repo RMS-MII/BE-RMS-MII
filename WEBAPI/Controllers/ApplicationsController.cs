@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -14,6 +15,7 @@ namespace WEBAPI.Controllers;
 [ApiController]
 [Route("api/applications")]
 [Authorize(Policy = Policies.HrOnly)]
+[Tags("Applications")]
 public sealed class ApplicationsController(ISender sender) : ControllerBase
 {
     [HttpGet("{id:guid}")]

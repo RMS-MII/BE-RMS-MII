@@ -1,5 +1,6 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -12,6 +13,7 @@ namespace WEBAPI.Controllers;
 
 [ApiController]
 [Route("api/interview-sessions")]
+[Tags("Interviews")]
 public sealed class InterviewSessionsController(ISender sender) : ControllerBase
 {
     /// <summary>
