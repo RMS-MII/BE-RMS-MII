@@ -1,0 +1,174 @@
+{
+  "StageInvitation": {
+    "subject": "Undangan Tahap {{stageName}} - {{batchName}}",
+    "title": "Undangan Tahap Rekrutmen",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Anda diundang mengikuti tahap {{stageName}} pada batch {{batchName}}. Silakan masuk ke aplikasi melalui tautan undangan di bawah ini untuk mengerjakan tes.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Batas Waktu", "value": "{{deadlineText}}" }
+    ],
+    "actionLabel": "Mulai Tes Sekarang",
+    "actionUrl": "{{testUrl}}",
+    "note": "Tes hanya dapat dikerjakan satu kali. Pastikan Anda menyelesaikan tes sebelum batas waktu berakhir.",
+    "closing": "Terima kasih,\nTim Rekrutmen"
+  },
+  "CandidateInterviewInvitation": {
+    "subject": "Undangan Sesi Wawancara - {{sessionName}}",
+    "title": "Undangan Sesi Wawancara",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Selamat! Anda diundang untuk mengikuti sesi wawancara pada tahapan '{{stageName}}'. Silakan masuk ke portal kandidat melalui tautan undangan di bawah ini untuk melihat detail jadwal dan mengonfirmasi kehadiran.",
+    "details": [
+      { "label": "Nama Sesi", "value": "{{sessionName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Waktu", "value": "{{scheduleText}}" },
+      { "label": "Moda", "value": "{{modeText}}" }
+    ],
+    "actionLabel": "Buka Portal Kandidat",
+    "actionUrl": "{{portalUrl}}",
+    "note": "Konfirmasi kehadiran Anda melalui portal kandidat sebelum sesi wawancara dimulai.",
+    "closing": "Salam,\nTim Rekrutmen"
+  },
+  "InterviewerSchedule": {
+    "subject": "Jadwal Sesi Wawancara - {{sessionName}}",
+    "title": "Jadwal Sesi Wawancara",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Anda telah dijadwalkan oleh HR untuk menjadi pewawancara pada sesi berikut. Silakan masuk ke aplikasi RMS untuk memeriksa jadwal dan mengonfirmasi kehadiran Anda.",
+    "details": [
+      { "label": "Nama Sesi", "value": "{{sessionName}}" },
+      { "label": "Kandidat", "value": "{{candidateName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Waktu", "value": "{{scheduleText}}" },
+      { "label": "Moda", "value": "{{modeText}}" }
+    ],
+    "actionLabel": "Masuk ke Aplikasi RMS",
+    "actionUrl": "{{appUrl}}",
+    "note": "Pastikan Anda mengonfirmasi ketersediaan sebelum sesi wawancara berlangsung.",
+    "closing": "Salam,\nTim Rekrutmen"
+  },
+  "InterviewerAssignment": {
+    "subject": "Undangan Penugasan Pewawancara - {{stageName}}",
+    "title": "Undangan Penugasan Pewawancara",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Anda telah ditugaskan sebagai pewawancara pada tahapan '{{stageName}}' untuk batch '{{batchName}}'. Silakan masuk ke aplikasi RMS untuk merespons ketersediaan jadwal Anda.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Status", "value": "Penugasan Baru" }
+    ],
+    "actionLabel": "Masuk ke Aplikasi RMS",
+    "actionUrl": "{{appUrl}}",
+    "note": "Silakan konfirmasi ketersediaan Anda melalui menu undangan pada aplikasi RMS.",
+    "closing": "Salam,\nTim Rekrutmen"
+  },
+  "InterviewerReassignment": {
+    "subject": "Undangan Penugasan Pewawancara - {{stageName}}",
+    "title": "Undangan Penugasan Pewawancara",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Anda kembali ditugaskan sebagai pewawancara pada tahapan '{{stageName}}' untuk batch '{{batchName}}'. Silakan masuk ke aplikasi RMS untuk merespons ketersediaan jadwal Anda.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Status", "value": "Penugasan Kembali" }
+    ],
+    "actionLabel": "Masuk ke Aplikasi RMS",
+    "actionUrl": "{{appUrl}}",
+    "note": "Silakan konfirmasi ketersediaan Anda melalui menu undangan pada aplikasi RMS.",
+    "closing": "Salam,\nTim Rekrutmen"
+  },
+  "TakeHome": {
+    "subject": "Instruksi Take-Home Test: {{taskTitle}} - {{stageName}}",
+    "title": "Instruksi Take-Home Test",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Pewawancara telah menetapkan tugas Take-Home Test untuk tahapan '{{stageName}}'. Silakan masuk ke portal kandidat melalui tautan undangan di bawah ini untuk mengunggah hasil pengerjaan Anda.",
+    "details": [
+      { "label": "Judul Tugas", "value": "{{taskTitle}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Batas Waktu Pengumpulan", "value": "{{deadlineText}}" },
+      { "label": "Instruksi Pengerjaan", "value": "{{instructions}}" }
+    ],
+    "actionLabel": "Unggah Tugas",
+    "actionUrl": "{{submissionUrl}}",
+    "note": "Pastikan Anda mengunggah hasil pengerjaan sebelum batas waktu berakhir.",
+    "closing": "Salam,\nTim Rekrutmen"
+  },
+  "RescheduleRequestReceived": {
+    "subject": "Permohonan Reschedule Sesi Wawancara - {{sessionName}}",
+    "title": "Permohonan Reschedule Diterima",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Permohonan penjadwalan ulang (reschedule) untuk sesi '{{sessionName}}' pada tahapan '{{stageName}}' telah kami terima. Tim HR akan segera meninjau permohonan Anda dan memberikan konfirmasi melalui email.",
+    "details": [
+      { "label": "Nama Sesi", "value": "{{sessionName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Jadwal Semula", "value": "{{originalScheduleText}}" },
+      { "label": "Usulan Jadwal Baru", "value": "{{proposedScheduleText}}" },
+      { "label": "Alasan", "value": "{{reason}}" },
+      { "label": "Status", "value": "Menunggu Peninjauan HR" }
+    ],
+    "closing": "Terima kasih,\nTim Rekrutmen"
+  },
+  "RescheduleResult": {
+    "subject": "Hasil Peninjauan Reschedule: {{decisionText}} - {{sessionName}}",
+    "title": "Hasil Peninjauan Reschedule",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Berikut adalah hasil peninjauan permohonan reschedule sesi wawancara '{{sessionName}}' pada tahapan '{{stageName}}'.",
+    "details": [
+      { "label": "Nama Sesi", "value": "{{sessionName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Keputusan", "value": "{{decisionText}}" },
+      { "label": "Keterangan", "value": "{{decisionExplanation}}" }
+    ],
+    "note": "{{noteText}}",
+    "closing": "Salam,\nTim Rekrutmen"
+  },
+  "StageRejection": {
+    "subject": "Hasil Tahap {{stageName}} - {{batchName}}",
+    "title": "Hasil Tahap Rekrutmen",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Kami menginformasikan bahwa Anda belum lolos pada tahap {{stageName}} untuk batch {{batchName}}.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" }
+    ],
+    "note": "{{noteText}}",
+    "closing": "Terima kasih atas partisipasi Anda.\n\nTim Rekrutmen"
+  },
+  "FinalResultRejection": {
+    "subject": "Hasil Akhir Rekrutmen - {{batchName}}",
+    "title": "Hasil Akhir Rekrutmen",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Setelah melalui seluruh tahap rekrutmen, kami menginformasikan bahwa Anda belum lolos pada batch {{batchName}}.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" }
+    ],
+    "note": "{{noteText}}",
+    "closing": "Terima kasih atas partisipasi Anda.\n\nTim Rekrutmen"
+  },
+  "OfferingLetter": {
+    "subject": "Surat Penawaran - {{batchName}}",
+    "title": "Selamat, Anda Diterima!",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Selamat! Anda diterima pada batch {{batchName}}. Silakan buka surat penawaran melalui tautan di bawah ini dan berikan respons sesuai instruksi.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" }
+    ],
+    "actionLabel": "Lihat Surat Penawaran",
+    "actionUrl": "{{offeringLetterUrl}}",
+    "note": "Silakan tinjau surat penawaran dan berikan respons sesuai instruksi.",
+    "closing": "Terima kasih,\nTim Rekrutmen"
+  },
+  "InterviewerDeclined": {
+    "subject": "Penolakan Penugasan Pewawancara - {{interviewerName}}",
+    "title": "Penolakan Penugasan Pewawancara",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Pewawancara {{interviewerName}} telah menolak penugasan pada tahapan '{{stageName}}' (Batch: {{batchName}}). Silakan tentukan pewawancara pengganti pada sistem RMS.",
+    "details": [
+      { "label": "Pewawancara", "value": "{{interviewerName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Batch", "value": "{{batchName}}" },
+      { "label": "Alasan Penolakan", "value": "{{declineReason}}" }
+    ],
+    "closing": "Salam,\nTim Rekrutmen"
+  }
+}

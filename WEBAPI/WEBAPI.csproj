@@ -31,7 +31,11 @@
       <Folder Include="Common\Paging\" />
       <Folder Include="Features\Auth\" />
       <Folder Include="Logs\" />
-      <Folder Include="Templates\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="Templates\Emails\*.html" CopyToOutputDirectory="PreserveNewest" />
+      <Content Update="Templates\Emails\*.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>

@@ -100,7 +100,6 @@ public class ReviewRescheduleHandler(
             var content = EmailTemplates.RescheduleResult(
                 session.SessionName,
                 stageName,
-                isApproved,
                 decisionText,
                 explanation,
                 request.ReviewNotes);
