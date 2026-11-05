@@ -14,6 +14,7 @@ public static class CandidateMapping
         BirthDate = candidate.BirthDate,
         Cv = candidate.Cv,
         Portfolio = candidate.Portfolio,
+        Education = candidate.Education,
         Institution = candidate.Institution,
         Address = candidate.Address,
         ExpectedSalary = candidate.ExpectedSalary,
@@ -34,6 +35,7 @@ public static class CandidateMapping
         BirthDate = dto.BirthDate,
         Cv = dto.Cv?.Trim(),
         Portfolio = dto.Portfolio?.Trim(),
+        Education = dto.Education.Trim(),
         Institution = dto.Institution.Trim(),
         Address = dto.Address.Trim(),
         ExpectedSalary = dto.ExpectedSalary,
@@ -49,6 +51,7 @@ public static class CandidateMapping
         candidate.BirthDate = dto.BirthDate;
         candidate.Cv = dto.Cv?.Trim();
         candidate.Portfolio = dto.Portfolio?.Trim();
+        candidate.Education = dto.Education.Trim();
         candidate.Institution = dto.Institution.Trim();
         candidate.Address = dto.Address.Trim();
         candidate.ExpectedSalary = dto.ExpectedSalary;

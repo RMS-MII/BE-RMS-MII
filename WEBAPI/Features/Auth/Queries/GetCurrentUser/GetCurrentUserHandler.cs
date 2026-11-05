@@ -5,7 +5,7 @@ using WEBAPI.Common.Security;
 using WEBAPI.Data;
 using WEBAPI.Models;
 
-namespace WEBAPI.Features.Auth.GetCurrentUser;
+namespace WEBAPI.Features.Auth.Queries.GetCurrentUser;
 
 public sealed class GetCurrentUserHandler(
     RmsDbContext db,

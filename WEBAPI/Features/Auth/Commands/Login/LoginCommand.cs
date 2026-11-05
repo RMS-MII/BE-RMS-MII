@@ -2,7 +2,7 @@ using MediatR;
 using WEBAPI.Common.Results;
 using WEBAPI.Models;
 
-namespace WEBAPI.Features.Auth.Login;
+namespace WEBAPI.Features.Auth.Commands.Login;
 
 public sealed record LoginCommand : IRequest<Result<LoginResponseDto>>
 {

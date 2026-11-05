@@ -14,12 +14,9 @@ try
 
     builder.AddRmsSerilog();
 
-    builder.Services.AddControllers(options =>
-        {
-            options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
-        })
+    builder.Services.AddControllers()
         .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
+    
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(policy =>

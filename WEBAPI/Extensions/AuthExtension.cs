@@ -45,7 +45,7 @@ public static class AuthExtension
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(settings.Key)),
                     NameClaimType = ClaimTypes.Name,
-                    RoleClaimType = HrisClaimTypes.Role,
+                    RoleClaimType = ClaimTypes.Role,
                     ClockSkew = TimeSpan.FromMinutes(1)
                 };
             });

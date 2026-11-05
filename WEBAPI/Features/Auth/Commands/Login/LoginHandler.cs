@@ -8,7 +8,7 @@ using WEBAPI.Entities;
 using WEBAPI.Models;
 using WEBAPI.Services;
 
-namespace WEBAPI.Features.Auth.Login;
+namespace WEBAPI.Features.Auth.Commands.Login;
 
 public sealed class LoginHandler(
     RmsDbContext db,

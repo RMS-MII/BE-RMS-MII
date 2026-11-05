@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace WEBAPI.Features.Auth.Login;
+namespace WEBAPI.Features.Auth.Commands.Login;
 
 public sealed class LoginValidator : AbstractValidator<LoginCommand>
 {
