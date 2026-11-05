@@ -41,6 +41,7 @@ public class GetInterviewerDashboardHandler(
         // 2. Ambil seluruh penugasan sesi wawancara untuk pewawancara ini (AsNoTracking)
         var mySessionInterviews = await db.SessionInterviews
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(si => si.InterviewSession)
                 .ThenInclude(s => s.ApplicationStage)
                     .ThenInclude(ast => ast.BatchStage)

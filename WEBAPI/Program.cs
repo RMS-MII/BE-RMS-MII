@@ -43,7 +43,10 @@ try
 
     app.UseExceptionHandler(); 
     app.UseRmsOpenApi();
-    app.UseHttpsRedirection();
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
     app.UseCors();
     app.UseAuthentication();
     app.Use(async (context, next) =>

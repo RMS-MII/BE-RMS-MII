@@ -30,6 +30,7 @@ public class ConfirmSessionHandler(
 
         // 2. Ambil SessionInterview beserta relasi InterviewSession, ApplicationStage, Candidate, Stage
         var sessionInterview = await db.SessionInterviews
+            .AsSplitQuery()
             .Include(si => si.StageEmployee)
                 .ThenInclude(se => se.Employee)
             .Include(si => si.InterviewSession)
