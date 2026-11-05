@@ -749,20 +749,16 @@ public static class DataSeeder
             });
         }
 
-        var stageEmp = await context.StageEmployees.FirstOrDefaultAsync(x => x.BatchStageId == SampleInterviewStageId && x.EmployeeId == EmpVpEngId);
-        if (stageEmp is not null)
+        if (!await context.SessionInterviews.AnyAsync(x => x.Id == SampleSessionInterviewId))
         {
-            if (!await context.SessionInterviews.AnyAsync(x => x.Id == SampleSessionInterviewId))
+            context.SessionInterviews.Add(new SessionInterview
             {
-                context.SessionInterviews.Add(new SessionInterview
-                {
-                    Id = SampleSessionInterviewId,
-                    InterviewSessionId = SampleInterviewSessionId,
-                    StageEmployeeId = stageEmp.Id,
-                    Status = SessionInterviewStatus.InProgress,
-                    CreatedAt = now
-                });
-            }
+                Id = SampleSessionInterviewId,
+                InterviewSessionId = SampleInterviewSessionId,
+                StageEmployeeId = SampleStageEmployeeId,
+                Status = SessionInterviewStatus.InProgress,
+                CreatedAt = now
+            });
         }
 
         await context.SaveChangesAsync();
