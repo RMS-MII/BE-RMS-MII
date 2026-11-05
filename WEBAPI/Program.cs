@@ -35,7 +35,7 @@ try
 
     if (app.Environment.IsDevelopment())
     {
-        await app.SeedDatabaseAsync();
+        await app.SeedDatabaseAsync(args);
     }
 
     app.UseExceptionHandler(); 

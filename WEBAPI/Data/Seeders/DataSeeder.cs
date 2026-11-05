@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using WEBAPI.Entities;
@@ -23,7 +23,6 @@ public static class DataSeeder
 
     // Employees
     public static readonly Guid EmpHrManagerId = Guid.Parse("01930003-0000-7000-8000-000000000001");
-    public static readonly Guid EmpHrManagerFallbackId = Guid.Parse("01930003-0000-7000-8000-000000000099");
     public static readonly Guid EmpVpEngId = Guid.Parse("01930003-0000-7000-8000-000000000002");
     public static readonly Guid EmpLeadDevId = Guid.Parse("01930003-0000-7000-8000-000000000003");
     public static readonly Guid EmpQaLeadId = Guid.Parse("01930003-0000-7000-8000-000000000004");
@@ -78,25 +77,28 @@ public static class DataSeeder
     /// <summary>
     /// Checkpoint reset: membersihkan semua data pengujian development (transaksional & testing)
     /// dan mengembalikan data sample dan master ke status pristine (checkpoint awal).
+    /// Dihapus secara berurutan dari child ke parent untuk menghindari pelanggaran foreign key.
     /// </summary>
     public static async Task ResetToCheckpointAsync(RmsDbContext context, IPasswordHasher<Account> passwordHasher)
     {
         Log.Information("Resetting database to seed checkpoint...");
 
-        // 1. Bersihkan data transaksional dan hasil pengujian
+        // 1. Bersihkan tabel transaksional dari entitas anak (child) ke entitas induk (parent)
         await context.CandidateAnswers.ExecuteDeleteAsync();
         await context.EmailLogs.ExecuteDeleteAsync();
         await context.InterviewAssessments.ExecuteDeleteAsync();
         await context.RescheduleRequests.ExecuteDeleteAsync();
+        await context.SessionInterviews.ExecuteDeleteAsync();
+        await context.InterviewSessions.ExecuteDeleteAsync();
+        await context.StageEmployees.ExecuteDeleteAsync();
+        await context.ApplicationStages.ExecuteDeleteAsync();
+        await context.BatchApplications.ExecuteDeleteAsync();
+        await context.Candidates.ExecuteDeleteAsync();
 
-        // Hapus sesi wawancara selain sample awal
-        await context.SessionInterviews
-            .Where(x => x.Id != SampleSessionInterviewId)
-            .ExecuteDeleteAsync();
-
-        await context.InterviewSessions
-            .Where(x => x.Id != SampleInterviewSessionId)
-            .ExecuteDeleteAsync();
+        // Putus relasi self-referencing NextStageId sebelum menghapus BatchStages
+        await context.BatchStages.ExecuteUpdateAsync(s => s.SetProperty(x => x.NextStageId, (Guid?)null));
+        await context.BatchStages.ExecuteDeleteAsync();
+        await context.RecruitmentBatches.ExecuteDeleteAsync();
 
         // Hapus penugasan pewawancara selain sample awal
         await context.StageEmployees
@@ -191,7 +193,7 @@ public static class DataSeeder
             sampleCandidate.FullName = "John Doe (Candidate)";
             sampleCandidate.Email = "john.doe.candidate@example.com";
             sampleCandidate.Gender = Gender.Male;
-            sampleCandidate.PhoneNumber = "081200000001";
+            sampleCandidate.PhoneNumber = "081234567890";
             sampleCandidate.BirthDate = new DateOnly(2000, 1, 1);
             sampleCandidate.Education = "S1 Teknik Informatika";
             sampleCandidate.Institution = "Institut Teknologi Bandung";
@@ -232,232 +234,303 @@ public static class DataSeeder
 
     private static async Task SeedDepartmentsAsync(RmsDbContext context)
     {
-        var techId = await EnsureDepartmentAsync(
-            context,
-            DeptTechId,
-            "TECH",
-            "Technology",
-            "Divisi Teknologi dan Rekayasa Sistem Perusahaan");
+        if (await context.Departments.AnyAsync()) return;
 
-        await EnsureDepartmentAsync(
-            context,
-            DeptHrId,
-            "HR",
-            "Human Resources",
-            "Departemen Manajemen Sumber Daya Manusia dan Rekrutmen");
-
-        await EnsureDepartmentAsync(
-            context,
-            DeptFinanceId,
-            "FIN",
-            "Finance",
-            "Departemen Keuangan dan Akuntansi");
-
-        var softwareEngineeringId = await context.Departments
-            .Where(department => department.Code == "SE" || department.Code == "ENG")
-            .Select(department => (Guid?)department.Id)
-            .FirstOrDefaultAsync();
-
-        if (softwareEngineeringId is null)
+        var tech = new Department
         {
-            await EnsureDepartmentAsync(
-                context,
-                DeptSoftwareEngId,
-                "SE",
-                "Software Engineering",
-                "Departemen Pengembangan Perangkat Lunak dan Aplikasi",
-                techId);
-        }
+            Id = DeptTechId,
+            Code = "TECH",
+            Name = "Technology",
+            Description = "Divisi Teknologi dan Rekayasa Sistem Perusahaan",
+            ParentDepartmentId = null,
+            CreatedAt = DateTime.UtcNow
+        };
 
-        await EnsureDepartmentAsync(
-            context,
-            DeptQaId,
-            "QA",
-            "Quality Assurance",
-            "Departemen Penjaminan Kualitas dan Pengujian Sistem",
-            techId);
+        var se = new Department
+        {
+            Id = DeptSoftwareEngId,
+            Code = "SE",
+            Name = "Software Engineering",
+            Description = "Departemen Pengembangan Perangkat Lunak dan Aplikasi",
+            ParentDepartmentId = DeptTechId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var qa = new Department
+        {
+            Id = DeptQaId,
+            Code = "QA",
+            Name = "Quality Assurance",
+            Description = "Departemen Penjaminan Kualitas dan Pengujian Sistem",
+            ParentDepartmentId = DeptTechId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var hr = new Department
+        {
+            Id = DeptHrId,
+            Code = "HR",
+            Name = "Human Resources",
+            Description = "Departemen Manajemen Sumber Daya Manusia dan Rekrutmen",
+            ParentDepartmentId = null,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var fin = new Department
+        {
+            Id = DeptFinanceId,
+            Code = "FIN",
+            Name = "Finance",
+            Description = "Departemen Keuangan dan Akuntansi",
+            ParentDepartmentId = null,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.Departments.AddRange(tech, se, qa, hr, fin);
+        await context.SaveChangesAsync();
     }
 
     private static async Task SeedRolesAsync(RmsDbContext context)
     {
-        await EnsureRoleAsync(
-            context,
-            RoleHrId,
-            "HR",
-            "Hak akses administrator HR dan pengelola rekrutmen");
+        if (await context.Roles.AnyAsync()) return;
 
-        await EnsureRoleAsync(
-            context,
-            RoleInterviewerId,
-            "Interviewer",
-            "Hak akses pewawancara teknis dan user");
+        var hrRole = new Role
+        {
+            Id = RoleHrId,
+            Name = "HR",
+            Description = "Hak akses administrator HR dan pengelola rekrutmen",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var interviewerRole = new Role
+        {
+            Id = RoleInterviewerId,
+            Name = "Interviewer",
+            Description = "Hak akses pewawancara teknis dan user",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.Roles.AddRange(hrRole, interviewerRole);
+        await context.SaveChangesAsync();
     }
 
     private static async Task SeedEmployeesAsync(RmsDbContext context)
     {
-        var hrDepartmentId = await GetDepartmentIdAsync(context, "HR");
-        var techDepartmentId = await GetDepartmentIdAsync(context, "TECH");
-        var softwareEngineeringDepartmentId = await GetSoftwareEngineeringDepartmentIdAsync(context);
-        var qaDepartmentId = await GetDepartmentIdAsync(context, "QA");
-        var financeDepartmentId = await GetDepartmentIdAsync(context, "FIN");
+        if (await context.Employees.AnyAsync()) return;
 
-        await EnsureEmployeeAsync(
-            context,
-            EmpHrManagerId,
-            "EMP-HR-001",
-            "Jane Doe",
-            "jane.doe@rms.local",
-            Gender.Female,
-            "HR Recruitment Manager",
-            hrDepartmentId);
+        // 1. HR Manager
+        var hrManager = new Employee
+        {
+            Id = EmpHrManagerId,
+            DepartmentId = DeptHrId,
+            ManagerId = null,
+            EmployeeNumber = "EMP-HR-001",
+            FullName = "Jane Doe",
+            Email = "jane.doe@rms.local",
+            Gender = Gender.Female,
+            JobTitle = "HR Recruitment Manager",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
 
-        var vpEngineeringId = await EnsureEmployeeAsync(
-            context,
-            EmpVpEngId,
-            "EMP-TECH-001",
-            "Budi Santoso",
-            "budi.santoso@rms.local",
-            Gender.Male,
-            "VP of Engineering",
-            techDepartmentId);
+        // 2. VP of Engineering (Manager untuk dev & QA)
+        var vpEng = new Employee
+        {
+            Id = EmpVpEngId,
+            DepartmentId = DeptTechId,
+            ManagerId = null,
+            EmployeeNumber = "EMP-TECH-001",
+            FullName = "Budi Santoso",
+            Email = "budi.santoso@rms.local",
+            Gender = Gender.Male,
+            JobTitle = "VP of Engineering",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
 
-        await EnsureEmployeeAsync(
-            context,
-            EmpLeadDevId,
-            "EMP-SE-001",
-            "Fariz Irza",
-            "fariz.irza@rms.local",
-            Gender.Male,
-            "Lead Software Engineer",
-            softwareEngineeringDepartmentId,
-            vpEngineeringId);
+        // 3. Lead Software Engineer (Subordinate Budi Santoso)
+        var leadDev = new Employee
+        {
+            Id = EmpLeadDevId,
+            DepartmentId = DeptSoftwareEngId,
+            ManagerId = EmpVpEngId,
+            EmployeeNumber = "EMP-SE-001",
+            FullName = "Fariz Irza",
+            Email = "fariz.irza@rms.local",
+            Gender = Gender.Male,
+            JobTitle = "Lead Software Engineer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
 
-        await EnsureEmployeeAsync(
-            context,
-            EmpQaLeadId,
-            "EMP-QA-001",
-            "Siti Rahma",
-            "siti.rahma@rms.local",
-            Gender.Female,
-            "QA Lead",
-            qaDepartmentId,
-            vpEngineeringId);
+        // 4. QA Lead (Subordinate Budi Santoso)
+        var qaLead = new Employee
+        {
+            Id = EmpQaLeadId,
+            DepartmentId = DeptQaId,
+            ManagerId = EmpVpEngId,
+            EmployeeNumber = "EMP-QA-001",
+            FullName = "Siti Rahma",
+            Email = "siti.rahma@rms.local",
+            Gender = Gender.Female,
+            JobTitle = "QA Lead",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
 
-        await EnsureEmployeeAsync(
-            context,
-            EmpFinanceLeadId,
-            "EMP-FIN-001",
-            "Ahmad Fauzi",
-            "ahmad.fauzi@rms.local",
-            Gender.Male,
-            "Finance Lead",
-            financeDepartmentId);
+        // 5. Finance Lead
+        var finLead = new Employee
+        {
+            Id = EmpFinanceLeadId,
+            DepartmentId = DeptFinanceId,
+            ManagerId = null,
+            EmployeeNumber = "EMP-FIN-001",
+            FullName = "Ahmad Fauzi",
+            Email = "ahmad.fauzi@rms.local",
+            Gender = Gender.Male,
+            JobTitle = "Finance Lead",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.Employees.AddRange(hrManager, vpEng, leadDev, qaLead, finLead);
+        await context.SaveChangesAsync();
     }
 
     private static async Task SeedAccountsAsync(RmsDbContext context, IPasswordHasher<Account> passwordHasher)
     {
-        var hrRoleId = await GetRoleIdAsync(context, "HR");
-        var interviewerRoleId = await GetRoleIdAsync(context, "Interviewer");
+        if (await context.Accounts.AnyAsync()) return;
 
-        var hrManagerEmployeeNumber = "EMP-HR-001";
-        var hrManagerEmployeeId = await GetEmployeeIdAsync(context, hrManagerEmployeeNumber);
-        var hrManagerAccountExists = await context.Accounts
-            .AnyAsync(account => account.Username == "hr_manager");
-        var hrManagerEmployeeHasAccount = await context.Accounts
-            .AnyAsync(account => account.EmployeeId == hrManagerEmployeeId);
+        var defaultPassword = "Password123!";
 
-        if (!hrManagerAccountExists && hrManagerEmployeeHasAccount)
+        var accounts = new List<Account>
         {
-            var hrDepartmentId = await GetDepartmentIdAsync(context, "HR");
+            new()
+            {
+                Id = AccHrManagerId,
+                EmployeeId = EmpHrManagerId,
+                RoleId = RoleHrId,
+                Username = "hr_manager",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = AccVpEngId,
+                EmployeeId = EmpVpEngId,
+                RoleId = RoleInterviewerId,
+                Username = "budi_santoso",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = AccLeadDevId,
+                EmployeeId = EmpLeadDevId,
+                RoleId = RoleInterviewerId,
+                Username = "fariz_irza",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = AccQaLeadId,
+                EmployeeId = EmpQaLeadId,
+                RoleId = RoleInterviewerId,
+                Username = "siti_rahma",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = AccFinanceLeadId,
+                EmployeeId = EmpFinanceLeadId,
+                RoleId = RoleInterviewerId,
+                Username = "ahmad_fauzi",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
 
-            await EnsureEmployeeAsync(
-                context,
-                EmpHrManagerFallbackId,
-                "EMP-HR-900",
-                "HR Manager (Seeder)",
-                "hr.manager.seed@rms.local",
-                Gender.Female,
-                "HR Recruitment Manager",
-                hrDepartmentId);
-
-            hrManagerEmployeeNumber = "EMP-HR-900";
+        foreach (var acc in accounts)
+        {
+            acc.PasswordHash = passwordHasher.HashPassword(acc, defaultPassword);
         }
 
-        await EnsureAccountAsync(context, passwordHasher, AccHrManagerId, "hr_manager", hrManagerEmployeeNumber, hrRoleId);
-        await EnsureAccountAsync(context, passwordHasher, AccVpEngId, "budi_santoso", "EMP-TECH-001", interviewerRoleId);
-        await EnsureAccountAsync(context, passwordHasher, AccLeadDevId, "fariz_irza", "EMP-SE-001", interviewerRoleId);
-        await EnsureAccountAsync(context, passwordHasher, AccQaLeadId, "siti_rahma", "EMP-QA-001", interviewerRoleId);
-        await EnsureAccountAsync(context, passwordHasher, AccFinanceLeadId, "ahmad_fauzi", "EMP-FIN-001", interviewerRoleId);
+        context.Accounts.AddRange(accounts);
+        await context.SaveChangesAsync();
     }
 
     private static async Task SeedStageTypesAsync(RmsDbContext context)
     {
-        await EnsureStageTypeAsync(
-            context,
-            StageTypePsikotesId,
-            "Psikotes",
-            "Tahap evaluasi profil psikologis, kepribadian, dan gaya kerja kandidat",
-            StageCategory.Test);
+        if (await context.StageTypes.AnyAsync()) return;
 
-        await EnsureStageTypeAsync(
-            context,
-            StageTypeInterviewHrId,
-            "Interview HR",
-            "Wawancara kompetensi umum, riwayat pengalaman, dan kesesuaian budaya organisasi",
-            StageCategory.Interview);
-
-        await EnsureStageTypeAsync(
-            context,
-            StageTypeInterviewUserId,
-            "Interview User",
-            "Wawancara teknis mendalam bersama calon atasan dan rekan tim kerja",
-            StageCategory.Interview);
-
-        var hasCombinedTestStage = await context.StageTypes
-            .AnyAsync(stageType => stageType.Name == "Technical & Logical Test");
-
-        if (!hasCombinedTestStage)
+        var stageTypes = new List<StageType>
         {
-            await EnsureStageTypeAsync(
-                context,
-                StageTypeTechnicalTestId,
-                "Technical Test",
-                "Uji kompetensi teknis dan keahlian spesifik bidang pekerjaan",
-                StageCategory.Test);
+            new()
+            {
+                Id = StageTypePsikotesId,
+                Name = "Psikotes",
+                Description = "Tahap evaluasi profil psikologis, kepribadian, dan gaya kerja kandidat",
+                StageCategory = StageCategory.Test,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = StageTypeTechnicalTestId,
+                Name = "Technical Test",
+                Description = "Uji kompetensi teknis dan keahlian spesifik bidang pekerjaan",
+                StageCategory = StageCategory.Test,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = StageTypeLogicalTestId,
+                Name = "Logical Test",
+                Description = "Uji kemampuan berpikir kritis, logika komputasi, dan pemecahan masalah",
+                StageCategory = StageCategory.Test,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = StageTypeInterviewHrId,
+                Name = "Interview HR",
+                Description = "Wawancara kompetensi umum, riwayat pengalaman, dan kesesuaian budaya organisasi",
+                StageCategory = StageCategory.Interview,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = StageTypeInterviewUserId,
+                Name = "Interview User",
+                Description = "Wawancara teknis mendalam bersama calon atasan dan rekan tim kerja",
+                StageCategory = StageCategory.Interview,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
 
-            await EnsureStageTypeAsync(
-                context,
-                StageTypeLogicalTestId,
-                "Logical Test",
-                "Uji kemampuan berpikir kritis, logika komputasi, dan pemecahan masalah",
-                StageCategory.Test);
-        }
+        context.StageTypes.AddRange(stageTypes);
+        await context.SaveChangesAsync();
     }
 
     private static async Task SeedQuestionBanksAndQuestionsAsync(RmsDbContext context)
     {
         if (await context.QuestionBanks.AnyAsync()) return;
 
-        var hrDepartmentId = await GetDepartmentIdAsync(context, "HR");
-        var techDepartmentId = await GetDepartmentIdAsync(context, "TECH");
-        var softwareEngineeringDepartmentId = await GetSoftwareEngineeringDepartmentIdAsync(context);
-        var hrManagerId = await GetEmployeeIdAsync(context, "EMP-HR-001");
-        var leadSoftwareEngineerId = await GetEmployeeIdAsync(context, "EMP-SE-001");
-        var psikotesStageTypeId = await GetStageTypeIdAsync(context, "Psikotes");
-
-        var combinedTestStageTypeId = await FindStageTypeIdAsync(context, "Technical & Logical Test");
-        var logicalStageTypeId = combinedTestStageTypeId
-            ?? await GetStageTypeIdAsync(context, "Logical Test");
-        var technicalStageTypeId = combinedTestStageTypeId
-            ?? await GetStageTypeIdAsync(context, "Technical Test");
-
         // 1. Bank Soal Psikotes
         var bankPsikotes = new QuestionBank
         {
             Id = QBankPsikotesId,
-            DepartmentId = hrDepartmentId,
-            StageTypeId = psikotesStageTypeId,
-            CreatedBy = hrManagerId,
+            DepartmentId = DeptHrId,
+            StageTypeId = StageTypePsikotesId,
+            CreatedBy = EmpHrManagerId,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -465,31 +538,23 @@ public static class DataSeeder
         var bankLogical = new QuestionBank
         {
             Id = QBankLogicalId,
-            DepartmentId = techDepartmentId,
-            StageTypeId = logicalStageTypeId,
-            CreatedBy = hrManagerId,
+            DepartmentId = DeptTechId,
+            StageTypeId = StageTypeLogicalTestId,
+            CreatedBy = EmpHrManagerId,
             CreatedAt = DateTime.UtcNow
         };
 
-        // 3. Bank Soal Technical Test (digabung jika master data memakai Technical & Logical Test)
-        QuestionBank? bankTechnical = null;
-        if (combinedTestStageTypeId is null)
+        // 3. Bank Soal Technical Test
+        var bankTechnical = new QuestionBank
         {
-            bankTechnical = new QuestionBank
-            {
-                Id = QBankTechnicalId,
-                DepartmentId = softwareEngineeringDepartmentId,
-                StageTypeId = technicalStageTypeId,
-                CreatedBy = leadSoftwareEngineerId,
-                CreatedAt = DateTime.UtcNow
-            };
-        }
+            Id = QBankTechnicalId,
+            DepartmentId = DeptSoftwareEngId,
+            StageTypeId = StageTypeTechnicalTestId,
+            CreatedBy = EmpLeadDevId,
+            CreatedAt = DateTime.UtcNow
+        };
 
-        var questionBanks = new List<QuestionBank> { bankPsikotes, bankLogical };
-        if (bankTechnical is not null)
-            questionBanks.Add(bankTechnical);
-
-        context.QuestionBanks.AddRange(questionBanks);
+        context.QuestionBanks.AddRange(bankPsikotes, bankLogical, bankTechnical);
 
         // Tambahkan masing-masing 10 Soal + 4 Opsi Jawaban
         var questions = new List<Question>();
@@ -502,7 +567,7 @@ public static class DataSeeder
         AddLogicalQuestions(bankLogical.Id, questions, options);
 
         // Technical Test Questions (10)
-        AddTechnicalQuestions((bankTechnical ?? bankLogical).Id, questions, options);
+        AddTechnicalQuestions(bankTechnical.Id, questions, options);
 
         context.Questions.AddRange(questions);
         context.QuestionOptions.AddRange(options);
@@ -697,90 +762,63 @@ public static class DataSeeder
     private static async Task SeedSampleBatchAndStageAsync(RmsDbContext context)
     {
         var now = DateTime.UtcNow;
-        var techDepartmentId = await GetDepartmentIdAsync(context, "TECH");
-        var hrManagerId = await GetEmployeeIdAsync(context, "EMP-HR-001");
-        var vpEngineeringId = await GetEmployeeIdAsync(context, "EMP-TECH-001");
-        var interviewHrStageTypeId = await GetStageTypeIdAsync(context, "Interview HR");
-        const string sampleBatchCode = "BATCH-2026-TECH";
-        const string sampleStageName = "Wawancara HR & User";
-        const string sampleSessionName = "Wawancara Teknis Kandidat";
 
-        var batch = await context.RecruitmentBatches
-            .FirstOrDefaultAsync(x => x.Id == SampleBatchId || x.BatchCode == sampleBatchCode);
-
-        if (batch is null)
+        if (!await context.RecruitmentBatches.AnyAsync(x => x.Id == SampleBatchId || x.BatchCode == "BATCH-2026-TECH"))
         {
-            batch = new RecruitmentBatch
+            var batch = new RecruitmentBatch
             {
                 Id = SampleBatchId,
-                DepartmentId = techDepartmentId,
-                BatchCode = sampleBatchCode,
+                DepartmentId = DeptTechId,
+                BatchCode = "BATCH-2026-TECH",
                 Name = "Batch 2026 Tech & Engineering",
                 Description = "Recruitment batch for Tech team 2026",
                 StartDate = now.AddDays(-5),
                 EndDate = now.AddDays(30),
                 Status = BatchStatus.Open,
-                CreatedBy = hrManagerId,
+                CreatedBy = EmpHrManagerId,
                 CreatedAt = now
             };
-
             context.RecruitmentBatches.Add(batch);
-            await context.SaveChangesAsync();
         }
 
-        var stage = await context.BatchStages
-            .FirstOrDefaultAsync(x => x.Id == SampleInterviewStageId
-                || (x.RecruitmentBatchId == batch.Id && x.StageName == sampleStageName));
-
-        if (stage is null)
+        if (!await context.BatchStages.AnyAsync(x => x.Id == SampleInterviewStageId))
         {
-            stage = new BatchStage
+            var stage = new BatchStage
             {
                 Id = SampleInterviewStageId,
-                RecruitmentBatchId = batch.Id,
-                StageTypeId = interviewHrStageTypeId,
-                StageName = sampleStageName,
+                RecruitmentBatchId = SampleBatchId,
+                StageTypeId = StageTypeInterviewHrId,
+                StageName = "Wawancara HR & User",
                 IsActive = true,
                 StartDate = now.AddDays(-2),
                 EndDate = now.AddDays(15),
                 CreatedAt = now
             };
-
             context.BatchStages.Add(stage);
-            await context.SaveChangesAsync();
         }
 
-        var stageEmployee = await context.StageEmployees
-            .FirstOrDefaultAsync(x => x.BatchStageId == stage.Id && x.EmployeeId == vpEngineeringId);
-
-        if (stageEmployee is null)
+        if (!await context.StageEmployees.AnyAsync(x => x.BatchStageId == SampleInterviewStageId && x.EmployeeId == EmpVpEngId))
         {
-            stageEmployee = new StageEmployee
+            context.StageEmployees.Add(new StageEmployee
             {
                 Id = SampleStageEmployeeId,
-                BatchStageId = stage.Id,
-                EmployeeId = vpEngineeringId,
+                BatchStageId = SampleInterviewStageId,
+                EmployeeId = EmpVpEngId,
                 Status = StageEmployeeStatus.Accepted,
                 IsActive = true,
                 CreatedAt = now
-            };
-
-            context.StageEmployees.Add(stageEmployee);
-            await context.SaveChangesAsync();
+            });
         }
 
-        var candidate = await context.Candidates
-            .FirstOrDefaultAsync(x => x.Id == SampleCandidateId || x.Email == "john.doe.candidate@example.com");
-
-        if (candidate is null)
+        if (!await context.Candidates.AnyAsync(x => x.Id == SampleCandidateId || x.Email == "john.doe.candidate@example.com"))
         {
-            candidate = new Candidate
+            context.Candidates.Add(new Candidate
             {
                 Id = SampleCandidateId,
                 FullName = "John Doe (Candidate)",
                 Email = "john.doe.candidate@example.com",
                 Gender = Gender.Male,
-                PhoneNumber = "081200000001",
+                PhoneNumber = "081234567890",
                 BirthDate = new DateOnly(2000, 1, 1),
                 Education = "S1 Teknik Informatika",
                 Institution = "Institut Teknologi Bandung",
@@ -789,309 +827,66 @@ public static class DataSeeder
                 ExpectedSalary = 12000000m,
                 Cv = "cv_john_doe.pdf",
                 CreatedAt = now
-            };
-
-            context.Candidates.Add(candidate);
-            await context.SaveChangesAsync();
+            });
         }
 
-        var application = await context.BatchApplications
-            .FirstOrDefaultAsync(x => x.Id == SampleBatchApplicationId || x.CodeApplication == "APP-2026-001");
-
-        if (application is null)
+        if (!await context.BatchApplications.AnyAsync(x => x.Id == SampleBatchApplicationId || x.CodeApplication == "APP-2026-001"))
         {
-            application = new BatchApplication
+            context.BatchApplications.Add(new BatchApplication
             {
                 Id = SampleBatchApplicationId,
-                CandidateId = candidate.Id,
-                RecruitmentBatchId = batch.Id,
+                CandidateId = SampleCandidateId,
+                RecruitmentBatchId = SampleBatchId,
                 CodeApplication = "APP-2026-001",
                 AppliedAt = now.AddDays(-3),
                 Status = ApplicationStatus.InProcess,
                 CreatedAt = now
-            };
-
-            context.BatchApplications.Add(application);
-            await context.SaveChangesAsync();
+            });
         }
 
-        var applicationStage = await context.ApplicationStages
-            .FirstOrDefaultAsync(x => x.Id == SampleApplicationStageId
-                || (x.BatchApplicationId == application.Id && x.BatchStageId == stage.Id));
-
-        if (applicationStage is null)
+        if (!await context.ApplicationStages.AnyAsync(x => x.Id == SampleApplicationStageId))
         {
-            applicationStage = new ApplicationStage
+            context.ApplicationStages.Add(new ApplicationStage
             {
                 Id = SampleApplicationStageId,
-                BatchApplicationId = application.Id,
-                BatchStageId = stage.Id,
+                BatchApplicationId = SampleBatchApplicationId,
+                BatchStageId = SampleInterviewStageId,
                 Status = ApplicationStageStatus.InProgress,
                 StartedAt = now.AddDays(-1),
                 EndAt = now.AddDays(7),
                 CreatedAt = now
-            };
-
-            context.ApplicationStages.Add(applicationStage);
-            await context.SaveChangesAsync();
+            });
         }
 
-        var session = await context.InterviewSessions
-            .FirstOrDefaultAsync(x => x.Id == SampleInterviewSessionId
-                || (x.ApplicationStageId == applicationStage.Id && x.SessionName == sampleSessionName));
-
-        if (session is null)
+        if (!await context.InterviewSessions.AnyAsync(x => x.Id == SampleInterviewSessionId))
         {
-            session = new InterviewSession
+            context.InterviewSessions.Add(new InterviewSession
             {
                 Id = SampleInterviewSessionId,
-                ApplicationStageId = applicationStage.Id,
-                SessionName = sampleSessionName,
+                ApplicationStageId = SampleApplicationStageId,
+                SessionName = "Wawancara Teknis Kandidat",
                 ScheduledStart = now.AddDays(2).Date.AddHours(9),
                 ScheduledEnd = now.AddDays(2).Date.AddHours(10),
                 IsOnline = true,
                 MeetingUrl = "https://meet.google.com/abc-defg-hij",
                 Status = InterviewSessionStatus.PendingConfirmation,
-                CreatedBy = hrManagerId,
+                CreatedBy = EmpHrManagerId,
                 CreatedAt = now
-            };
-
-            context.InterviewSessions.Add(session);
-            await context.SaveChangesAsync();
+            });
         }
 
-        var sessionInterview = await context.SessionInterviews
-            .FirstOrDefaultAsync(x => x.Id == SampleSessionInterviewId
-                || (x.InterviewSessionId == session.Id && x.StageEmployeeId == stageEmployee.Id));
-
-        if (sessionInterview is null)
+        if (!await context.SessionInterviews.AnyAsync(x => x.Id == SampleSessionInterviewId))
         {
             context.SessionInterviews.Add(new SessionInterview
             {
                 Id = SampleSessionInterviewId,
-                InterviewSessionId = session.Id,
-                StageEmployeeId = stageEmployee.Id,
+                InterviewSessionId = SampleInterviewSessionId,
+                StageEmployeeId = SampleStageEmployeeId,
                 Status = SessionInterviewStatus.InProgress,
                 CreatedAt = now
             });
-
-            await context.SaveChangesAsync();
         }
-    }
 
-    private static async Task<Guid> EnsureDepartmentAsync(
-        RmsDbContext context,
-        Guid seedId,
-        string code,
-        string name,
-        string description,
-        Guid? parentDepartmentId = null)
-    {
-        var existing = await context.Departments
-            .FirstOrDefaultAsync(department => department.Code == code || department.Id == seedId);
-
-        if (existing is not null)
-            return existing.Id;
-
-        var department = new Department
-        {
-            Id = seedId,
-            Code = code,
-            Name = name,
-            Description = description,
-            ParentDepartmentId = parentDepartmentId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        context.Departments.Add(department);
-        await context.SaveChangesAsync();
-
-        return department.Id;
-    }
-
-    private static async Task<Guid> EnsureRoleAsync(
-        RmsDbContext context,
-        Guid seedId,
-        string name,
-        string description)
-    {
-        var existing = await context.Roles
-            .FirstOrDefaultAsync(role => role.Name == name || role.Id == seedId);
-
-        if (existing is not null)
-            return existing.Id;
-
-        var role = new Role
-        {
-            Id = seedId,
-            Name = name,
-            Description = description,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        context.Roles.Add(role);
-        await context.SaveChangesAsync();
-
-        return role.Id;
-    }
-
-    private static async Task<Guid> EnsureEmployeeAsync(
-        RmsDbContext context,
-        Guid seedId,
-        string employeeNumber,
-        string fullName,
-        string email,
-        Gender gender,
-        string jobTitle,
-        Guid departmentId,
-        Guid? managerId = null)
-    {
-        var existing = await context.Employees
-            .FirstOrDefaultAsync(employee => employee.EmployeeNumber == employeeNumber
-                || employee.Email == email
-                || employee.Id == seedId);
-
-        if (existing is not null)
-            return existing.Id;
-
-        var employee = new Employee
-        {
-            Id = seedId,
-            DepartmentId = departmentId,
-            ManagerId = managerId,
-            EmployeeNumber = employeeNumber,
-            FullName = fullName,
-            Email = email,
-            Gender = gender,
-            JobTitle = jobTitle,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        context.Employees.Add(employee);
-        await context.SaveChangesAsync();
-
-        return employee.Id;
-    }
-
-    private static async Task EnsureAccountAsync(
-        RmsDbContext context,
-        IPasswordHasher<Account> passwordHasher,
-        Guid seedId,
-        string username,
-        string employeeNumber,
-        Guid roleId)
-    {
-        var employeeId = await GetEmployeeIdAsync(context, employeeNumber);
-        var existing = await context.Accounts
-            .FirstOrDefaultAsync(account => account.Username == username
-                || account.Id == seedId
-                || account.EmployeeId == employeeId);
-
-        if (existing is not null)
-            return;
-
-        var account = new Account
-        {
-            Id = seedId,
-            EmployeeId = employeeId,
-            RoleId = roleId,
-            Username = username,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        account.PasswordHash = passwordHasher.HashPassword(account, "Password123!");
-        context.Accounts.Add(account);
         await context.SaveChangesAsync();
     }
-
-    private static async Task<Guid> EnsureStageTypeAsync(
-        RmsDbContext context,
-        Guid seedId,
-        string name,
-        string description,
-        StageCategory stageCategory)
-    {
-        var existing = await context.StageTypes
-            .FirstOrDefaultAsync(stageType => stageType.Name == name || stageType.Id == seedId);
-
-        if (existing is not null)
-            return existing.Id;
-
-        var stageType = new StageType
-        {
-            Id = seedId,
-            Name = name,
-            Description = description,
-            StageCategory = stageCategory,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        context.StageTypes.Add(stageType);
-        await context.SaveChangesAsync();
-
-        return stageType.Id;
-    }
-
-    private static async Task<Guid> GetDepartmentIdAsync(RmsDbContext context, params string[] codes)
-    {
-        var departmentId = await context.Departments
-            .Where(department => codes.Contains(department.Code))
-            .Select(department => (Guid?)department.Id)
-            .FirstOrDefaultAsync();
-
-        if (departmentId is null)
-            throw new InvalidOperationException(
-                $"Department with code '{string.Join("' or '", codes)}' was not found.");
-
-        return departmentId.Value;
-    }
-
-    private static async Task<Guid> GetSoftwareEngineeringDepartmentIdAsync(RmsDbContext context)
-        => await GetDepartmentIdAsync(context, "SE", "ENG");
-
-    private static async Task<Guid> GetRoleIdAsync(RmsDbContext context, string name)
-    {
-        var roleId = await context.Roles
-            .Where(role => role.Name == name)
-            .Select(role => (Guid?)role.Id)
-            .FirstOrDefaultAsync();
-
-        if (roleId is null)
-            throw new InvalidOperationException($"Role '{name}' was not found.");
-
-        return roleId.Value;
-    }
-
-    private static async Task<Guid> GetEmployeeIdAsync(RmsDbContext context, string employeeNumber)
-    {
-        var employeeId = await context.Employees
-            .Where(employee => employee.EmployeeNumber == employeeNumber)
-            .Select(employee => (Guid?)employee.Id)
-            .FirstOrDefaultAsync();
-
-        if (employeeId is null)
-            throw new InvalidOperationException($"Employee '{employeeNumber}' was not found.");
-
-        return employeeId.Value;
-    }
-
-    private static async Task<Guid> GetStageTypeIdAsync(RmsDbContext context, string name)
-    {
-        var stageTypeId = await FindStageTypeIdAsync(context, name);
-
-        if (stageTypeId is null)
-            throw new InvalidOperationException($"Stage type '{name}' was not found.");
-
-        return stageTypeId.Value;
-    }
-
-    private static async Task<Guid?> FindStageTypeIdAsync(RmsDbContext context, string name)
-        => await context.StageTypes
-            .Where(stageType => stageType.Name == name)
-            .Select(stageType => (Guid?)stageType.Id)
-            .FirstOrDefaultAsync();
 }
