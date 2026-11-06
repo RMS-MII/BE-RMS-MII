@@ -32,18 +32,37 @@ public sealed class CreateBatchHandler(
             return Result<RecruitmentBatchDto>.Failure(
                 Error.NotFound("Department was not found."));
 
-        var batchCode = request.BatchCode.Trim();
+        var year = request.StartDate != default
+            ? request.StartDate.Year
+            : dateTimeProvider.GetUtcNow().UtcDateTime.Year;
 
-        var codeExists = await db.RecruitmentBatches
-            .AnyAsync(b => b.BatchCode == batchCode, ct);
+        var deptCode = string.IsNullOrWhiteSpace(department.Code)
+            ? "GEN"
+            : department.Code.Trim().ToUpperInvariant();
 
-        if (codeExists)
-            return Result<RecruitmentBatchDto>.Failure(
-                Error.Conflict("Batch code already exists."));
+        var prefix = $"BATCH-{deptCode}-{year}-";
+
+        var existingCodes = await db.RecruitmentBatches
+            .AsNoTracking()
+            .Where(b => b.BatchCode.StartsWith(prefix))
+            .Select(b => b.BatchCode)
+            .ToListAsync(ct);
+
+        var maxSeq = 0;
+        foreach (var code in existingCodes)
+        {
+            var suffix = code[prefix.Length..];
+            if (int.TryParse(suffix, out var seq) && seq > maxSeq)
+            {
+                maxSeq = seq;
+            }
+        }
+
+        var batchCode = $"{prefix}{(maxSeq + 1):D3}";
 
         var batch = new RecruitmentBatch
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             DepartmentId = department.Id,
             BatchCode = batchCode,
             Name = request.Name.Trim(),
@@ -63,7 +82,6 @@ public sealed class CreateBatchHandler(
         }
         catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
-            // Dua request bisa lolos pengecekan di atas bersamaan; unique index yang jadi penentu akhir.
             logger.LogWarning("Create batch gagal: kode batch {BatchCode} sudah dipakai", batchCode);
             return Result<RecruitmentBatchDto>.Failure(
                 Error.Conflict("Batch code already exists."));

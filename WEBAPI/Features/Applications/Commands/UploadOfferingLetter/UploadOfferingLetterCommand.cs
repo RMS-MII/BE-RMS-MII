@@ -9,3 +9,15 @@ public sealed record UploadOfferingLetterCommand : IRequest<Result<BatchApplicat
     public Guid ApplicationId { get; init; }
     public string FileOfferingLetter { get; init; } = string.Empty;
 }
+
+/// <summary>
+/// Permintaan unggah berkas surat penawaran kerja (Offering Letter).
+/// </summary>
+public sealed record UploadOfferingLetterRequest
+{
+    /// <summary>
+    /// Tautan URL berkas surat penawaran kerja (Google Drive / Cloud Storage).
+    /// </summary>
+    /// <example>https://drive.google.com/file/d/offering-letter-kandidat/view</example>
+    public string FileOfferingLetter { get; init; } = string.Empty;
+}

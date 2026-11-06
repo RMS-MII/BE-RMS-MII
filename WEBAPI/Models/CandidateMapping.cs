@@ -26,6 +26,41 @@ public static class CandidateMapping
     public static IReadOnlyCollection<CandidateDto> ToDtoList(this IEnumerable<Candidate> candidates)
         => candidates.Select(ToDto).ToList();
 
+    public static CandidateWithBatchesDto ToWithBatchesDto(this Candidate candidate) => new()
+    {
+        Id = candidate.Id,
+        FullName = candidate.FullName,
+        Gender = candidate.Gender,
+        Email = candidate.Email,
+        PhoneNumber = candidate.PhoneNumber,
+        BirthDate = candidate.BirthDate,
+        Cv = candidate.Cv,
+        Portfolio = candidate.Portfolio,
+        Education = candidate.Education,
+        Institution = candidate.Institution,
+        Address = candidate.Address,
+        ExpectedSalary = candidate.ExpectedSalary,
+        Gpa = candidate.Gpa,
+        CreatedAt = candidate.CreatedAt,
+        UpdatedAt = candidate.UpdatedAt,
+        AssignedBatches = candidate.BatchApplications?
+            .Select(ba => new CandidateAssignedBatchDto
+            {
+                ApplicationId = ba.Id,
+                BatchId = ba.RecruitmentBatchId,
+                BatchCode = ba.RecruitmentBatch?.BatchCode ?? string.Empty,
+                BatchName = ba.RecruitmentBatch?.Name ?? string.Empty,
+                CodeApplication = ba.CodeApplication,
+                ApplicationStatus = ba.Status,
+                FinalResultStatus = ba.FinalResultStatus,
+                AppliedAt = ba.AppliedAt
+            })
+            .ToList() ?? []
+    };
+
+    public static IReadOnlyCollection<CandidateWithBatchesDto> ToWithBatchesDtoList(this IEnumerable<Candidate> candidates)
+        => candidates.Select(ToWithBatchesDto).ToList();
+
     public static Candidate ToEntity(this CreateCandidateDto dto) => new()
     {
         FullName = dto.FullName.Trim(),

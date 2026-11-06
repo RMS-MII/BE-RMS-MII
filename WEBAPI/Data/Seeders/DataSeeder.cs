@@ -82,7 +82,7 @@ public static class DataSeeder
     }
 
     /// <summary>
-    /// Checkpoint reset: membersihkan semua data pengujian development (transaksional & testing)
+    /// Checkpoint reset: membersihkan semua data pengujian development (transaksional dan testing)
     /// dari entitas anak ke entitas induk, menyisakan master data bersih untuk pengujian murni dari Frontend.
     /// </summary>
     public static async Task ResetToCheckpointAsync(

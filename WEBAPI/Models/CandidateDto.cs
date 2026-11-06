@@ -52,3 +52,20 @@ public record UpdateCandidateDto
     public decimal ExpectedSalary { get; init; }
     public decimal Gpa { get; init; }
 }
+
+public class CandidateWithBatchesDto : CandidateDto
+{
+    public IReadOnlyCollection<CandidateAssignedBatchDto> AssignedBatches { get; set; } = [];
+}
+
+public class CandidateAssignedBatchDto
+{
+    public Guid ApplicationId { get; set; }
+    public Guid BatchId { get; set; }
+    public string BatchCode { get; set; } = string.Empty;
+    public string BatchName { get; set; } = string.Empty;
+    public string CodeApplication { get; set; } = string.Empty;
+    public ApplicationStatus ApplicationStatus { get; set; }
+    public FinalResultStatus? FinalResultStatus { get; set; }
+    public DateTime AppliedAt { get; set; }
+}

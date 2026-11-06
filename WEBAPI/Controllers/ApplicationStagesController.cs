@@ -15,6 +15,12 @@ namespace WEBAPI.Controllers;
 [Tags("Applications")]
 public sealed class ApplicationStagesController(ISender sender) : ControllerBase
 {
+    /// <summary>
+    /// Menilai dan memutuskan status kelulusan tahapan seleksi kandidat (Passed / Failed) oleh HR.
+    /// </summary>
+    /// <param name="id">ID ApplicationStage kandidat</param>
+    /// <param name="request">Status kelulusan dan catatan evaluasi</param>
+    /// <param name="ct">Cancellation token</param>
     [HttpPost("{id:guid}/evaluate")]
     [ProducesResponseType<ApplicationStageDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -23,9 +29,18 @@ public sealed class ApplicationStagesController(ISender sender) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Evaluate(
-        Guid id, [FromBody] EvaluateStageCommand command, CancellationToken ct)
+        [FromRoute] Guid id,
+        [FromBody] EvaluateStageRequest request,
+        CancellationToken ct)
     {
-        var result = await sender.Send(command with { StageId = id }, ct);
+        var command = new EvaluateStageCommand
+        {
+            StageId = id,
+            Status = request.Status,
+            Notes = request.Notes
+        };
+
+        var result = await sender.Send(command, ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 }
