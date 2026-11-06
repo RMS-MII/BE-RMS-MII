@@ -30,7 +30,7 @@ public sealed class SubmitTestHandler(
 
         if (stage is null)
             return Result<SubmitTestResultDto>.Failure(
-                Error.NotFound("Test stage was not found."));
+                Error.NotFound("Test stage was not found or has not been started yet."));
 
         var application = stage.BatchApplication;
 
@@ -48,18 +48,30 @@ public sealed class SubmitTestHandler(
             return Result<SubmitTestResultDto>.Failure(
                 Error.BusinessRule("This stage is not an online test."));
 
-        if (stage.Status != ApplicationStageStatus.InProgress)
+        switch (stage.Status)
         {
-            var message = stage.Status == ApplicationStageStatus.Submitted
-                ? "This test has already been submitted."
-                : stage.Status == ApplicationStageStatus.Expired
-                    ? "This test has expired."
-                    : "This test can no longer be submitted.";
-
-            return Result<SubmitTestResultDto>.Failure(Error.BusinessRule(message));
+            case ApplicationStageStatus.Submitted:
+                return Result<SubmitTestResultDto>.Failure(
+                    Error.BusinessRule("This test has already been submitted."));
+            case ApplicationStageStatus.Expired:
+                return Result<SubmitTestResultDto>.Failure(
+                    Error.BusinessRule("This test has expired."));
+            case ApplicationStageStatus.InProgress:
+                break;
+            default:
+                return Result<SubmitTestResultDto>.Failure(
+                    Error.BusinessRule("This test can no longer be submitted."));
         }
 
+        if (stage.IsAttempts)
+            return Result<SubmitTestResultDto>.Failure(
+                Error.BusinessRule("This test has already been attempted."));
+
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
+
+        if (now < stage.StartedAt)
+            return Result<SubmitTestResultDto>.Failure(
+                Error.BusinessRule("This test has not started yet."));
 
         if (now > stage.EndAt)
         {

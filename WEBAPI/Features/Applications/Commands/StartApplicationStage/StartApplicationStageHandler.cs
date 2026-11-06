@@ -165,14 +165,13 @@ public sealed class StartApplicationStageHandler(
         {
             var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
 
-            var testUrl =
-                $"{frontendUrl}/portal/{application.CandidateId}/stages/{applicationStage.Id}/test";
+            var portalUrl = $"{frontendUrl}/portal/{application.CandidateId}";
 
             var content = EmailTemplates.StageInvitation(
                 application.Candidate.FullName,
                 application.RecruitmentBatch.Name,
                 batchStage.StageName,
-                testUrl,
+                portalUrl,
                 applicationStage.EndAt);
 
             await emailService.SendEmailAsync(
