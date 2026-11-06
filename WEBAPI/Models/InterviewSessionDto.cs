@@ -30,6 +30,7 @@ public class InterviewSessionDto
     public InterviewSessionStatus Status { get; set; }
     public string StatusName => Status.ToDisplayName();
     public List<ScheduledInterviewerDto> Interviewers { get; set; } = [];
+    public bool HasPendingReschedule { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -67,4 +68,3 @@ public class SubmissionDto
     public bool IsOverdue { get; set; }
     public string Status { get; set; } = string.Empty;
 }
-

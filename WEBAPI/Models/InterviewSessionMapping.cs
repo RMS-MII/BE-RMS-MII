@@ -4,7 +4,9 @@ namespace WEBAPI.Models;
 
 public static class InterviewSessionMapping
 {
-    public static InterviewSessionDto ToInterviewSessionDto(this InterviewSession session) => new()
+    public static InterviewSessionDto ToInterviewSessionDto(
+        this InterviewSession session,
+        bool hasPendingReschedule = false) => new()
     {
         Id = session.Id,
         ApplicationStageId = session.ApplicationStageId,
@@ -20,6 +22,7 @@ public static class InterviewSessionMapping
         MeetingUrl = session.MeetingUrl,
         Status = session.Status,
         Interviewers = session.SessionInterviews.ToScheduledInterviewerDtoList(),
+        HasPendingReschedule = hasPendingReschedule,
         CreatedAt = session.CreatedAt
     };
 
@@ -73,4 +76,3 @@ public static class InterviewSessionMapping
         };
     }
 }
-

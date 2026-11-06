@@ -10,6 +10,7 @@ using WEBAPI.Features.Batches.Commands.ConfigureBatchStages;
 using WEBAPI.Features.Batches.Commands.CreateBatch;
 using WEBAPI.Features.Batches.Queries.GetBatchDetail;
 using WEBAPI.Features.Batches.Queries.GetBatches;
+using WEBAPI.Features.Batches.Queries.GetBatchInterviewSessions;
 using WEBAPI.Models;
 
 namespace WEBAPI.Controllers;
@@ -114,6 +115,25 @@ public sealed class BatchesController(ISender sender) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetApplications(
         Guid id, [FromQuery] GetApplicationsQuery query, CancellationToken ct)
+    {
+        var result = await sender.Send(query with { BatchId = id }, ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengambil seluruh sesi wawancara pada batch tertentu (Khusus HR).
+    /// </summary>
+    /// <param name="id">ID Batch rekrutmen</param>
+    /// <param name="query">Parameter filter jadwal wawancara</param>
+    /// <param name="ct">Cancellation token</param>
+    [HttpGet("{id:guid}/interview-sessions")]
+    [ProducesResponseType<IReadOnlyCollection<InterviewSessionDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetInterviewSessions(
+        Guid id, [FromQuery] GetBatchInterviewSessionsQuery query, CancellationToken ct)
     {
         var result = await sender.Send(query with { BatchId = id }, ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
