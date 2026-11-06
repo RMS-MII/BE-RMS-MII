@@ -18,6 +18,11 @@ namespace WEBAPI.Controllers;
 [Tags("Applications")]
 public sealed class ApplicationsController(ISender sender) : ControllerBase
 {
+    /// <summary>
+    /// Mengambil rekap lengkap progres seluruh tahapan seleksi kandidat pada suatu batch (Khusus HR).
+    /// </summary>
+    /// <param name="id">ID BatchApplication</param>
+    /// <param name="ct">Cancellation token</param>
     [HttpGet("{id:guid}")]
     [ProducesResponseType<ApplicationRecapDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -30,6 +35,11 @@ public sealed class ApplicationsController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
+    /// <summary>
+    /// Memulai tahapan seleksi berikutnya untuk kandidat (Khusus HR).
+    /// </summary>
+    /// <param name="id">ID BatchApplication</param>
+    /// <param name="ct">Cancellation token</param>
     [HttpPost("{id:guid}/stages/start")]
     [ProducesResponseType<ApplicationStageDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -44,6 +54,12 @@ public sealed class ApplicationsController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
+    /// <summary>
+    /// Menetapkan hasil akhir kelulusan rekrutmen kandidat (Accepted / Rejected) oleh HR.
+    /// </summary>
+    /// <param name="id">ID BatchApplication</param>
+    /// <param name="request">Keputusan hasil akhir dan catatan</param>
+    /// <param name="ct">Cancellation token</param>
     [HttpPut("{id:guid}/final-result")]
     [ProducesResponseType<BatchApplicationDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -52,12 +68,27 @@ public sealed class ApplicationsController(ISender sender) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> SetFinalResult(
-        Guid id, [FromBody] SetFinalResultCommand command, CancellationToken ct)
+        [FromRoute] Guid id,
+        [FromBody] SetFinalResultRequest request,
+        CancellationToken ct)
     {
-        var result = await sender.Send(command with { ApplicationId = id }, ct);
+        var command = new SetFinalResultCommand
+        {
+            ApplicationId = id,
+            FinalResultStatus = request.FinalResultStatus,
+            Notes = request.Notes
+        };
+
+        var result = await sender.Send(command, ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
+    /// <summary>
+    /// Mengunggah berkas surat penawaran kerja (Offering Letter) bagi kandidat yang dinyatakan Accepted (Khusus HR).
+    /// </summary>
+    /// <param name="id">ID BatchApplication</param>
+    /// <param name="request">Tautan berkas offering letter</param>
+    /// <param name="ct">Cancellation token</param>
     [HttpPost("{id:guid}/offering-letter")]
     [ProducesResponseType<BatchApplicationDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -66,9 +97,17 @@ public sealed class ApplicationsController(ISender sender) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> UploadOfferingLetter(
-        Guid id, [FromBody] UploadOfferingLetterCommand command, CancellationToken ct)
+        [FromRoute] Guid id,
+        [FromBody] UploadOfferingLetterRequest request,
+        CancellationToken ct)
     {
-        var result = await sender.Send(command with { ApplicationId = id }, ct);
+        var command = new UploadOfferingLetterCommand
+        {
+            ApplicationId = id,
+            FileOfferingLetter = request.FileOfferingLetter
+        };
+
+        var result = await sender.Send(command, ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 }

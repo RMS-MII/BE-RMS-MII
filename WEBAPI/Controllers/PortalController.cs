@@ -46,6 +46,13 @@ public sealed class PortalController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
+    /// <summary>
+    /// Mengirimkan seluruh jawaban tes daring kandidat untuk dihitung skornya.
+    /// </summary>
+    /// <param name="candidateId">ID unik kandidat</param>
+    /// <param name="id">ID Tahapan seleksi (ApplicationStageId)</param>
+    /// <param name="request">Daftar jawaban per butir soal</param>
+    /// <param name="ct">Cancellation token</param>
     [HttpPost("{candidateId:guid}/stages/{id:guid}/test/submit")]
     [ProducesResponseType<SubmitTestResultDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -54,11 +61,17 @@ public sealed class PortalController(ISender sender) : ControllerBase
     public async Task<IActionResult> SubmitTest(
         [FromRoute] Guid candidateId,
         [FromRoute] Guid id,
-        [FromBody] SubmitTestCommand command,
+        [FromBody] SubmitTestRequest request,
         CancellationToken ct)
     {
-        var result = await sender.Send(
-            command with { CandidateId = candidateId, StageId = id }, ct);
+        var command = new SubmitTestCommand
+        {
+            CandidateId = candidateId,
+            StageId = id,
+            Answers = request.Answers
+        };
+
+        var result = await sender.Send(command, ct);
 
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }

@@ -82,7 +82,7 @@ public sealed class InterviewSessionsController(ISender sender) : ControllerBase
     }
 
     /// <summary>
-    /// Mengambil data pengumpulan berkas tugas take-home kandidat pada sesi wawancara (Pewawancara & HR).
+    /// Mengambil data pengumpulan berkas tugas take-home kandidat pada sesi wawancara (Pewawancara dan HR).
     /// </summary>
     /// <param name="id">ID InterviewSession</param>
     /// <param name="ct">Cancellation token</param>

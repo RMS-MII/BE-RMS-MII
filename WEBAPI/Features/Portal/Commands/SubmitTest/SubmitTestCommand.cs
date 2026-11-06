@@ -11,8 +11,26 @@ public sealed record SubmitTestCommand : IRequest<Result<SubmitTestResultDto>>
     public IReadOnlyList<SubmitTestAnswerItem> Answers { get; init; } = [];
 }
 
+/// <summary>
+/// Permintaan pengiriman jawaban tes daring oleh kandidat.
+/// </summary>
+public sealed record SubmitTestRequest
+{
+    /// <summary>
+    /// Daftar jawaban untuk setiap butir soal ujian.
+    /// </summary>
+    public IReadOnlyList<SubmitTestAnswerItem> Answers { get; init; } = [];
+}
+
 public sealed record SubmitTestAnswerItem
 {
+    /// <summary>
+    /// ID Butir Soal.
+    /// </summary>
     public Guid QuestionId { get; init; }
+
+    /// <summary>
+    /// Daftar ID pilihan jawaban yang dipilih kandidat.
+    /// </summary>
     public IReadOnlyList<Guid> SelectedOptionIds { get; init; } = [];
 }
