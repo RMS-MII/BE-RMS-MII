@@ -5,7 +5,6 @@ using WEBAPI.Common.Behaviors;
 using WEBAPI.Common.ExceptionHandlers;
 using WEBAPI.Data;
 using WEBAPI.Data.Repositories;
-using WEBAPI.Middleware;
 using WEBAPI.Services;
 
 namespace WEBAPI.Extensions;
@@ -22,7 +21,6 @@ public static class ServiceCollectionExtension
         services.AddScoped<IEmailService, EmailService>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
-        services.AddSingleton<RequestTimingMiddleware>();
         services.AddValidatorsFromAssembly(typeof(Program).Assembly);
         services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
         {

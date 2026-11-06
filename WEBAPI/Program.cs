@@ -38,6 +38,11 @@ try
         await app.SeedDatabaseAsync(args);
     }
 
+    // Outermost middleware: log every request (including 4xx/5xx, 404 and unhandled exceptions)
+    // and make sure each one has a correlation id before anything else runs.
+    app.UseCorrelationId();
+    app.UseRmsRequestLogging();
+
     app.UseExceptionHandler(); 
     app.UseRmsOpenApi();
     if (!app.Environment.IsDevelopment())

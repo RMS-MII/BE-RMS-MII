@@ -42,7 +42,14 @@ public static class LoggingExtensions
                     // Runs at the END of the request.
                     diagnosticContext.Set("UserId",
                         httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous");
-                    diagnosticContext.Set("correlationId", httpContext.Response.Headers["X-Correlation-Id"].ToString());
+
+                    // Prefer Items: UseExceptionHandler may clear response headers before writing an error response.
+                    if (httpContext.Items.TryGetValue("X-Correlation-Id", out var correlationId) &&
+                        correlationId is not null)
+                    {
+                        diagnosticContext.Set("correlationId", correlationId.ToString());
+                    }
+
                     // Not logged on purpose: bodies, query string, Authorization header, client IP (personal data and secrets)
                 };
             });
