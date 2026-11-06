@@ -2,15 +2,62 @@ using WEBAPI.Entities.Enums;
 
 namespace WEBAPI.Models;
 
+/// <summary>
+/// Permintaan penjadwalan sesi wawancara untuk kandidat.
+/// </summary>
 public class ScheduleInterviewSessionRequest
 {
+    /// <summary>
+    /// Nama atau judul sesi wawancara.
+    /// </summary>
+    /// <example>Wawancara User - Dimas Aditya</example>
     public string SessionName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Waktu mulai sesi wawancara.
+    /// </summary>
+    /// <example>2026-11-20T09:00:00Z</example>
     public DateTime ScheduledStart { get; set; }
+
+    /// <summary>
+    /// Waktu selesai sesi wawancara.
+    /// </summary>
+    /// <example>2026-11-20T10:00:00Z</example>
     public DateTime ScheduledEnd { get; set; }
+
+    /// <summary>
+    /// Apakah wawancara daring/online (default: true).
+    /// </summary>
     public bool IsOnline { get; set; } = true;
+
+    /// <summary>
+    /// Lokasi wawancara fisik jika offline.
+    /// </summary>
+    /// <example>Ruang Meeting Lantai 3</example>
     public string? Location { get; set; }
+
+    /// <summary>
+    /// Tautan pertemuan daring (Google Meet / Zoom / MS Teams).
+    /// </summary>
+    /// <example>https://meet.google.com/abc-defg-hij</example>
     public string? MeetingUrl { get; set; }
-    public List<Guid> InterviewerEmployeeIds { get; set; } = [];
+
+    /// <summary>
+    /// Daftar ID Karyawan pewawancara yang ditugaskan pada sesi ini (harus yang sudah Accepted).
+    /// </summary>
+    public List<Guid>? EmployeeIds { get; set; }
+
+    /// <summary>
+    /// Alias dari EmployeeIds (keduanya didukung oleh backend).
+    /// </summary>
+    public List<Guid>? InterviewerEmployeeIds { get; set; }
+
+    public List<Guid> GetInterviewerEmployeeIds()
+    {
+        if (EmployeeIds is { Count: > 0 }) return EmployeeIds;
+        if (InterviewerEmployeeIds is { Count: > 0 }) return InterviewerEmployeeIds;
+        return [];
+    }
 }
 
 public class InterviewSessionDto

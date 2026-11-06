@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -56,7 +56,7 @@ public class RespondInvitationHandler(
 
         var now = DateTime.UtcNow;
         assignment.Status = command.Response;
-        assignment.Note = command.Response == StageEmployeeStatus.Declined ? command.Note?.Trim() : null;
+        assignment.Note = string.IsNullOrWhiteSpace(command.Note) ? null : command.Note.Trim();
         assignment.UpdatedAt = now;
 
         // Jika menolak penugasan, kirim email notifikasi ke HR pembuat batch / HR department
