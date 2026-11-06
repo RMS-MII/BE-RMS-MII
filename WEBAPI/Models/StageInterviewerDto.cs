@@ -2,7 +2,28 @@ using WEBAPI.Entities.Enums;
 
 namespace WEBAPI.Models;
 
-public record AssignInterviewersRequest(List<Guid> InterviewerEmployeeIds);
+/// <summary>
+/// Permintaan penugasan satu atau lebih karyawan sebagai pewawancara pada tahapan batch.
+/// </summary>
+public class AssignInterviewersRequest
+{
+    /// <summary>
+    /// Daftar ID Karyawan yang ditugaskan sebagai pewawancara.
+    /// </summary>
+    public List<Guid>? EmployeeIds { get; set; }
+
+    /// <summary>
+    /// Alias dari EmployeeIds (keduanya didukung oleh backend).
+    /// </summary>
+    public List<Guid>? InterviewerEmployeeIds { get; set; }
+
+    public List<Guid> GetEmployeeIds()
+    {
+        if (EmployeeIds is { Count: > 0 }) return EmployeeIds;
+        if (InterviewerEmployeeIds is { Count: > 0 }) return InterviewerEmployeeIds;
+        return [];
+    }
+}
 
 public class AssignedInterviewerDto
 {
@@ -24,4 +45,3 @@ public class AssignInterviewersResponse
     public string StageName { get; set; } = string.Empty;
     public List<AssignedInterviewerDto> Interviewers { get; set; } = [];
 }
-
