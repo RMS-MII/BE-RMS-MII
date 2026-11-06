@@ -10,6 +10,10 @@ public static class InterviewSessionMapping
     {
         Id = session.Id,
         ApplicationStageId = session.ApplicationStageId,
+        BatchStageId = session.ApplicationStage?.BatchStageId ?? Guid.Empty,
+        RecruitmentBatchId = session.ApplicationStage?.BatchApplication?.RecruitmentBatchId ?? Guid.Empty,
+        CandidateId = session.ApplicationStage?.BatchApplication?.CandidateId ?? Guid.Empty,
+        CodeApplication = session.ApplicationStage?.BatchApplication?.CodeApplication ?? string.Empty,
         CandidateName = session.ApplicationStage?.BatchApplication?.Candidate?.FullName ?? string.Empty,
         CandidateEmail = session.ApplicationStage?.BatchApplication?.Candidate?.Email ?? string.Empty,
         BatchName = session.ApplicationStage?.BatchStage?.RecruitmentBatch?.Name ?? string.Empty,

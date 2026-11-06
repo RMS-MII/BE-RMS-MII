@@ -68,20 +68,29 @@ public sealed class GetBatchInterviewSessionsHandler(RmsDbContext db)
 
         var sessionIds = sessions.Select(s => s.Id).ToList();
 
-        var pendingRescheduleSessionIds = await db.RescheduleRequests
+        var pendingRescheduleRequests = await db.RescheduleRequests
             .AsNoTracking()
             .Where(r => sessionIds.Contains(r.InterviewSessionId) && r.Status == RescheduleStatus.Pending)
-            .Select(r => r.InterviewSessionId)
-            .Distinct()
             .ToListAsync(ct);
 
-        var pendingSet = pendingRescheduleSessionIds.ToHashSet();
+        var pendingDict = pendingRescheduleRequests
+            .GroupBy(r => r.InterviewSessionId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedAt).First());
 
-        var dtoList = sessions
-            .Select(s => s.ToInterviewSessionDto(pendingSet.Contains(s.Id)))
-            .ToList();
+        var dtoList = sessions.Select(s =>
+        {
+            var hasPending = pendingDict.TryGetValue(s.Id, out var pendingReq);
+            var dto = s.ToInterviewSessionDto(hasPending);
+            if (hasPending && pendingReq is not null)
+            {
+                dto.PendingRescheduleId = pendingReq.Id;
+                dto.ProposedStart = pendingReq.ProposedStart;
+                dto.ProposedEnd = pendingReq.ProposedEnd;
+                dto.RescheduleReason = pendingReq.Reason;
+            }
+            return dto;
+        }).ToList();
 
         return Result<IReadOnlyCollection<InterviewSessionDto>>.Success(dtoList);
     }
 }
-

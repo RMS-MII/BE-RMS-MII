@@ -17,6 +17,10 @@ public class InterviewSessionDto
 {
     public Guid Id { get; set; }
     public Guid ApplicationStageId { get; set; }
+    public Guid BatchStageId { get; set; }
+    public Guid RecruitmentBatchId { get; set; }
+    public Guid CandidateId { get; set; }
+    public string CodeApplication { get; set; } = string.Empty;
     public string CandidateName { get; set; } = string.Empty;
     public string CandidateEmail { get; set; } = string.Empty;
     public string BatchName { get; set; } = string.Empty;
@@ -31,6 +35,10 @@ public class InterviewSessionDto
     public string StatusName => Status.ToDisplayName();
     public List<ScheduledInterviewerDto> Interviewers { get; set; } = [];
     public bool HasPendingReschedule { get; set; }
+    public Guid? PendingRescheduleId { get; set; }
+    public DateTime? ProposedStart { get; set; }
+    public DateTime? ProposedEnd { get; set; }
+    public string? RescheduleReason { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
