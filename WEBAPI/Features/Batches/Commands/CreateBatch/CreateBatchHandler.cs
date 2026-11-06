@@ -32,42 +32,33 @@ public sealed class CreateBatchHandler(
             return Result<RecruitmentBatchDto>.Failure(
                 Error.NotFound("Department was not found."));
 
-        string batchCode;
-        if (!string.IsNullOrWhiteSpace(request.BatchCode))
+        var year = request.StartDate != default
+            ? request.StartDate.Year
+            : dateTimeProvider.GetUtcNow().UtcDateTime.Year;
+
+        var deptCode = string.IsNullOrWhiteSpace(department.Code)
+            ? "GEN"
+            : department.Code.Trim().ToUpperInvariant();
+
+        var prefix = $"BATCH-{deptCode}-{year}-";
+
+        var existingCodes = await db.RecruitmentBatches
+            .AsNoTracking()
+            .Where(b => b.BatchCode.StartsWith(prefix))
+            .Select(b => b.BatchCode)
+            .ToListAsync(ct);
+
+        var maxSeq = 0;
+        foreach (var code in existingCodes)
         {
-            batchCode = request.BatchCode.Trim();
-
-            var codeExists = await db.RecruitmentBatches
-                .AnyAsync(b => b.BatchCode == batchCode, ct);
-
-            if (codeExists)
-                return Result<RecruitmentBatchDto>.Failure(
-                    Error.Conflict($"Batch code '{batchCode}' already exists."));
-        }
-        else
-        {
-            var year = request.StartDate != default ? request.StartDate.Year : dateTimeProvider.GetUtcNow().UtcDateTime.Year;
-            var deptCode = string.IsNullOrWhiteSpace(department.Code) ? "GEN" : department.Code.Trim().ToUpperInvariant();
-            var prefix = $"BATCH-{deptCode}-{year}-";
-
-            var existingCodes = await db.RecruitmentBatches
-                .AsNoTracking()
-                .Where(b => b.BatchCode.StartsWith(prefix))
-                .Select(b => b.BatchCode)
-                .ToListAsync(ct);
-
-            var maxSeq = 0;
-            foreach (var code in existingCodes)
+            var suffix = code[prefix.Length..];
+            if (int.TryParse(suffix, out var seq) && seq > maxSeq)
             {
-                var suffix = code[prefix.Length..];
-                if (int.TryParse(suffix, out var seq) && seq > maxSeq)
-                {
-                    maxSeq = seq;
-                }
+                maxSeq = seq;
             }
-
-            batchCode = $"{prefix}{(maxSeq + 1):D3}";
         }
+
+        var batchCode = $"{prefix}{(maxSeq + 1):D3}";
 
         var batch = new RecruitmentBatch
         {

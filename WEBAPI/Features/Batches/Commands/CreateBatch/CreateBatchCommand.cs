@@ -5,7 +5,7 @@ using WEBAPI.Models;
 namespace WEBAPI.Features.Batches.Commands.CreateBatch;
 
 /// <summary>
-/// Data pembuatan batch rekrutmen baru.
+/// Data pembuatan batch rekrutmen baru (BatchCode di-generate otomatis oleh backend).
 /// </summary>
 public sealed record CreateBatchCommand : IRequest<Result<RecruitmentBatchDto>>
 {
@@ -14,12 +14,6 @@ public sealed record CreateBatchCommand : IRequest<Result<RecruitmentBatchDto>>
     /// </summary>
     /// <example>01930002-0000-7000-8000-000000000002</example>
     public Guid DepartmentId { get; init; }
-
-    /// <summary>
-    /// Kode unik batch. Opsional; jika dikosongkan/null, sistem otomatis men-generate dengan format: BATCH-{DEPT}-{YEAR}-{001}.
-    /// </summary>
-    /// <example>BATCH-SE-2026-001</example>
-    public string? BatchCode { get; init; }
 
     /// <summary>
     /// Nama judul batch rekrutmen.
