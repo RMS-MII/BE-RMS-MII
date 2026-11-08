@@ -8,9 +8,11 @@ using WEBAPI.Features.Applications.Commands.RegisterCandidates;
 using WEBAPI.Features.Applications.Queries.GetApplications;
 using WEBAPI.Features.Batches.Commands.ConfigureBatchStages;
 using WEBAPI.Features.Batches.Commands.CreateBatch;
+using WEBAPI.Features.Batches.Commands.UpdateBatchStatus;
 using WEBAPI.Features.Batches.Queries.GetBatchDetail;
 using WEBAPI.Features.Batches.Queries.GetBatches;
 using WEBAPI.Features.Batches.Queries.GetBatchInterviewSessions;
+using WEBAPI.Features.Batches.Queries.GetBatchStages;
 using WEBAPI.Models;
 
 namespace WEBAPI.Controllers;
@@ -55,6 +57,22 @@ public sealed class BatchesController(ISender sender) : ControllerBase
     }
 
     /// <summary>
+    /// Mengambil tahapan seleksi batch beserta profil dan status pewawancara yang ditugaskan (Khusus HR).
+    /// </summary>
+    /// <param name="id">ID Batch rekrutmen</param>
+    /// <param name="ct">Cancellation token</param>
+    [HttpGet("{id:guid}/stages")]
+    [ProducesResponseType<IReadOnlyCollection<BatchStageWithInterviewersDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStages(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetBatchStagesQuery(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
     /// Membuat batch rekrutmen baru (Khusus HR). Kode batch otomatis di-generate jika field batchCode dikosongkan.
     /// </summary>
     /// <param name="command">Data pembuatan batch rekrutmen baru</param>
@@ -72,6 +90,32 @@ public sealed class BatchesController(ISender sender) : ControllerBase
         return result.IsSuccess
             ? Created($"/api/batches/{result.Value.Id}", result.Value)
             : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengubah status batch dengan alur Draft ke Open atau Open ke Closed (Khusus HR).
+    /// Batch harus memiliki minimal satu tahapan seleksi sebelum dibuka.
+    /// </summary>
+    /// <param name="id">ID Batch rekrutmen</param>
+    /// <param name="request">Status batch tujuan</param>
+    /// <param name="ct">Cancellation token</param>
+    [HttpPatch("{id:guid}/status")]
+    [ProducesResponseType<RecruitmentBatchDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> UpdateStatus(
+        Guid id, [FromBody] UpdateBatchStatusRequest request, CancellationToken ct)
+    {
+        var result = await sender.Send(new UpdateBatchStatusCommand
+        {
+            BatchId = id,
+            Status = request.Status
+        }, ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
     /// <summary>
