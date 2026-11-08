@@ -4,7 +4,19 @@ namespace WEBAPI.Models;
 
 public static class BatchStageMapping
 {
-    public static BatchStageDto ToDto(this BatchStage stage) => new()
+    public static BatchStageDto ToDto(this BatchStage stage) => MapToDto<BatchStageDto>(stage);
+
+    public static BatchStageWithInterviewersDto ToDtoWithInterviewers(this BatchStage stage)
+    {
+        var dto = MapToDto<BatchStageWithInterviewersDto>(stage);
+        dto.Interviewers = stage.StageEmployees
+            .OrderBy(se => se.Employee.FullName)
+            .ThenBy(se => se.EmployeeId)
+            .ToAssignedInterviewerDtoList();
+        return dto;
+    }
+
+    private static T MapToDto<T>(BatchStage stage) where T : BatchStageDto, new() => new()
     {
         Id = stage.Id,
         RecruitmentBatchId = stage.RecruitmentBatchId,

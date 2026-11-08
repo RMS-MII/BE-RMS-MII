@@ -19,6 +19,11 @@ public class BatchStageDto
     public DateTime? UpdatedAt { get; set; }
 }
 
+public class BatchStageWithInterviewersDto : BatchStageDto
+{
+    public List<AssignedInterviewerDto> Interviewers { get; set; } = [];
+}
+
 public record CreateBatchStageDto
 {
     public Guid RecruitmentBatchId { get; init; }
