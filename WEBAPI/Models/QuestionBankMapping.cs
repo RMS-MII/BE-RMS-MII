@@ -12,6 +12,7 @@ public static class QuestionBankMapping
         StageTypeId = questionBank.StageTypeId,
         StageTypeName = questionBank.StageType?.Name ?? string.Empty,
         CreatedBy = questionBank.CreatedBy,
+        DurationInMinutes = questionBank.DurationInMinutes,
         QuestionCount = questionBank.Questions.Count,
         ActiveQuestionCount = questionBank.Questions.Count(question => question.IsActive),
         CreatedAt = questionBank.CreatedAt,

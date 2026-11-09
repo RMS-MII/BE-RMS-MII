@@ -10,6 +10,7 @@ public sealed class QuestionBankDto
     public Guid StageTypeId { get; set; }
     public string StageTypeName { get; set; } = string.Empty;
     public Guid CreatedBy { get; set; }
+    public int DurationInMinutes { get; set; }
     public int QuestionCount { get; set; }
     public int ActiveQuestionCount { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -24,6 +25,7 @@ public sealed class QuestionBankDetailDto
     public Guid StageTypeId { get; set; }
     public string StageTypeName { get; set; } = string.Empty;
     public Guid CreatedBy { get; set; }
+    public int DurationInMinutes { get; set; }
     public int QuestionCount { get; set; }
     public int ActiveQuestionCount { get; set; }
     public DateTime CreatedAt { get; set; }

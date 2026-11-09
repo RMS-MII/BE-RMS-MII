@@ -17,6 +17,8 @@ public class QuestionBankConfiguration : IEntityTypeConfiguration<QuestionBank>
 
         builder.Property(x => x.StageTypeId)
             .IsRequired();
+        builder.Property(x => x.DurationInMinutes)
+            .IsRequired();
 
         builder.Property(x => x.CreatedBy)
             .IsRequired();
