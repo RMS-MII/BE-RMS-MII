@@ -24,3 +24,6 @@ WEBAPI/Migrations/*
 
 ## Docs
 Docs/
+
+## Testing
+tests/
