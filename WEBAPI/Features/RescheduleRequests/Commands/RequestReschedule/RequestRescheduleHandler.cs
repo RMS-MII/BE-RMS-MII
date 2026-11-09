@@ -59,6 +59,9 @@ public class RequestRescheduleHandler(
                     Error.Forbidden("Sesi wawancara ini bukan milik kandidat yang bersangkutan."));
             }
 
+            if (!WEBAPI.Features.Portal.CandidateActionPolicy.CanReschedule(session, dateTimeProvider.GetUtcNow().UtcDateTime))
+                return Result<RescheduleRequestDto>.Failure(Error.BusinessRule("Pengajuan hanya tersedia setelah interviewer menerima jadwal, sebelum sesi dimulai, dan selama tahap masih aktif."));
+
             requesterEmail = candidate.Email;
             requesterName = candidate.FullName;
         }

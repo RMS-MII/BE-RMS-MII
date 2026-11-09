@@ -4,6 +4,7 @@ namespace WEBAPI.Models;
 
 public sealed class CandidateTasksDto
 {
+    public DateTime ServerTimeUtc { get; set; }
     public Guid CandidateId { get; set; }
     public string CandidateName { get; set; } = string.Empty;
     public string CandidateEmail { get; set; } = string.Empty;
@@ -23,6 +24,7 @@ public sealed class CandidateApplicationTaskDto
     public OfferingLetterStatus OfferingLetterStatus { get; set; }
     public string? FileOfferingLetter { get; set; }
     public DateTime AppliedAt { get; set; }
+    public IReadOnlyCollection<CandidatePipelineDto> Pipeline { get; set; } = [];
     public IReadOnlyCollection<CandidateStageTaskDto> Stages { get; set; } = [];
 }
 
@@ -60,7 +62,12 @@ public sealed class CandidateSessionTaskDto
     public DateTime? EndedSubmissionAt { get; set; }
     public string? FileSubmission { get; set; }
     public bool IsSubmitted { get; set; }
+    public IReadOnlyCollection<string> Interviewers { get; set; } = [];
+    public CandidateRescheduleDto? Reschedule { get; set; }
     public bool CanConfirm { get; set; }
     public bool CanUploadSubmission { get; set; }
     public bool CanRequestReschedule { get; set; }
 }
+
+public sealed record CandidatePipelineDto(Guid BatchStageId, string StageName, Guid? NextStageId);
+public sealed record CandidateRescheduleDto(string Status, DateTime ProposedStart, DateTime ProposedEnd);

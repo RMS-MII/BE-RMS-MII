@@ -61,6 +61,9 @@ public class UploadSubmissionHandler(
                 Error.BusinessRule("Batas waktu pengumpulan tugas take-home test telah berakhir."));
         }
 
+        if (!CandidateActionPolicy.CanSubmit(session, now))
+            return Result<SubmissionDto>.Failure(Error.BusinessRule("Pengumpulan tugas sudah ditutup."));
+
         // 5. Simpan tautan berkas
         session.FileSubmission = command.FileSubmission.Trim();
         session.UpdatedAt = now;

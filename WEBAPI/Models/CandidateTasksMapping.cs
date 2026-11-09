@@ -1,3 +1,4 @@
+using WEBAPI.Features.Portal;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 
@@ -6,7 +7,7 @@ namespace WEBAPI.Models;
 public static class CandidateTasksMapping
 {
     public static CandidateApplicationTaskDto ToCandidateApplicationTaskDto(
-        this BatchApplication application, DateTime now) => new()
+        this BatchApplication application, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests = null) => new()
     {
         Id = application.Id,
         CodeApplication = application.CodeApplication,
@@ -21,19 +22,22 @@ public static class CandidateTasksMapping
             ? null
             : application.FileOfferingLetter,
         AppliedAt = application.AppliedAt,
+        Pipeline = (application.RecruitmentBatch?.BatchStages ?? []).Where(s => s.IsActive)
+            .OrderBy(s => s.StartDate).ThenBy(s => s.CreatedAt)
+            .Select(s => new CandidatePipelineDto(s.Id, s.StageName, s.NextStageId)).ToList(),
         Stages = application.ApplicationStages
             .OrderBy(stage => stage.BatchStage?.StartDate ?? stage.StartedAt)
             .ThenBy(stage => stage.CreatedAt)
-            .Select(stage => stage.ToCandidateStageTaskDto(now))
+            .Select(stage => stage.ToCandidateStageTaskDto(now, requests))
             .ToList()
     };
 
     private static CandidateStageTaskDto ToCandidateStageTaskDto(
-        this ApplicationStage stage, DateTime now)
+        this ApplicationStage stage, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests)
     {
         var sessions = stage.InterviewSessions
             .OrderBy(session => session.ScheduledStart)
-            .Select(session => session.ToCandidateSessionTaskDto(now))
+            .Select(session => session.ToCandidateSessionTaskDto(now, requests))
             .ToList();
 
         var stageType = stage.BatchStage?.StageType;
@@ -52,7 +56,7 @@ public static class CandidateTasksMapping
             CompletedAt = stage.CompletedAt,
             IsAttempts = stage.IsAttempts,
             DurationTest = stage.DurationTest,
-            CanTakeTest = stageType?.StageCategory == StageCategory.Test
+            CanTakeTest = CandidateActionPolicy.IsActive(stage) && stageType?.StageCategory == StageCategory.Test
                           && stage.Status == ApplicationStageStatus.InProgress
                           && !stage.IsAttempts
                           && now >= stage.StartedAt
@@ -65,12 +69,11 @@ public static class CandidateTasksMapping
     }
 
     private static CandidateSessionTaskDto ToCandidateSessionTaskDto(
-        this InterviewSession session, DateTime now)
+        this InterviewSession session, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests)
     {
-        var isActive = session.Status != InterviewSessionStatus.Rescheduled;
-        var isBeforeStart = session.ScheduledStart > now;
-        var withinSubmissionDeadline = session.EndedSubmissionAt.HasValue
-                                       && now <= session.EndedSubmissionAt.Value;
+        var changes = requests?.Where(r => r.InterviewSessionId == session.Id).ToList() ?? [];
+        var latest = changes.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
+        var pending = changes.Any(r => r.Status == RescheduleStatus.Pending);
 
         return new CandidateSessionTaskDto
         {
@@ -85,10 +88,12 @@ public static class CandidateTasksMapping
             EndedSubmissionAt = session.EndedSubmissionAt,
             FileSubmission = session.FileSubmission,
             IsSubmitted = !string.IsNullOrWhiteSpace(session.FileSubmission),
-            CanConfirm = isActive
-                         && session.Status == InterviewSessionStatus.AcceptedByInterviewer,
-            CanUploadSubmission = isActive && withinSubmissionDeadline,
-            CanRequestReschedule = isActive && isBeforeStart
+            Interviewers = session.SessionInterviews.Where(s => s.Status != SessionInterviewStatus.Cancelled)
+                .Select(s => s.StageEmployee.Employee.FullName).Distinct().ToList(),
+            Reschedule = latest is null ? null : new CandidateRescheduleDto(latest.Status.ToString(), latest.ProposedStart, latest.ProposedEnd),
+            CanConfirm = CandidateActionPolicy.CanConfirm(session, now) && !pending,
+            CanUploadSubmission = CandidateActionPolicy.CanSubmit(session, now),
+            CanRequestReschedule = CandidateActionPolicy.CanReschedule(session, now, pending)
         };
     }
 }

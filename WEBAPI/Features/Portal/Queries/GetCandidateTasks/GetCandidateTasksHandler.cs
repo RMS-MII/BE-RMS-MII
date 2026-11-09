@@ -36,23 +36,31 @@ public sealed class GetCandidateTasksHandler(
             .Where(application => application.CandidateId == request.CandidateId)
             .Include(application => application.RecruitmentBatch)
                 .ThenInclude(batch => batch.Department)
+            .Include(application => application.RecruitmentBatch).ThenInclude(batch => batch.BatchStages)
             .Include(application => application.ApplicationStages)
                 .ThenInclude(stage => stage.BatchStage)
                     .ThenInclude(batchStage => batchStage.StageType)
             .Include(application => application.ApplicationStages)
                 .ThenInclude(stage => stage.InterviewSessions)
+                    .ThenInclude(session => session.SessionInterviews)
+                        .ThenInclude(interviewer => interviewer.StageEmployee)
+                            .ThenInclude(assignment => assignment.Employee)
             .OrderByDescending(application => application.AppliedAt)
             .ToListAsync(ct);
 
+        var sessionIds = applications.SelectMany(a => a.ApplicationStages).SelectMany(s => s.InterviewSessions).Select(s => s.Id).ToList();
+        var changes = await db.RescheduleRequests.AsNoTracking()
+            .Where(r => sessionIds.Contains(r.InterviewSessionId)).ToListAsync(ct);
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
         return Result<CandidateTasksDto>.Success(new CandidateTasksDto
         {
+            ServerTimeUtc = now,
             CandidateId = candidate.Id,
             CandidateName = candidate.FullName,
             CandidateEmail = candidate.Email,
             Applications = applications
-                .Select(application => application.ToCandidateApplicationTaskDto(now))
+                .Select(application => application.ToCandidateApplicationTaskDto(now, changes))
                 .ToList()
         });
     }
