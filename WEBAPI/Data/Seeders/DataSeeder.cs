@@ -102,7 +102,6 @@ public static class DataSeeder
         await context.StageEmployees.ExecuteDeleteAsync();
         await context.ApplicationStages.ExecuteDeleteAsync();
         await context.BatchApplications.ExecuteDeleteAsync();
-        await context.Candidates.ExecuteDeleteAsync();
 
         // Putus relasi self-referencing NextStageId sebelum menghapus BatchStages
         await context.BatchStages.ExecuteUpdateAsync(s => s.SetProperty(x => x.NextStageId, (Guid?)null));
