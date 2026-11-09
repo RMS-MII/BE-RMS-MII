@@ -58,7 +58,10 @@ public static class AuthExtension
             .AddPolicy(Policies.InterviewerOnly, policy => policy.RequireAssertion(ctx =>
                 ctx.User.IsInRole(RmsRoles.Interviewer) ||
                 ctx.User.HasClaim(HrisClaimTypes.Role, RmsRoles.Interviewer) ||
-                ctx.User.HasClaim(ClaimTypes.Role, RmsRoles.Interviewer)))
+                ctx.User.HasClaim(ClaimTypes.Role, RmsRoles.Interviewer) ||
+                ctx.User.IsInRole(RmsRoles.Hr) ||
+                ctx.User.HasClaim(HrisClaimTypes.Role, RmsRoles.Hr) ||
+                ctx.User.HasClaim(ClaimTypes.Role, RmsRoles.Hr)))
             .AddPolicy(Policies.HasEmployeeProfile,
                 policy => policy.RequireAssertion(ctx =>
                     ctx.User.HasClaim(c => c.Type == HrisClaimTypes.EmployeeId && !string.IsNullOrWhiteSpace(c.Value))));

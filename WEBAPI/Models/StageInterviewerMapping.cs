@@ -12,7 +12,8 @@ public static class StageInterviewerMapping
         Email = se.Employee?.Email ?? string.Empty,
         JobTitle = se.Employee?.JobTitle ?? string.Empty,
         DepartmentName = se.Employee?.Department?.Name ?? string.Empty,
-        Status = se.Status
+        Status = se.Status,
+        Note = se.Note
     };
 
     public static List<AssignedInterviewerDto> ToAssignedInterviewerDtoList(

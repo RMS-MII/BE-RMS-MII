@@ -35,6 +35,7 @@ public class AssignedInterviewerDto
     public string DepartmentName { get; set; } = string.Empty;
     public StageEmployeeStatus Status { get; set; }
     public string StatusName => Status.ToDisplayName();
+    public string? Note { get; set; }
 }
 
 public class AssignInterviewersResponse
