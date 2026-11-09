@@ -11,6 +11,7 @@ public class BatchStageDto
     public StageCategory? StageCategory { get; set; }
     public string StageName { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public BatchStageLifecycleStatus LifecycleStatus { get; set; }
     public decimal? PassingScore { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
@@ -22,6 +23,18 @@ public class BatchStageDto
 public class BatchStageWithInterviewersDto : BatchStageDto
 {
     public List<AssignedInterviewerDto> Interviewers { get; set; } = [];
+}
+
+public sealed class BatchStageTransitionDto
+{
+    public Guid BatchStageId { get; set; }
+    public BatchStageLifecycleStatus LifecycleStatus { get; set; }
+    public int CandidatesStarted { get; set; }
+    public int CandidatesPassed { get; set; }
+    public int CandidatesRejected { get; set; }
+    public int CandidatesDropped { get; set; }
+    public int CandidatesExpired { get; set; }
+    public bool AlreadyApplied { get; set; }
 }
 
 public record CreateBatchStageDto

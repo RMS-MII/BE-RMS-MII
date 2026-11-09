@@ -18,7 +18,7 @@ public sealed record EvaluateStageCommand : IRequest<Result<ApplicationStageDto>
 public sealed record EvaluateStageRequest
 {
     /// <summary>
-    /// Status keputusan evaluasi (2 = Passed, 3 = Failed).
+    /// Status keputusan evaluasi, termasuk Dropped untuk kandidat yang tidak melanjutkan stage.
     /// </summary>
     public ApplicationStageStatus Status { get; init; }
 

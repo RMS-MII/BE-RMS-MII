@@ -62,6 +62,13 @@ public enum ApplicationStageStatus
     Dropped = 7
 }
 
+public enum BatchStageLifecycleStatus
+{
+    Inactive = 0,
+    Active = 1,
+    Completed = 2
+}
+
 public enum StageEmployeeStatus
 {
     Pending = 1,

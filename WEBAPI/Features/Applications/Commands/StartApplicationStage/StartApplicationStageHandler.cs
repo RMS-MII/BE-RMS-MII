@@ -58,6 +58,34 @@ public sealed class StartApplicationStageHandler(
             .Where(stage => stage.BatchApplicationId == application.Id)
             .ToListAsync(ct);
 
+        var usesBatchStageLifecycle = batchStages.Any(stage =>
+            stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive);
+
+        if (usesBatchStageLifecycle)
+        {
+            var activeBatchStage = batchStages.SingleOrDefault(stage =>
+                stage.LifecycleStatus == BatchStageLifecycleStatus.Active);
+
+            if (activeBatchStage is null)
+                return Result<ApplicationStageDto>.Failure(
+                    Error.BusinessRule("There is no active batch stage to start for this application."));
+
+            var activeApplicationStage = applicationStages.FirstOrDefault(stage =>
+                stage.BatchStageId == activeBatchStage.Id);
+
+            if (activeApplicationStage is null)
+                return Result<ApplicationStageDto>.Failure(
+                    Error.BusinessRule("This application is not assigned to the active batch stage."));
+
+            if (activeApplicationStage.Status.IsTerminalStage())
+                return Result<ApplicationStageDto>.Failure(
+                    Error.BusinessRule(
+                        "This application stage has already been evaluated. HR must activate the next batch stage."));
+
+            return Result<ApplicationStageDto>.Success(
+                activeApplicationStage.ToDto(activeBatchStage));
+        }
+
         var activeStageIndexes = activeStages
             .Select((stage, index) => new { stage.Id, Index = index })
             .ToDictionary(item => item.Id, item => item.Index);

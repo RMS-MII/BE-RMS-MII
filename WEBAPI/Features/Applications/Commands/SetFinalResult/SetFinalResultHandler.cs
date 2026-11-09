@@ -39,6 +39,15 @@ public sealed class SetFinalResultHandler(
             return Result<BatchApplicationDto>.Failure(
                 Error.BusinessRule("Application has already been finalized."));
 
+        var usesBatchStageLifecycle = await db.BatchStages.AnyAsync(stage =>
+            stage.RecruitmentBatchId == application.RecruitmentBatchId &&
+            stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive, ct);
+
+        if (usesBatchStageLifecycle)
+            return Result<BatchApplicationDto>.Failure(
+                Error.BusinessRule(
+                    "Final results are published when the final batch stage is completed."));
+
         var activeStages = await db.BatchStages
             .AsNoTracking()
             .Where(stage =>
