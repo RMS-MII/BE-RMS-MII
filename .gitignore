@@ -18,6 +18,9 @@ publish/
 
 ## Migrations
 Migrations/
+!WEBAPI/Migrations/
+WEBAPI/Migrations/*
+!WEBAPI/Migrations/20261109110000_AddEmailLogDeliveryStatus.cs
 
 ## Docs
 Docs/

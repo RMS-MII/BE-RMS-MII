@@ -112,6 +112,12 @@ public enum EmailType
     FinalResult = 8
 }
 
+public enum EmailDeliveryStatus
+{
+    Sent = 1,
+    Failed = 2
+}
+
 #endregion
 
 /// <summary>

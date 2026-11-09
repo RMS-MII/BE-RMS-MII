@@ -25,6 +25,12 @@ public class EmailLogConfiguration : IEntityTypeConfiguration<EmailLog>
             .HasConversion<int>()
             .IsRequired();
 
+        builder.Property(x => x.Status)
+            .HasConversion<int>()
+            .HasDefaultValue(WEBAPI.Entities.Enums.EmailDeliveryStatus.Sent)
+            .HasSentinel((WEBAPI.Entities.Enums.EmailDeliveryStatus)0)
+            .IsRequired();
+
         builder.Property(x => x.Subject)
             .HasMaxLength(100)
             .IsRequired();
@@ -33,10 +39,16 @@ public class EmailLogConfiguration : IEntityTypeConfiguration<EmailLog>
             .HasColumnType("nvarchar(max)")
             .IsRequired();
 
-        builder.Property(x => x.SentAt)
+        builder.Property(x => x.AttemptedAt)
             .HasColumnType("datetime2")
             .IsRequired();
 
-        builder.HasIndex(x => x.SentAt);
+        builder.Property(x => x.SentAt)
+            .HasColumnType("datetime2");
+
+        builder.Property(x => x.ErrorMessage)
+            .HasMaxLength(1000);
+
+        builder.HasIndex(x => x.AttemptedAt);
     }
 }
