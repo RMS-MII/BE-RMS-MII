@@ -3,14 +3,14 @@
     "subject": "Undangan Tahap {{stageName}} - {{batchName}}",
     "title": "Undangan Tahap Rekrutmen",
     "greeting": "Halo {{recipientName}},",
-    "summary": "Anda diundang mengikuti tahap {{stageName}} pada batch {{batchName}}. Silakan masuk ke aplikasi melalui tautan undangan di bawah ini untuk mengerjakan tes.",
+    "summary": "Anda diundang mengikuti tahap {{stageName}} pada batch {{batchName}}. Silakan buka portal kandidat melalui tautan di bawah ini, lalu pilih tes yang tersedia untuk mulai mengerjakan.",
     "details": [
       { "label": "Batch", "value": "{{batchName}}" },
       { "label": "Tahap", "value": "{{stageName}}" },
       { "label": "Batas Waktu", "value": "{{deadlineText}}" }
     ],
-    "actionLabel": "Mulai Tes Sekarang",
-    "actionUrl": "{{testUrl}}",
+    "actionLabel": "Buka Portal Kandidat",
+    "actionUrl": "{{portalUrl}}",
     "note": "Tes hanya dapat dikerjakan satu kali. Pastikan Anda menyelesaikan tes sebelum batas waktu berakhir.",
     "closing": "Terima kasih,\nTim Rekrutmen"
   },

@@ -5,7 +5,7 @@ namespace WEBAPI.Templates;
 
 public static class EmailTemplates
 {
-    private const string DefaultFrontendUrl = "https://localhost:5173";
+    private const string DefaultFrontendUrl = "http://localhost:5173";
     private static readonly CultureInfo IndonesianCulture = CultureInfo.GetCultureInfo("id-ID");
 
     public static string GetFrontendUrl(IConfiguration configuration)
@@ -20,7 +20,7 @@ public static class EmailTemplates
         string candidateName,
         string batchName,
         string stageName,
-        string testUrl,
+        string portalUrl,
         DateTime deadlineUtc)
     {
         return EmailTemplateRenderer.Render(
@@ -29,7 +29,7 @@ public static class EmailTemplates
                 ("recipientName", candidateName),
                 ("batchName", batchName),
                 ("stageName", stageName),
-                ("testUrl", testUrl),
+                ("portalUrl", portalUrl),
                 ("deadlineText", $"{FormatDateTime(deadlineUtc)} UTC")));
     }
 

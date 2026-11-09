@@ -18,7 +18,6 @@ public sealed class GetTestHandler(
         GetTestQuery request, CancellationToken ct)
     {
         var stage = await db.ApplicationStages
-            .AsNoTracking()
             .Include(applicationStage => applicationStage.BatchApplication)
                 .ThenInclude(application => application.Candidate)
             .Include(applicationStage => applicationStage.BatchApplication)
@@ -31,7 +30,7 @@ public sealed class GetTestHandler(
 
         if (stage is null)
             return Result<CandidateTestDto>.Failure(
-                Error.NotFound("Test stage was not found."));
+                Error.NotFound("Test stage was not found or has not been started yet."));
 
         var application = stage.BatchApplication;
 
@@ -49,22 +48,45 @@ public sealed class GetTestHandler(
             return Result<CandidateTestDto>.Failure(
                 Error.BusinessRule("This stage is not an online test."));
 
-        if (stage.Status != ApplicationStageStatus.InProgress)
+        switch (stage.Status)
         {
-            var message = stage.Status == ApplicationStageStatus.Submitted
-                ? "This test has already been submitted."
-                : stage.Status == ApplicationStageStatus.Expired
-                    ? "This test has expired."
-                    : "This test can no longer be taken.";
-
-            return Result<CandidateTestDto>.Failure(Error.BusinessRule(message));
+            case ApplicationStageStatus.Submitted:
+                return Result<CandidateTestDto>.Failure(
+                    Error.BusinessRule("This test has already been submitted."));
+            case ApplicationStageStatus.Expired:
+                return Result<CandidateTestDto>.Failure(
+                    Error.BusinessRule("This test has expired."));
+            case ApplicationStageStatus.InProgress:
+                break;
+            default:
+                return Result<CandidateTestDto>.Failure(
+                    Error.BusinessRule("This test can no longer be taken."));
         }
+
+        if (stage.IsAttempts)
+            return Result<CandidateTestDto>.Failure(
+                Error.BusinessRule("This test has already been attempted."));
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
-        if (now > stage.EndAt)
+        if (now < stage.StartedAt)
             return Result<CandidateTestDto>.Failure(
-                Error.BusinessRule("The test deadline has passed."));
+                Error.BusinessRule("This test has not started yet."));
+
+        if (now > stage.EndAt)
+        {
+            stage.Status = ApplicationStageStatus.Expired;
+            stage.TotalScore = null;
+            stage.CompletedAt = now;
+            stage.UpdatedAt = now;
+            application.UpdatedAt = now;
+
+            await db.SaveChangesAsync(ct);
+
+            return Result<CandidateTestDto>.Failure(
+                Error.BusinessRule(
+                    "The test deadline has passed. The stage has been marked as expired."));
+        }
 
         var questions = await db.Questions
             .AsNoTracking()

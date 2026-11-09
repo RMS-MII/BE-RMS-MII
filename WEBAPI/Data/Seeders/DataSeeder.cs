@@ -413,6 +413,7 @@ public static class DataSeeder
             DepartmentId = DeptHrId,
             StageTypeId = StageTypePsikotesId,
             CreatedBy = EmpHrManagerId,
+            DurationInMinutes = 20,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -423,6 +424,7 @@ public static class DataSeeder
             DepartmentId = DeptTechId,
             StageTypeId = StageTypeLogicalTestId,
             CreatedBy = EmpHrManagerId,
+            DurationInMinutes = 20,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -433,6 +435,7 @@ public static class DataSeeder
             DepartmentId = DeptSoftwareEngId,
             StageTypeId = StageTypeTechnicalTestId,
             CreatedBy = EmpLeadDevId,
+            DurationInMinutes = 45,
             CreatedAt = DateTime.UtcNow
         };
 

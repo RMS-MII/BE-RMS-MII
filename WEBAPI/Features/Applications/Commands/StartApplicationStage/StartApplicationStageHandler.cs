@@ -117,6 +117,21 @@ public sealed class StartApplicationStageHandler(
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("The stage has already ended."));
 
+        var durationInMinutes = await db.QuestionBanks
+            .AsNoTracking()
+            .Where(questionBank =>
+                questionBank.DepartmentId == application.RecruitmentBatch.DepartmentId &&
+                questionBank.StageTypeId == nextStage.StageTypeId)
+            .OrderBy(questionBank => questionBank.CreatedAt)
+            .ThenBy(questionBank => questionBank.Id)
+            .Select(questionBank => (int?)questionBank.DurationInMinutes)
+            .FirstOrDefaultAsync(ct);
+
+        var durationTest = nextStage.StageType.StageCategory == StageCategory.Test &&
+            durationInMinutes.HasValue
+                ? TimeSpan.FromMinutes(durationInMinutes.Value)
+                : (TimeSpan?)null;
+
         var applicationStage = new ApplicationStage
         {
             Id = Guid.CreateVersion7(),
@@ -128,7 +143,7 @@ public sealed class StartApplicationStageHandler(
             CompletedAt = null,
             Notes = null,
             IsAttempts = false,
-            DurationTest = null,
+            DurationTest = durationTest,
             CreatedAt = now
         };
 
@@ -165,14 +180,13 @@ public sealed class StartApplicationStageHandler(
         {
             var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
 
-            var testUrl =
-                $"{frontendUrl}/portal/{application.CandidateId}/stages/{applicationStage.Id}/test";
+            var portalUrl = $"{frontendUrl}/portal/{application.CandidateId}";
 
             var content = EmailTemplates.StageInvitation(
                 application.Candidate.FullName,
                 application.RecruitmentBatch.Name,
                 batchStage.StageName,
-                testUrl,
+                portalUrl,
                 applicationStage.EndAt);
 
             await emailService.SendEmailAsync(

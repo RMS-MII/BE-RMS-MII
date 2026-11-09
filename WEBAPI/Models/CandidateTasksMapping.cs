@@ -55,6 +55,7 @@ public static class CandidateTasksMapping
             CanTakeTest = stageType?.StageCategory == StageCategory.Test
                           && stage.Status == ApplicationStageStatus.InProgress
                           && !stage.IsAttempts
+                          && now >= stage.StartedAt
                           && now <= stage.EndAt,
             CanConfirmSchedule = sessions.Any(session => session.CanConfirm),
             CanUploadSubmission = sessions.Any(session => session.CanUploadSubmission),
