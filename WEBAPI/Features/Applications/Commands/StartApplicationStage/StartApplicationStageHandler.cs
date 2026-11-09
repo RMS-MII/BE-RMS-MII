@@ -7,7 +7,6 @@ using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
-using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Applications.Commands.StartApplicationStage;
 
@@ -15,7 +14,7 @@ public sealed class StartApplicationStageHandler(
     RmsDbContext db,
     IDateTimeProvider dateTimeProvider,
     IEmailService emailService,
-    IConfiguration configuration,
+    ApplicationStageProgressionService progression,
     ILogger<StartApplicationStageHandler> logger)
     : IRequestHandler<StartApplicationStageCommand, Result<ApplicationStageDto>>
 {
@@ -35,11 +34,9 @@ public sealed class StartApplicationStageHandler(
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("Application has already been finalized."));
 
-        var batchStages = await db.BatchStages
-            .AsNoTracking()
-            .Where(stage => stage.RecruitmentBatchId == application.RecruitmentBatchId)
-            .Include(stage => stage.StageType)
-            .ToListAsync(ct);
+        var batchStages = await progression.GetBatchStagesAsync(
+            application.RecruitmentBatchId,
+            ct);
 
         var stagesById = batchStages.ToDictionary(stage => stage.Id);
 
@@ -97,7 +94,7 @@ public sealed class StartApplicationStageHandler(
                 return Result<ApplicationStageDto>.Failure(
                     Error.BusinessRule("The last stage is not part of this batch."));
 
-            var nextActiveStage = GetNextActiveStage(lastBatchStage, stagesById);
+            var nextActiveStage = progression.GetNextActiveStage(lastBatchStage, stagesById);
 
             if (nextActiveStage is null)
                 return Result<ApplicationStageDto>.Failure(
@@ -117,37 +114,17 @@ public sealed class StartApplicationStageHandler(
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("The stage has already ended."));
 
-        var durationInMinutes = await db.QuestionBanks
-            .AsNoTracking()
-            .Where(questionBank =>
-                questionBank.DepartmentId == application.RecruitmentBatch.DepartmentId &&
-                questionBank.StageTypeId == nextStage.StageTypeId)
-            .OrderBy(questionBank => questionBank.CreatedAt)
-            .ThenBy(questionBank => questionBank.Id)
-            .Select(questionBank => (int?)questionBank.DurationInMinutes)
-            .FirstOrDefaultAsync(ct);
+        var durationTest = await progression.GetDurationTestAsync(
+            application.RecruitmentBatch.DepartmentId,
+            nextStage,
+            ct);
 
-        var durationTest = nextStage.StageType.StageCategory == StageCategory.Test &&
-            durationInMinutes.HasValue
-                ? TimeSpan.FromMinutes(durationInMinutes.Value)
-                : (TimeSpan?)null;
+        var applicationStage = progression.CreateApplicationStage(
+            application,
+            nextStage,
+            now,
+            durationTest);
 
-        var applicationStage = new ApplicationStage
-        {
-            Id = Guid.CreateVersion7(),
-            BatchApplicationId = application.Id,
-            BatchStageId = nextStage.Id,
-            Status = ApplicationStageStatus.InProgress,
-            StartedAt = now,
-            EndAt = nextStage.EndDate,
-            CompletedAt = null,
-            Notes = null,
-            IsAttempts = false,
-            DurationTest = durationTest,
-            CreatedAt = now
-        };
-
-        application.UpdatedAt = now;
         db.ApplicationStages.Add(applicationStage);
 
         try
@@ -164,7 +141,7 @@ public sealed class StartApplicationStageHandler(
                 Error.Conflict("This stage has already been started for the application."));
         }
 
-        if (nextStage.StageType.StageCategory == StageCategory.Test)
+        if (progression.RequiresStageInvitation(nextStage))
             await SendStageInvitationAsync(application, nextStage, applicationStage, ct);
 
         return Result<ApplicationStageDto>.Success(applicationStage.ToDto(nextStage));
@@ -178,16 +155,10 @@ public sealed class StartApplicationStageHandler(
     {
         try
         {
-            var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
-
-            var portalUrl = $"{frontendUrl}/portal/{application.CandidateId}";
-
-            var content = EmailTemplates.StageInvitation(
-                application.Candidate.FullName,
-                application.RecruitmentBatch.Name,
-                batchStage.StageName,
-                portalUrl,
-                applicationStage.EndAt);
+            var content = progression.BuildStageInvitation(
+                application,
+                batchStage,
+                applicationStage);
 
             await emailService.SendEmailAsync(
                 application.Candidate.Email,
@@ -205,23 +176,4 @@ public sealed class StartApplicationStageHandler(
         }
     }
 
-    private static BatchStage? GetNextActiveStage(
-        BatchStage currentStage,
-        IReadOnlyDictionary<Guid, BatchStage> stagesById)
-    {
-        var nextStageId = currentStage.NextStageId;
-
-        while (nextStageId.HasValue)
-        {
-            if (!stagesById.TryGetValue(nextStageId.Value, out var nextStage))
-                return null;
-
-            if (nextStage.IsActive)
-                return nextStage;
-
-            nextStageId = nextStage.NextStageId;
-        }
-
-        return null;
-    }
 }

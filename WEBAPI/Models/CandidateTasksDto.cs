@@ -37,6 +37,7 @@ public sealed class CandidateStageTaskDto
     public ApplicationStageStatus Status { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime EndAt { get; set; }
+    public DateTime? AttemptStartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public bool IsAttempts { get; set; }
     public TimeSpan? DurationTest { get; set; }

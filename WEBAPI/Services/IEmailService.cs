@@ -17,4 +17,9 @@ public interface IEmailService
         EmailContent content,
         EmailType type,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<EmailSendResult>> SendBulkEmailAsync(
+        IReadOnlyCollection<BulkEmailMessage> messages,
+        EmailType type,
+        CancellationToken cancellationToken = default);
 }
