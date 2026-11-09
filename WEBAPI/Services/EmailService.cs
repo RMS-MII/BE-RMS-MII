@@ -2,6 +2,7 @@
 using MailKit.Security;
 using MimeKit;
 using MimeKit.Utils;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using WEBAPI.Data;
 using WEBAPI.Entities;
@@ -39,34 +40,7 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         if (string.IsNullOrWhiteSpace(content.Subject))
             throw new ArgumentException("Email subject must not be empty.", nameof(content));
 
-        var message = new MimeMessage
-        {
-            MessageId = MimeUtils.GenerateMessageId(),
-            Subject = content.Subject,
-            Body = BuildMessageBody(content)
-        };
-
-        message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
-        message.To.Add(MailboxAddress.Parse(recipient));
-
-        using var client = new SmtpClient();
-        await client.ConnectAsync(
-            _settings.Host,
-            _settings.Port,
-            _settings.Security,
-            cancellationToken);
-
-        if (!string.IsNullOrWhiteSpace(_settings.UserName))
-            await client.AuthenticateAsync(
-                _settings.UserName,
-                _settings.Password,
-                cancellationToken);
-
-        await client.SendAsync(message, cancellationToken);
-        await client.DisconnectAsync(true, cancellationToken);
-
-        Log.Information("Sent email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
-
+        var attemptedAt = DateTime.UtcNow;
         var log = new EmailLog
         {
             SenderEmail = _settings.SenderEmail,
@@ -74,12 +48,70 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
             Subject = content.Subject,
             Body = content.TextBody,
             Type = type,
-            SentAt = DateTime.UtcNow
+            Status = EmailDeliveryStatus.Sent,
+            AttemptedAt = attemptedAt,
+            SentAt = null
         };
 
-        dbContext.EmailLogs.Add(log);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            var message = new MimeMessage
+            {
+                MessageId = MimeUtils.GenerateMessageId(),
+                Subject = content.Subject,
+                Body = BuildMessageBody(content)
+            };
+
+            message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
+            message.To.Add(MailboxAddress.Parse(recipient));
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(
+                _settings.Host,
+                _settings.Port,
+                _settings.Security,
+                cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(_settings.UserName))
+                await client.AuthenticateAsync(
+                    _settings.UserName,
+                    _settings.Password,
+                    cancellationToken);
+
+            await client.SendAsync(message, cancellationToken);
+            await client.DisconnectAsync(true, cancellationToken);
+
+            log.SentAt = DateTime.UtcNow;
+            Log.Information("Sent email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
+        }
+        catch (Exception exception)
+        {
+            log.Status = EmailDeliveryStatus.Failed;
+            log.ErrorMessage = Truncate(exception.GetBaseException().Message, 1000);
+            await SaveLogSafelyAsync(log);
+            Log.Error(exception, "Failed to send email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
+            throw;
+        }
+
+        await SaveLogSafelyAsync(log);
     }
+
+    private async Task SaveLogSafelyAsync(EmailLog emailLog)
+    {
+        try
+        {
+            dbContext.EmailLogs.Add(emailLog);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            dbContext.Entry(emailLog).State = EntityState.Detached;
+            Log.Error(exception, "Failed to persist email delivery log {EmailLogId}", emailLog.Id);
+        }
+    }
+
+    private static string Truncate(string value, int maxLength) =>
+        value.Length <= maxLength ? value : value[..maxLength];
 
     private static MimeEntity BuildMessageBody(EmailContent content)
     {
