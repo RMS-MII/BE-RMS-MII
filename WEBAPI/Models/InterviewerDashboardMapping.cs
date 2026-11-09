@@ -32,6 +32,7 @@ public static class InterviewerDashboardMapping
             HasTakeHome = session.EndedSubmissionAt.HasValue || !string.IsNullOrWhiteSpace(session.FileSubmission),
             EndedSubmissionAt = session.EndedSubmissionAt,
             FileSubmission = session.FileSubmission,
+            IsLead = si.IsLead,
             IsAssessmentSubmitted = assessment is not null,
             AssessmentScore = assessment?.Score,
             AssessmentRecommendation = assessment?.Recommendation

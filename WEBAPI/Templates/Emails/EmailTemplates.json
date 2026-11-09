@@ -47,6 +47,22 @@
     "note": "Pastikan Anda mengonfirmasi ketersediaan sebelum sesi wawancara berlangsung.",
     "closing": "Salam,\nTim Rekrutmen"
   },
+  "InterviewRescheduled": {
+    "subject": "Jadwal Ulang Sesi Wawancara - {{sessionName}}",
+    "title": "Jadwal Sesi Wawancara Diperbarui",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Jadwal sesi wawancara '{{sessionName}}' pada tahapan '{{stageName}}' telah diperbarui. Silakan periksa jadwal terbaru dan konfirmasi kehadiran Anda.",
+    "details": [
+      { "label": "Nama Sesi", "value": "{{sessionName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" },
+      { "label": "Waktu", "value": "{{scheduleText}}" },
+      { "label": "Moda", "value": "{{modeText}}" }
+    ],
+    "actionLabel": "Buka Aplikasi",
+    "actionUrl": "{{actionUrl}}",
+    "note": "{{noteText}}",
+    "closing": "Salam,\nTim Rekrutmen"
+  },
   "InterviewerAssignment": {
     "subject": "Undangan Penugasan Pewawancara - {{stageName}}",
     "title": "Undangan Penugasan Pewawancara",

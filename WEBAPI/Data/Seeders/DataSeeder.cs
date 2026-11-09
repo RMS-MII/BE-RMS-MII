@@ -784,6 +784,7 @@ public static class DataSeeder
                 InterviewSessionId = SampleInterviewSessionId,
                 StageEmployeeId = SampleStageEmployeeId,
                 Status = SessionInterviewStatus.InProgress,
+                IsLead = true,
                 CreatedAt = now
             });
         }

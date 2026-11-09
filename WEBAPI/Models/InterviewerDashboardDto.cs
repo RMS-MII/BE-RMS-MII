@@ -32,6 +32,7 @@ public class DashboardInterviewSessionDto
     public bool HasTakeHome { get; set; }
     public DateTime? EndedSubmissionAt { get; set; }
     public string? FileSubmission { get; set; }
+    public bool IsLead { get; set; }
     public bool IsAssessmentSubmitted { get; set; }
     public decimal? AssessmentScore { get; set; }
     public Recommendation? AssessmentRecommendation { get; set; }

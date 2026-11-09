@@ -79,6 +79,34 @@ public static class EmailTemplates
                 ("appUrl", appUrl)));
     }
 
+    public static EmailContent InterviewRescheduled(
+        string recipientName,
+        string sessionName,
+        string stageName,
+        DateTime scheduledStart,
+        DateTime scheduledEnd,
+        bool isOnline,
+        string? meetingUrl,
+        string? location,
+        string actionUrl,
+        string? reviewNotes)
+    {
+        var noteText = string.IsNullOrWhiteSpace(reviewNotes)
+            ? "Silakan konfirmasi kehadiran Anda sesuai jadwal terbaru."
+            : $"Catatan HR: {reviewNotes}";
+
+        return EmailTemplateRenderer.Render(
+            "InterviewRescheduled",
+            Values(
+                ("recipientName", recipientName),
+                ("sessionName", sessionName),
+                ("stageName", stageName),
+                ("scheduleText", FormatSchedule(scheduledStart, scheduledEnd)),
+                ("modeText", InterviewMode(isOnline, meetingUrl, location)),
+                ("actionUrl", actionUrl),
+                ("noteText", noteText)));
+    }
+
     public static EmailContent InterviewerAssignment(
         string interviewerName,
         string stageName,

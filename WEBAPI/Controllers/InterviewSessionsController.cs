@@ -64,7 +64,8 @@ public sealed class InterviewSessionsController(ISender sender) : ControllerBase
             request.IsOnline,
             request.Location,
             request.MeetingUrl,
-            request.GetInterviewerEmployeeIds());
+            request.GetInterviewerEmployeeIds(),
+            request.LeadEmployeeId);
 
         var result = await sender.Send(command, ct);
 
