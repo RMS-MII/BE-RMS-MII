@@ -54,7 +54,6 @@ public sealed class UpdateBatchStatusHandler(RmsDbContext db, IDateTimeProvider 
         }
 
         var dto = batch.ToDto();
-        dto.BatchStages = dto.BatchStages.OrderBy(s => s.StartDate).ThenBy(s => s.CreatedAt).ToList();
         return Result<RecruitmentBatchDto>.Success(dto);
     }
 }

@@ -1,3 +1,4 @@
+using WEBAPI.Features.Batches;
 using WEBAPI.Entities;
 
 namespace WEBAPI.Models;
@@ -18,7 +19,7 @@ public static class RecruitmentBatchMapping
         CreatedBy = batch.CreatedBy,
         CreatedAt = batch.CreatedAt,
         UpdatedAt = batch.UpdatedAt,
-        BatchStages = batch.BatchStages.ToDtoList()
+        BatchStages = BatchStageSequence.GetOrderedStages(batch.BatchStages.ToList()).ToDtoList()
     };
 
     public static IReadOnlyCollection<RecruitmentBatchDto> ToDtoList(this IEnumerable<RecruitmentBatch> batches)
