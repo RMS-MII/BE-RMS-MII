@@ -150,6 +150,31 @@
     "note": "{{noteText}}",
     "closing": "Terima kasih atas partisipasi Anda.\n\nTim Rekrutmen"
   },
+  "StagePassed": {
+    "subject": "Hasil Tahap {{stageName}} - {{batchName}}",
+    "title": "Hasil Tahap Rekrutmen",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Selamat, Anda lolos tahap {{stageName}} pada batch {{batchName}} dan melanjutkan ke tahap {{nextStageName}}.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" },
+      { "label": "Tahap Berikutnya", "value": "{{nextStageName}}" },
+      { "label": "Batas Waktu Tes", "value": "{{deadlineText}}", "skipWhenEmpty": true }
+    ],
+    "actionLabel": "Buka Portal Kandidat",
+    "actionUrl": "{{portalUrl}}",
+    "note": "{{nextInstructions}}",
+    "closing": "Salam,\nTim Rekrutmen"
+  },
+  "FinalResultAccepted": {
+    "subject": "Hasil Akhir Rekrutmen - {{batchName}}",
+    "title": "Hasil Akhir Rekrutmen",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Selamat, Anda dinyatakan lolos seluruh tahap seleksi pada batch {{batchName}}. Informasi surat penawaran akan disampaikan secara terpisah.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" }
+    ],
+    "closing": "Salam,\nTim Rekrutmen"
+  },
   "FinalResultRejection": {
     "subject": "Hasil Akhir Rekrutmen - {{batchName}}",
     "title": "Hasil Akhir Rekrutmen",

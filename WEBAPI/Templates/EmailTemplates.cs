@@ -204,6 +204,37 @@ public static class EmailTemplates
                 ("noteText", noteText)));
     }
 
+    public static EmailContent StagePassed(
+        string candidateName,
+        string stageName,
+        string nextStageName,
+        string batchName,
+        string portalUrl,
+        DateTime? nextStageDeadlineUtc)
+    {
+        return EmailTemplateRenderer.Render(
+            "StagePassed",
+            Values(
+                ("recipientName", candidateName),
+                ("stageName", stageName),
+                ("nextStageName", nextStageName),
+                ("batchName", batchName),
+                ("portalUrl", portalUrl),
+                ("deadlineText", nextStageDeadlineUtc is null
+                    ? string.Empty
+                    : $"{FormatDateTime(nextStageDeadlineUtc.Value)} UTC"),
+                ("nextInstructions", nextStageDeadlineUtc is null
+                    ? "Informasi jadwal tahap berikutnya akan disampaikan secara terpisah."
+                    : "Silakan buka portal kandidat dan selesaikan tes sebelum batas waktu.")));
+    }
+
+    public static EmailContent FinalResultAccepted(string candidateName, string batchName)
+    {
+        return EmailTemplateRenderer.Render(
+            "FinalResultAccepted",
+            Values(("recipientName", candidateName), ("batchName", batchName)));
+    }
+
     public static EmailContent FinalResultRejection(
         string candidateName,
         string batchName,

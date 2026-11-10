@@ -40,6 +40,7 @@ public class ApplicationStageRecapDto
 {
     public Guid? ApplicationStageId { get; set; }
     public Guid BatchStageId { get; set; }
+    public BatchStageLifecycleStatus LifecycleStatus { get; set; }
     public int Sequence { get; set; }
     public string StageName { get; set; } = string.Empty;
     public Guid StageTypeId { get; set; }

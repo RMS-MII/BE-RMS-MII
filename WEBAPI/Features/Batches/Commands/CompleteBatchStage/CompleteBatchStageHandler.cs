@@ -124,6 +124,17 @@ public sealed class CompleteBatchStageHandler(
         targetStage.LifecycleStatus = BatchStageLifecycleStatus.Completed;
         targetStage.UpdatedAt = now;
 
+        var acceptances = participants
+            .Where(item => item.Status.IsPassingStage() &&
+                           !string.IsNullOrWhiteSpace(item.BatchApplication.Candidate.Email))
+            .Select(item => new BulkEmailMessage(
+                item.BatchApplication.Candidate.Email,
+                EmailTemplates.FinalResultAccepted(
+                    item.BatchApplication.Candidate.FullName,
+                    batch.Name)))
+            .ToList();
+        emailService.QueueBulkEmail(acceptances, EmailType.FinalResult);
+
         var rejections = participants
             .Where(item => !item.Status.IsPassingStage() &&
                 !string.IsNullOrWhiteSpace(item.BatchApplication.Candidate.Email))
