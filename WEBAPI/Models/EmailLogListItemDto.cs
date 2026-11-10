@@ -13,4 +13,5 @@ public sealed class EmailLogListItemDto
     public DateTime AttemptedAt { get; init; }
     public DateTime? SentAt { get; init; }
     public string? ErrorMessage { get; init; }
+    public bool CanRetry { get; init; }
 }

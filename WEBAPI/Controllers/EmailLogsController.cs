@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
 using WEBAPI.Features.EmailLogs.Queries.GetEmailLogs;
+using WEBAPI.Features.EmailLogs.Commands.RetryEmailLog;
 using WEBAPI.Models;
 
 namespace WEBAPI.Controllers;
@@ -26,5 +27,17 @@ public sealed class EmailLogsController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(query, ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    [HttpPost("{id:guid}/retry")]
+    [ProducesResponseType<RetryEmailLogResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RetryEmail(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new RetryEmailLogCommand(id), ct);
+        return result.IsSuccess
+            ? Accepted(result.Value)
+            : result.ToProblemDetails(this);
     }
 }

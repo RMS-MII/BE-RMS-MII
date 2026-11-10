@@ -21,6 +21,10 @@ Migrations/
 !WEBAPI/Migrations/
 WEBAPI/Migrations/*
 !WEBAPI/Migrations/20261109110000_AddEmailLogDeliveryStatus.cs
+!WEBAPI/Migrations/20261110000000_AddEmailRetryQueue.cs
+!WEBAPI/Migrations/20261110000000_AddEmailRetryQueue.Designer.cs
+!WEBAPI/Migrations/20261110010000_RemoveParentEmailLogId.cs
+!WEBAPI/Migrations/20261110010000_RemoveParentEmailLogId.Designer.cs
 
 ## Docs
 Docs/

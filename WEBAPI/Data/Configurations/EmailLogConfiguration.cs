@@ -39,6 +39,9 @@ public class EmailLogConfiguration : IEntityTypeConfiguration<EmailLog>
             .HasColumnType("nvarchar(max)")
             .IsRequired();
 
+        builder.Property(x => x.HtmlBody)
+            .HasColumnType("nvarchar(max)");
+
         builder.Property(x => x.AttemptedAt)
             .HasColumnType("datetime2")
             .IsRequired();

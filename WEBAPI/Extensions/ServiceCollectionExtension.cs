@@ -18,7 +18,10 @@ public static class ServiceCollectionExtension
             => options.UseSqlServer(connectionString));
         
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<EmailService>();
+        services.AddScoped<IEmailService>(provider => provider.GetRequiredService<EmailService>());
+        services.AddScoped<IEmailRetryProcessor>(provider => provider.GetRequiredService<EmailService>());
+        services.AddHostedService<EmailRetryBackgroundService>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddValidatorsFromAssembly(typeof(Program).Assembly);

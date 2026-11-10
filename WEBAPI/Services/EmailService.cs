@@ -11,7 +11,7 @@ using WEBAPI.Templates;
 
 namespace WEBAPI.Services;
 
-public class EmailService(RmsDbContext dbContext, IConfiguration configuration) : IEmailService
+public class EmailService(RmsDbContext dbContext, IConfiguration configuration) : IEmailService, IEmailRetryProcessor
 {
     private readonly EmailSettings _settings = EmailSettings.FromConfiguration(configuration);
 
@@ -47,6 +47,7 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
             RecipientEmail = recipient,
             Subject = content.Subject,
             Body = content.TextBody,
+            HtmlBody = content.HtmlBody,
             Type = type,
             Status = EmailDeliveryStatus.Sent,
             AttemptedAt = attemptedAt,
@@ -55,31 +56,7 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
 
         try
         {
-            var message = new MimeMessage
-            {
-                MessageId = MimeUtils.GenerateMessageId(),
-                Subject = content.Subject,
-                Body = BuildMessageBody(content)
-            };
-
-            message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
-            message.To.Add(MailboxAddress.Parse(recipient));
-
-            using var client = new SmtpClient();
-            await client.ConnectAsync(
-                _settings.Host,
-                _settings.Port,
-                _settings.Security,
-                cancellationToken);
-
-            if (!string.IsNullOrWhiteSpace(_settings.UserName))
-                await client.AuthenticateAsync(
-                    _settings.UserName,
-                    _settings.Password,
-                    cancellationToken);
-
-            await client.SendAsync(message, cancellationToken);
-            await client.DisconnectAsync(true, cancellationToken);
+            await SendMessageAsync(recipient, content, cancellationToken);
 
             log.SentAt = DateTime.UtcNow;
             Log.Information("Sent email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
@@ -94,6 +71,67 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         }
 
         await SaveLogSafelyAsync(log);
+    }
+
+    public async Task<bool> ProcessNextPendingAsync(CancellationToken cancellationToken)
+    {
+        var nextId = await dbContext.EmailLogs
+            .AsNoTracking()
+            .Where(log => log.Status == EmailDeliveryStatus.Pending)
+            .OrderBy(log => log.AttemptedAt)
+            .Select(log => (Guid?)log.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (nextId is null)
+            return false;
+
+        var claimed = await dbContext.EmailLogs
+            .Where(log => log.Id == nextId && log.Status == EmailDeliveryStatus.Pending)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(log => log.Status, EmailDeliveryStatus.Sending)
+                .SetProperty(log => log.AttemptedAt, DateTime.UtcNow), cancellationToken);
+
+        if (claimed == 0)
+            return true;
+
+        var retryLog = await dbContext.EmailLogs.FirstAsync(log => log.Id == nextId, cancellationToken);
+        try
+        {
+            var content = new EmailContent(retryLog.Subject, retryLog.Body, retryLog.HtmlBody);
+            await SendMessageAsync(retryLog.RecipientEmail, content, cancellationToken);
+            retryLog.Status = EmailDeliveryStatus.Sent;
+            retryLog.SentAt = DateTime.UtcNow;
+            retryLog.ErrorMessage = null;
+        }
+        catch (Exception exception)
+        {
+            retryLog.Status = EmailDeliveryStatus.Failed;
+            retryLog.ErrorMessage = Truncate(exception.GetBaseException().Message, 1000);
+            Log.Error(exception, "Failed to retry email log {EmailLogId} to {Recipient}", retryLog.Id, retryLog.RecipientEmail);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    private async Task SendMessageAsync(string recipient, EmailContent content, CancellationToken cancellationToken)
+    {
+        var message = new MimeMessage
+        {
+            MessageId = MimeUtils.GenerateMessageId(),
+            Subject = content.Subject,
+            Body = BuildMessageBody(content)
+        };
+
+        message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
+        message.To.Add(MailboxAddress.Parse(recipient));
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_settings.Host, _settings.Port, _settings.Security, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(_settings.UserName))
+            await client.AuthenticateAsync(_settings.UserName, _settings.Password, cancellationToken);
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
     }
 
     private async Task SaveLogSafelyAsync(EmailLog emailLog)
