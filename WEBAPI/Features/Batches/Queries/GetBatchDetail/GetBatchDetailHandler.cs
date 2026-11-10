@@ -33,8 +33,6 @@ public sealed class GetBatchDetailHandler(RmsDbContext db)
 
         var dto = batch.ToDto();
         dto.BatchStages = dto.BatchStages
-            .OrderBy(s => s.StartDate)
-            .ThenBy(s => s.CreatedAt)
             .Select(stage =>
             {
                 stage.CandidateCount = candidateCounts.GetValueOrDefault(stage.Id);
