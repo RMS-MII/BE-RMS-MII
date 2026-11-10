@@ -22,4 +22,6 @@ public interface IEmailService
         IReadOnlyCollection<BulkEmailMessage> messages,
         EmailType type,
         CancellationToken cancellationToken = default);
+
+    void QueueBulkEmail(IReadOnlyCollection<BulkEmailMessage> messages, EmailType type);
 }

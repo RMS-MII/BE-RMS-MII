@@ -9,12 +9,15 @@ using WEBAPI.Entities.Enums;
 using WEBAPI.Features.Batches;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Batches.Commands.ActivateBatchStage;
 
 public sealed class ActivateBatchStageHandler(
     RmsDbContext db,
     IDateTimeProvider dateTimeProvider,
+    IEmailService emailService,
+    IConfiguration configuration,
     ILogger<ActivateBatchStageHandler> logger)
     : IRequestHandler<ActivateBatchStageCommand, Result<BatchStageTransitionDto>>
 {
@@ -102,6 +105,7 @@ public sealed class ActivateBatchStageHandler(
 
         var applications = await db.BatchApplications
             .Where(application => application.RecruitmentBatchId == request.BatchId)
+            .Include(application => application.Candidate)
             .Include(application => application.ApplicationStages)
             .ToListAsync(ct);
 
@@ -110,6 +114,8 @@ public sealed class ActivateBatchStageHandler(
         var candidatesRejected = 0;
         var candidatesDropped = 0;
         var candidatesExpired = 0;
+        var startedApplications = new List<(BatchApplication Application, ApplicationStage Stage)>();
+        var rejectedApplications = new List<(BatchApplication Application, ApplicationStage Stage)>();
 
         if (currentStage is null)
         {
@@ -139,10 +145,11 @@ public sealed class ActivateBatchStageHandler(
 
                 if (existing is null)
                 {
-                    application.ApplicationStages.Add(CreateApplicationStage(
-                        application.Id, targetStage, startedAt, now, durationTest));
+                    existing = CreateApplicationStage(application.Id, targetStage, startedAt, now, durationTest);
+                    db.ApplicationStages.Add(existing);
                 }
 
+                startedApplications.Add((application, existing));
                 candidatesStarted++;
             }
         }
@@ -183,16 +190,19 @@ public sealed class ActivateBatchStageHandler(
                     case ApplicationStageStatus.Rejected:
                         item.Application.Status = ApplicationStatus.Rejected;
                         item.Application.UpdatedAt = now;
+                        rejectedApplications.Add((item.Application, item.Stage));
                         candidatesRejected++;
                         break;
                     case ApplicationStageStatus.Dropped:
                         item.Application.Status = ApplicationStatus.Dropped;
                         item.Application.UpdatedAt = now;
+                        rejectedApplications.Add((item.Application, item.Stage));
                         candidatesDropped++;
                         break;
                     case ApplicationStageStatus.Expired:
                         item.Application.Status = ApplicationStatus.Dropped;
                         item.Application.UpdatedAt = now;
+                        rejectedApplications.Add((item.Application, item.Stage));
                         candidatesExpired++;
                         break;
                 }
@@ -215,10 +225,11 @@ public sealed class ActivateBatchStageHandler(
 
                 if (existing is null)
                 {
-                    application.ApplicationStages.Add(CreateApplicationStage(
-                        application.Id, targetStage, startedAt, now, durationTest));
+                    existing = CreateApplicationStage(application.Id, targetStage, startedAt, now, durationTest);
+                    db.ApplicationStages.Add(existing);
                 }
 
+                startedApplications.Add((application, existing));
                 candidatesStarted++;
             }
 
@@ -229,6 +240,35 @@ public sealed class ActivateBatchStageHandler(
         targetStage.LifecycleStatus = BatchStageLifecycleStatus.Active;
         targetStage.UpdatedAt = now;
 
+        if (targetStage.StageType.StageCategory == StageCategory.Test)
+        {
+            var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
+            var invitations = startedApplications
+                .Where(item => !string.IsNullOrWhiteSpace(item.Application.Candidate.Email))
+                .Select(item => new BulkEmailMessage(
+                    item.Application.Candidate.Email,
+                    EmailTemplates.StageInvitation(
+                        item.Application.Candidate.FullName,
+                        batch.Name,
+                        targetStage.StageName,
+                        $"{frontendUrl}/portal/{item.Application.CandidateId}",
+                        item.Stage.EndAt)))
+                .ToList();
+            emailService.QueueBulkEmail(invitations, EmailType.StageInvitation);
+        }
+
+        var rejections = rejectedApplications
+            .Where(item => !string.IsNullOrWhiteSpace(item.Application.Candidate.Email))
+            .Select(item => new BulkEmailMessage(
+                item.Application.Candidate.Email,
+                EmailTemplates.StageRejection(
+                    item.Application.Candidate.FullName,
+                    currentStage!.StageName,
+                    batch.Name,
+                    item.Stage.Notes)))
+            .ToList();
+        emailService.QueueBulkEmail(rejections, EmailType.Rejection);
+
         try
         {
             await db.SaveChangesAsync(ct);
@@ -236,11 +276,19 @@ public sealed class ActivateBatchStageHandler(
         }
         catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
+            await transaction.RollbackAsync(ct);
             logger.LogWarning(
                 ex,
                 "Stage activation conflict for batch {BatchId}, stage {StageId}",
                 request.BatchId,
                 request.StageId);
+            return Result<BatchStageTransitionDto>.Failure(
+                Error.Conflict("The batch stage changed concurrently. Refresh and try again."));
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            await transaction.RollbackAsync(ct);
+            logger.LogWarning(ex, "Stage activation lost a concurrent update for batch {BatchId}", request.BatchId);
             return Result<BatchStageTransitionDto>.Failure(
                 Error.Conflict("The batch stage changed concurrently. Refresh and try again."));
         }
