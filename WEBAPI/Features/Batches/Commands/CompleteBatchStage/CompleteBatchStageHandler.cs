@@ -7,12 +7,14 @@ using WEBAPI.Entities.Enums;
 using WEBAPI.Features.Batches;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Batches.Commands.CompleteBatchStage;
 
 public sealed class CompleteBatchStageHandler(
     RmsDbContext db,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IEmailService emailService)
     : IRequestHandler<CompleteBatchStageCommand, Result<BatchStageTransitionDto>>
 {
     public async Task<Result<BatchStageTransitionDto>> Handle(
@@ -46,6 +48,7 @@ public sealed class CompleteBatchStageHandler(
         var participants = await db.ApplicationStages
             .Where(stage => stage.BatchStageId == targetStage.Id)
             .Include(stage => stage.BatchApplication)
+                .ThenInclude(application => application.Candidate)
             .ToListAsync(ct);
 
         if (targetStage.LifecycleStatus == BatchStageLifecycleStatus.Completed)
@@ -120,6 +123,18 @@ public sealed class CompleteBatchStageHandler(
 
         targetStage.LifecycleStatus = BatchStageLifecycleStatus.Completed;
         targetStage.UpdatedAt = now;
+
+        var rejections = participants
+            .Where(item => !item.Status.IsPassingStage() &&
+                !string.IsNullOrWhiteSpace(item.BatchApplication.Candidate.Email))
+            .Select(item => new BulkEmailMessage(
+                item.BatchApplication.Candidate.Email,
+                EmailTemplates.FinalResultRejection(
+                    item.BatchApplication.Candidate.FullName,
+                    batch.Name,
+                    item.Notes)))
+            .ToList();
+        emailService.QueueBulkEmail(rejections, EmailType.Rejection);
 
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);

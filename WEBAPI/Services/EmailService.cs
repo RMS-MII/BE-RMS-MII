@@ -133,6 +133,27 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         return results;
     }
 
+    public void QueueBulkEmail(IReadOnlyCollection<BulkEmailMessage> messages, EmailType type)
+    {
+        var queuedAt = DateTime.UtcNow;
+        foreach (var item in messages)
+        {
+            var recipient = NormalizeRecipient(item.RecipientEmail);
+            ValidateContent(item.Content);
+            dbContext.EmailLogs.Add(new EmailLog
+            {
+                SenderEmail = _settings.SenderEmail,
+                RecipientEmail = recipient,
+                Subject = item.Content.Subject,
+                Body = item.Content.TextBody,
+                HtmlBody = item.Content.HtmlBody,
+                Type = type,
+                Status = EmailDeliveryStatus.Pending,
+                AttemptedAt = queuedAt
+            });
+        }
+    }
+
     public async Task<bool> ProcessNextPendingAsync(CancellationToken cancellationToken)
     {
         var nextId = await dbContext.EmailLogs
