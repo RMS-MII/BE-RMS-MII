@@ -1,3 +1,4 @@
+using WEBAPI.Features.Batches;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
@@ -40,11 +41,12 @@ public sealed class StartApplicationStageHandler(
 
         var stagesById = batchStages.ToDictionary(stage => stage.Id);
 
-        var activeStages = batchStages
-            .Where(stage => stage.IsActive)
-            .OrderBy(stage => stage.StartDate)
-            .ThenBy(stage => stage.CreatedAt)
-            .ToList();
+        var orderedStages = BatchStageSequence.GetOrderedStages(batchStages);
+        if (orderedStages.Count != batchStages.Count)
+            return Result<ApplicationStageDto>.Failure(
+                Error.BusinessRule("The configured stage sequence is invalid. Reconfigure the batch stages."));
+
+        var activeStages = orderedStages.Where(stage => stage.IsActive).ToList();
 
         if (activeStages.Count == 0)
             return Result<ApplicationStageDto>.Failure(
