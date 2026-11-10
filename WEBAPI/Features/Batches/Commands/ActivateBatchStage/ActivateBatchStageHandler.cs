@@ -139,7 +139,7 @@ public sealed class ActivateBatchStageHandler(
 
                 if (existing is null)
                 {
-                    application.ApplicationStages.Add(CreateApplicationStage(
+                    db.ApplicationStages.Add(CreateApplicationStage(
                         application.Id, targetStage, startedAt, now, durationTest));
                 }
 
@@ -215,7 +215,7 @@ public sealed class ActivateBatchStageHandler(
 
                 if (existing is null)
                 {
-                    application.ApplicationStages.Add(CreateApplicationStage(
+                    db.ApplicationStages.Add(CreateApplicationStage(
                         application.Id, targetStage, startedAt, now, durationTest));
                 }
 

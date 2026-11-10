@@ -78,6 +78,9 @@ namespace WEBAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("AttemptStartedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid>("BatchApplicationId")
                         .HasColumnType("uniqueidentifier");
 
@@ -407,12 +410,12 @@ namespace WEBAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("HtmlBody")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("HtmlBody")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RecipientEmail")
                         .IsRequired()
@@ -868,6 +871,11 @@ namespace WEBAPI.Migrations
                     b.Property<Guid>("InterviewSessionId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("IsLead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid>("StageEmployeeId")
                         .HasColumnType("uniqueidentifier");
 
@@ -879,7 +887,10 @@ namespace WEBAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InterviewSessionId");
+                    b.HasIndex("InterviewSessionId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_SessionInterview_OneLeadPerSession")
+                        .HasFilter("[IsLead] = 1");
 
                     b.HasIndex("StageEmployeeId");
 
