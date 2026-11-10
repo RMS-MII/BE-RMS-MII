@@ -31,11 +31,7 @@ public sealed class BulkStartNextStageHandler(
                 Error.NotFound("Batch was not found."));
 
         var currentStage = await db.BatchStages
-            .AsNoTracking()
-            .Include(stage => stage.StageType)
-            .FirstOrDefaultAsync(stage =>
-                stage.Id == request.StageId &&
-                stage.RecruitmentBatchId == request.BatchId, ct);
+            .FirstOrDefaultAsync(stage => stage.Id == request.StageId && stage.RecruitmentBatchId == request.BatchId, ct);
 
         if (currentStage is null)
             return Result<BulkStartNextStageDto>.Failure(
@@ -175,6 +171,10 @@ public sealed class BulkStartNextStageHandler(
 
         if (started.Count > 0)
         {
+            // Tahap sumber sudah diproses melalui bulk start, sehingga tidak aktif lagi.
+            // Tahap berikutnya sudah dipilih sebagai tahap aktif oleh progression logic.
+            currentStage.IsActive = false;
+
             try
             {
                 await db.SaveChangesAsync(ct);
