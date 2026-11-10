@@ -58,6 +58,22 @@ public class ScheduleInterviewSessionHandler(
 
         // 4. Validasi ketersediaan dan status pewawancara yang dipilih
         var distinctEmployeeIds = command.InterviewerEmployeeIds.Distinct().ToList();
+
+        if (distinctEmployeeIds.Count == 0)
+        {
+            return Result<InterviewSessionDto>.Failure(
+                Error.BusinessRule("Minimal harus memilih satu pewawancara untuk sesi wawancara."));
+        }
+
+        if (command.LeadEmployeeId.HasValue &&
+            !distinctEmployeeIds.Contains(command.LeadEmployeeId.Value))
+        {
+            return Result<InterviewSessionDto>.Failure(
+                Error.BusinessRule("Lead interviewer harus termasuk dalam daftar pewawancara yang dipilih."));
+        }
+
+        // Jika lead tidak ditentukan, pewawancara pertama otomatis menjadi lead
+        var leadEmployeeId = command.LeadEmployeeId ?? distinctEmployeeIds[0];
         var matchedStageEmployees = new List<StageEmployee>();
 
         foreach (var employeeId in distinctEmployeeIds)
@@ -130,6 +146,7 @@ public class ScheduleInterviewSessionHandler(
                 InterviewSessionId = session.Id,
                 StageEmployeeId = se.Id,
                 Status = SessionInterviewStatus.InProgress,
+                IsLead = se.EmployeeId == leadEmployeeId,
                 CreatedAt = now,
                 StageEmployee = se
             };

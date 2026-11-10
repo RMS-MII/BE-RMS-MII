@@ -47,5 +47,11 @@ public class ScheduleInterviewSessionValidator : AbstractValidator<ScheduleInter
         RuleFor(x => x.InterviewerEmployeeIds)
             .NotEmpty()
             .WithMessage("Minimal harus memilih satu pewawancara untuk sesi wawancara.");
+
+        RuleFor(x => x.LeadEmployeeId)
+            .Must((command, leadEmployeeId) =>
+                !leadEmployeeId.HasValue ||
+                command.InterviewerEmployeeIds.Contains(leadEmployeeId.Value))
+            .WithMessage("Lead interviewer harus termasuk dalam daftar pewawancara yang dipilih.");
     }
 }

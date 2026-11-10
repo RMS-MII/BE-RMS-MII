@@ -52,6 +52,12 @@ public class ScheduleInterviewSessionRequest
     /// </summary>
     public List<Guid>? InterviewerEmployeeIds { get; set; }
 
+    /// <summary>
+    /// ID Karyawan yang ditunjuk sebagai lead interviewer pada sesi ini.
+    /// Jika kosong, pewawancara pertama pada daftar otomatis menjadi lead.
+    /// </summary>
+    public Guid? LeadEmployeeId { get; set; }
+
     public List<Guid> GetInterviewerEmployeeIds()
     {
         if (EmployeeIds is { Count: > 0 }) return EmployeeIds;

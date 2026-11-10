@@ -8,6 +8,7 @@ public class ApplicationStage : BaseEntity
     public decimal? TotalScore { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime EndAt { get; set; }
+    public DateTime? AttemptStartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public string? Notes { get; set; }
     public bool IsAttempts { get; set; } = false;

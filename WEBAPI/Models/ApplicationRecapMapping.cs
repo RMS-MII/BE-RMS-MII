@@ -143,6 +143,7 @@ public static class ApplicationRecapMapping
                 EmployeeId = sessionInterview.StageEmployee.EmployeeId,
                 EmployeeName = sessionInterview.StageEmployee.Employee.FullName,
                 Status = sessionInterview.Status,
+                IsLead = sessionInterview.IsLead,
                 Assessment = sessionInterview.InterviewAssessment is null
                     ? null
                     : new InterviewAssessmentDto

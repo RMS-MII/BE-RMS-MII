@@ -15,6 +15,7 @@ public sealed class CandidateTestDto
     public StageCategory StageCategory { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime EndAt { get; set; }
+    public DateTime? AttemptStartedAt { get; set; }
     public DateTime ServerTimeUtc { get; set; }
     public TimeSpan? DurationTest { get; set; }
     public bool IsAttempts { get; set; }

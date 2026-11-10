@@ -16,5 +16,8 @@ public class BatchApplicationDto
     public string FileOfferingLetter { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public Guid? CurrentStageId { get; set; }
+    public string? CurrentStageName { get; set; }
+    public ApplicationStageStatus? CurrentStageStatus { get; set; }
     public CandidateDto? Candidate { get; set; }
 }

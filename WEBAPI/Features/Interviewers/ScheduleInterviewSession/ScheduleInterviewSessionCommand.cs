@@ -12,4 +12,5 @@ public record ScheduleInterviewSessionCommand(
     bool IsOnline,
     string? Location,
     string? MeetingUrl,
-    List<Guid> InterviewerEmployeeIds) : IRequest<Result<InterviewSessionDto>>;
+    List<Guid> InterviewerEmployeeIds,
+    Guid? LeadEmployeeId = null) : IRequest<Result<InterviewSessionDto>>;

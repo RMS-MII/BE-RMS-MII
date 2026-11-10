@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
 using WEBAPI.Data;
@@ -16,6 +17,7 @@ public class ReviewRescheduleHandler(
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     IEmailService emailService,
+    IConfiguration configuration,
     ILogger<ReviewRescheduleHandler> logger) : IRequestHandler<ReviewRescheduleCommand, Result<RescheduleRequestDto>>
 {
     public async Task<Result<RescheduleRequestDto>> Handle(
@@ -50,73 +52,153 @@ public class ReviewRescheduleHandler(
                     .ThenInclude(se => se.Employee)
             .FirstOrDefaultAsync(s => s.Id == request.InterviewSessionId, ct);
 
+        if (session is null)
+        {
+            return Result<RescheduleRequestDto>.Failure(
+                Error.NotFound($"Sesi wawancara dengan ID '{request.InterviewSessionId}' tidak ditemukan."));
+        }
+
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
         var reviewerId = currentUser.EmployeeId ?? currentUser.AccountId;
 
-        // 3. Update status permohonan reschedule
+        // 3. Saat disetujui, pastikan jadwal baru tidak bentrok dengan jadwal interviewer lain
+        if (command.Decision == RescheduleStatus.Approved)
+        {
+            var interviewerStageEmployeeIds = session.SessionInterviews
+                .Select(si => si.StageEmployeeId)
+                .ToList();
+
+            var conflictingSessions = await db.SessionInterviews
+                .Include(si => si.InterviewSession)
+                .Include(si => si.StageEmployee)
+                    .ThenInclude(se => se.Employee)
+                .Where(si =>
+                    si.InterviewSessionId != session.Id &&
+                    interviewerStageEmployeeIds.Contains(si.StageEmployeeId) &&
+                    si.Status != SessionInterviewStatus.Cancelled &&
+                    si.InterviewSession.Status != InterviewSessionStatus.Rescheduled &&
+                    si.InterviewSession.ScheduledStart < request.ProposedEnd &&
+                    si.InterviewSession.ScheduledEnd > request.ProposedStart)
+                .ToListAsync(ct);
+
+            if (conflictingSessions.Count > 0)
+            {
+                var conflict = conflictingSessions[0];
+                return Result<RescheduleRequestDto>.Failure(
+                    Error.Conflict(
+                        $"Pewawancara '{conflict.StageEmployee.Employee.FullName}' memiliki jadwal wawancara lain ('{conflict.InterviewSession.SessionName}') yang bertabrakan pada rentang waktu {conflict.InterviewSession.ScheduledStart:dd MMM yyyy HH:mm} - {conflict.InterviewSession.ScheduledEnd:HH:mm}."));
+            }
+        }
+
+        // 4. Update status permohonan reschedule
         request.Status = command.Decision;
         request.ReviewedBy = reviewerId;
         request.ReviewedAt = now;
         request.ReviewNotes = command.ReviewNotes?.Trim();
         request.UpdatedAt = now;
 
-        // 4. Logika berdasarkan keputusan (Aturan Bisnis #8)
+        // 5. Jika disetujui, update sesi yang sama agar seluruh interviewer otomatis memakai jadwal baru
         if (command.Decision == RescheduleStatus.Approved)
         {
-            // Sesi lama berstatus Rescheduled
-            if (session is not null)
-            {
-                session.Status = InterviewSessionStatus.Rescheduled;
-                session.UpdatedAt = now;
-            }
+            session.ScheduledStart = request.ProposedStart;
+            session.ScheduledEnd = request.ProposedEnd;
+            session.Status = InterviewSessionStatus.PendingConfirmation;
+            session.UpdatedAt = now;
         }
 
         await db.SaveChangesAsync(ct);
 
-        // 5. Kirim email notifikasi hasil keputusan reschedule (EmailType.RescheduleResult)
-        if (session is not null)
-        {
-            await SendDecisionEmailAsync(request, session, ct);
-        }
+        // 6. Kirim email notifikasi hasil keputusan reschedule
+        await SendDecisionEmailsAsync(request, session, ct);
 
         return Result<RescheduleRequestDto>.Success(request.ToDto(session));
     }
 
-    private async Task SendDecisionEmailAsync(
+    private async Task SendDecisionEmailsAsync(
         RescheduleRequest request,
         InterviewSession session,
         CancellationToken ct)
     {
-        try
+        var stageName = session.ApplicationStage?.BatchStage?.StageName ?? "Wawancara";
+
+        if (request.Status != RescheduleStatus.Approved)
         {
-            var isApproved = request.Status == RescheduleStatus.Approved;
-            var decisionText = isApproved ? "DISETUJUI" : "DITOLAK";
-            var stageName = session.ApplicationStage?.BatchStage?.StageName ?? "Wawancara";
+            try
+            {
+                var content = EmailTemplates.RescheduleResult(
+                    session.SessionName,
+                    stageName,
+                    "DITOLAK",
+                    $"Permohonan reschedule Anda DITOLAK oleh HR. Jadwal wawancara semula ({session.ScheduledStart:dd MMM yyyy HH:mm} - {session.ScheduledEnd:HH:mm} WIB) tetap berlaku.",
+                    request.ReviewNotes);
 
-            var explanation = isApproved
-                ? "Permohonan reschedule Anda telah DISETUJUI oleh HR. Sesi wawancara sebelumnya telah dibatalkan/dijadwalkan ulang, dan tim HR akan segera menerbitkan undangan dengan jadwal baru."
-                : $"Permohonan reschedule Anda DITOLAK oleh HR. Jadwal wawancara semula ({session.ScheduledStart:dd MMM yyyy HH:mm} - {session.ScheduledEnd:HH:mm} WIB) tetap berlaku.";
+                await emailService.SendEmailAsync(
+                    request.RequesterEmail,
+                    content,
+                    EmailType.RescheduleResult,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Gagal mengirimkan email keputusan reschedule untuk request ID {RequestId}",
+                    request.Id);
+            }
 
-            var content = EmailTemplates.RescheduleResult(
-                session.SessionName,
-                stageName,
-                decisionText,
-                explanation,
-                request.ReviewNotes);
-
-            await emailService.SendEmailAsync(
-                request.RequesterEmail,
-                content,
-                EmailType.RescheduleResult,
-                ct);
+            return;
         }
-        catch (Exception ex)
+
+        var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
+        var candidate = session.ApplicationStage?.BatchApplication?.Candidate;
+        var recipients = new Dictionary<string, (string Name, string ActionUrl)>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var sessionInterview in session.SessionInterviews)
         {
-            logger.LogError(
-                ex,
-                "Gagal mengirimkan email keputusan reschedule untuk request ID {RequestId}",
-                request.Id);
+            var employee = sessionInterview.StageEmployee?.Employee;
+            if (employee is null || string.IsNullOrWhiteSpace(employee.Email))
+                continue;
+
+            recipients[employee.Email] = (employee.FullName, frontendUrl);
+        }
+
+        if (candidate is not null && !string.IsNullOrWhiteSpace(candidate.Email))
+        {
+            recipients[candidate.Email] = (
+                candidate.FullName,
+                $"{frontendUrl}/portal/{candidate.Id}");
+        }
+
+        foreach (var recipient in recipients)
+        {
+            try
+            {
+                var content = EmailTemplates.InterviewRescheduled(
+                    recipient.Value.Name,
+                    session.SessionName,
+                    stageName,
+                    session.ScheduledStart,
+                    session.ScheduledEnd,
+                    session.IsOnline,
+                    session.MeetingUrl,
+                    session.Location,
+                    recipient.Value.ActionUrl,
+                    request.ReviewNotes);
+
+                await emailService.SendEmailAsync(
+                    recipient.Key,
+                    content,
+                    EmailType.RescheduleResult,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Gagal mengirimkan email jadwal baru reschedule untuk request ID {RequestId} ke {Recipient}",
+                    request.Id,
+                    recipient.Key);
+            }
         }
     }
 }
-

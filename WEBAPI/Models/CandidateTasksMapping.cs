@@ -1,4 +1,5 @@
 using WEBAPI.Features.Portal;
+using WEBAPI.Common;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 
@@ -42,6 +43,17 @@ public static class CandidateTasksMapping
 
         var stageType = stage.BatchStage?.StageType;
 
+        var isTestStage = stageType?.StageCategory == StageCategory.Test
+                          && stage.Status == ApplicationStageStatus.InProgress
+                          && !stage.IsAttempts;
+
+        var canStartTest = stage.AttemptStartedAt is null
+                           && now >= stage.StartedAt
+                           && now <= stage.EndAt;
+
+        var canContinueTest = stage.AttemptStartedAt is not null
+                              && !TestAttemptPolicy.IsPastDeadline(stage, now);
+
         return new CandidateStageTaskDto
         {
             ApplicationStageId = stage.Id,
@@ -53,6 +65,7 @@ public static class CandidateTasksMapping
             Status = stage.Status,
             StartedAt = stage.StartedAt,
             EndAt = stage.EndAt,
+            AttemptStartedAt = stage.AttemptStartedAt,
             CompletedAt = stage.CompletedAt,
             IsAttempts = stage.IsAttempts,
             DurationTest = stage.DurationTest,

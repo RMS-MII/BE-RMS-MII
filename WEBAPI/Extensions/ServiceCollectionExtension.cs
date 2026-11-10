@@ -22,6 +22,7 @@ public static class ServiceCollectionExtension
         services.AddScoped<IEmailService>(provider => provider.GetRequiredService<EmailService>());
         services.AddScoped<IEmailRetryProcessor>(provider => provider.GetRequiredService<EmailService>());
         services.AddHostedService<EmailRetryBackgroundService>();
+        services.AddScoped<ApplicationStageProgressionService>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddValidatorsFromAssembly(typeof(Program).Assembly);

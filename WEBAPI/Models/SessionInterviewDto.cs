@@ -13,6 +13,7 @@ public class ScheduledInterviewerDto
     public string DepartmentName { get; set; } = string.Empty;
     public SessionInterviewStatus Status { get; set; }
     public string StatusName => Status.ToDisplayName();
+    public bool IsLead { get; set; }
 }
 
 public class ConfirmSessionResponse

@@ -74,13 +74,14 @@ public class RequestRescheduleHandler(
             }
 
             var isHr = currentUser.IsInRole(RmsRoles.Hr);
-            var isAssignedInterviewer = session.SessionInterviews.Any(si =>
-                si.StageEmployee.EmployeeId == currentUser.EmployeeId);
+            var isSessionLead = session.SessionInterviews.Any(si =>
+                si.StageEmployee.EmployeeId == currentUser.EmployeeId &&
+                si.IsLead);
 
-            if (!isHr && !isAssignedInterviewer)
+            if (!isHr && !isSessionLead)
             {
                 return Result<RescheduleRequestDto>.Failure(
-                    Error.Forbidden("Anda tidak memiliki hak akses untuk mengajukan permohonan reschedule pada sesi wawancara ini."));
+                    Error.Forbidden("Reschedule hanya dapat diajukan oleh Lead Interviewer pada sesi ini atau HR."));
             }
 
             var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == currentUser.EmployeeId, ct);
