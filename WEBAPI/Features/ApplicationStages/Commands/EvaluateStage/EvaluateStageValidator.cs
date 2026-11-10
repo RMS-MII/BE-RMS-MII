@@ -19,7 +19,6 @@ public sealed class EvaluateStageValidator : AbstractValidator<EvaluateStageComm
             .WithMessage("Status must be Prioritized, Considered, Rejected, or Dropped.");
 
         RuleFor(x => x.Notes)
-            .NotEmpty()
             .MaximumLength(500);
     }
 }

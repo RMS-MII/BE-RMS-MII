@@ -9,7 +9,7 @@ public sealed record EvaluateStageCommand : IRequest<Result<ApplicationStageDto>
 {
     public Guid StageId { get; init; }
     public ApplicationStageStatus Status { get; init; }
-    public string Notes { get; init; } = string.Empty;
+    public string? Notes { get; init; }
 }
 
 /// <summary>
@@ -23,8 +23,8 @@ public sealed record EvaluateStageRequest
     public ApplicationStageStatus Status { get; init; }
 
     /// <summary>
-    /// Catatan evaluasi atau pertimbangan kelulusan.
+    /// Catatan evaluasi atau pertimbangan kelulusan (opsional).
     /// </summary>
     /// <example>Kandidat memenuhi seluruh kualifikasi dan nilai batas minimum.</example>
-    public string Notes { get; init; } = string.Empty;
+    public string? Notes { get; init; }
 }
