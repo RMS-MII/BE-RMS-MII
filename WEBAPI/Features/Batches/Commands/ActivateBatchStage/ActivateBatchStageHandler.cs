@@ -227,7 +227,7 @@ public sealed class ActivateBatchStageHandler(
                 {
                     existing = CreateApplicationStage(
                         application.Id, targetStage, startedAt, now, durationTest);
-                    application.ApplicationStages.Add(existing);
+                    db.ApplicationStages.Add(existing);
                 }
 
                 startedApplications.Add((application, existing));
@@ -311,7 +311,11 @@ public sealed class ActivateBatchStageHandler(
         catch (DbUpdateConcurrencyException ex)
         {
             await transaction.RollbackAsync(ct);
-            logger.LogWarning(ex, "Stage activation lost a concurrent update for batch {BatchId}", request.BatchId);
+            var affectedEntities = string.Join(", ", ex.Entries.Select(entry =>
+                $"{entry.Metadata.ClrType.Name}:{entry.Properties.FirstOrDefault(property => property.Metadata.IsPrimaryKey())?.CurrentValue}"));
+            logger.LogWarning(ex,
+                "Stage activation could not save {AffectedEntities} for batch {BatchId}",
+                affectedEntities, request.BatchId);
             return Result<BatchStageTransitionDto>.Failure(
                 Error.Conflict("The batch stage changed concurrently. Refresh and try again."));
         }
