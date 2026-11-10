@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Features.Portal.Commands.ConfirmSchedule;
+using WEBAPI.Features.Portal.Commands.StartTest;
 using WEBAPI.Features.Portal.Commands.SubmitTest;
 using WEBAPI.Features.Portal.Queries.GetCandidateTasks;
 using WEBAPI.Features.Portal.Queries.GetTest;
@@ -42,6 +43,28 @@ public sealed class PortalController(ISender sender) : ControllerBase
         CancellationToken ct)
     {
         var result = await sender.Send(new GetTestQuery(candidateId, id), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mencatat waktu kandidat benar-benar mulai mengerjakan tes. Durasi tes
+    /// dihitung dari waktu ini, bukan dari jadwal stage.
+    /// </summary>
+    /// <param name="candidateId">ID unik kandidat</param>
+    /// <param name="id">ID Tahapan seleksi (ApplicationStageId)</param>
+    /// <param name="ct">Cancellation token</param>
+    [HttpPost("{candidateId:guid}/stages/{id:guid}/test/start")]
+    [ProducesResponseType<StartTestResultDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> StartTest(
+        [FromRoute] Guid candidateId,
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        var result = await sender.Send(new StartTestCommand(candidateId, id), ct);
 
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }

@@ -101,6 +101,7 @@ public class SessionInterviewerRecapDto
     public Guid EmployeeId { get; set; }
     public string EmployeeName { get; set; } = string.Empty;
     public SessionInterviewStatus Status { get; set; }
+    public bool IsLead { get; set; }
     public InterviewAssessmentDto? Assessment { get; set; }
 }
 

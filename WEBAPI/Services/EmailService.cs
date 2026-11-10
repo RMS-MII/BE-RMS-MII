@@ -33,12 +33,15 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         EmailType type,
         CancellationToken cancellationToken = default)
     {
-        var recipient = recipientEmail.Trim();
-        if (string.IsNullOrWhiteSpace(recipient))
-            throw new ArgumentException("Recipient email must not be empty.", nameof(recipientEmail));
+        var recipient = NormalizeRecipient(recipientEmail);
+        ValidateContent(content);
 
-        if (string.IsNullOrWhiteSpace(content.Subject))
-            throw new ArgumentException("Email subject must not be empty.", nameof(content));
+        var message = BuildMessage(recipient, content);
+
+        using var client = new SmtpClient();
+        await ConnectAsync(client, cancellationToken);
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
 
         var attemptedAt = DateTime.UtcNow;
         var log = new EmailLog
@@ -61,7 +64,22 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
                 Subject = content.Subject,
                 Body = BuildMessageBody(content)
             };
+        Log.Information("Sent email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
 
+        dbContext.EmailLogs.Add(CreateLog(recipient, content, type));
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<EmailSendResult>> SendBulkEmailAsync(
+        IReadOnlyCollection<BulkEmailMessage> messages,
+        EmailType type,
+        CancellationToken cancellationToken = default)
+    {
+        if (messages.Count == 0)
+            return [];
+
+        var results = new List<EmailSendResult>(messages.Count);
+        var logs = new List<EmailLog>(messages.Count);
             message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
             message.To.Add(MailboxAddress.Parse(recipient));
 
@@ -71,16 +89,119 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
                 _settings.Port,
                 _settings.Security,
                 cancellationToken);
+        using var client = new SmtpClient();
+
+        try
+        {
+            await ConnectAsync(client, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to connect to SMTP server for bulk email [{Type}]", type);
+
+            return messages
+                .Select(message => new EmailSendResult(
+                    message.RecipientEmail,
+                    false,
+                    ex.Message))
+                .ToList();
+        }
+
+        foreach (var item in messages)
+        {
+            try
+            {
+                var recipient = NormalizeRecipient(item.RecipientEmail);
+                ValidateContent(item.Content);
+
+                var message = BuildMessage(recipient, item.Content);
+                await client.SendAsync(message, cancellationToken);
+
+                Log.Information(
+                    "Sent email [{Type}] to {Recipient}: {Subject}",
+                    type,
+                    recipient,
+                    item.Content.Subject);
+
+                logs.Add(CreateLog(recipient, item.Content, type));
+                results.Add(new EmailSendResult(recipient, true));
+            }
+            catch (Exception ex)
+            {
+                Log.Error(
+                    ex,
+                    "Failed to send bulk email [{Type}] to {Recipient}",
+                    type,
+                    item.RecipientEmail);
+
+                results.Add(new EmailSendResult(
+                    item.RecipientEmail,
+                    false,
+                    ex.Message));
+            }
+        }
+
+        try
+        {
+            await client.DisconnectAsync(true, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to disconnect SMTP client after bulk email [{Type}]", type);
+        }
+
+        if (logs.Count > 0)
+        {
+            try
+            {
+                dbContext.EmailLogs.AddRange(logs);
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to persist bulk email logs [{Type}]", type);
+            }
+        }
+
+        return results;
+    }
+
+    private async Task ConnectAsync(SmtpClient client, CancellationToken cancellationToken)
+    {
+        await client.ConnectAsync(
+            _settings.Host,
+            _settings.Port,
+            _settings.Security,
+            cancellationToken);
 
             if (!string.IsNullOrWhiteSpace(_settings.UserName))
                 await client.AuthenticateAsync(
                     _settings.UserName,
                     _settings.Password,
                     cancellationToken);
+        if (!string.IsNullOrWhiteSpace(_settings.UserName))
+            await client.AuthenticateAsync(
+                _settings.UserName,
+                _settings.Password,
+                cancellationToken);
+    }
 
+    private static string NormalizeRecipient(string recipientEmail)
+    {
+        var recipient = recipientEmail.Trim();
+        if (string.IsNullOrWhiteSpace(recipient))
+            throw new ArgumentException("Recipient email must not be empty.", nameof(recipientEmail));
+
+        return recipient;
+    }
             await client.SendAsync(message, cancellationToken);
             await client.DisconnectAsync(true, cancellationToken);
 
+    private static void ValidateContent(EmailContent content)
+    {
+        if (string.IsNullOrWhiteSpace(content.Subject))
+            throw new ArgumentException("Email subject must not be empty.", nameof(content));
+    }
             log.SentAt = DateTime.UtcNow;
             Log.Information("Sent email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
         }
@@ -96,10 +217,22 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         await SaveLogSafelyAsync(log);
     }
 
+    private MimeMessage BuildMessage(string recipient, EmailContent content)
+    {
+        var message = new MimeMessage
     private async Task SaveLogSafelyAsync(EmailLog emailLog)
     {
         try
         {
+            MessageId = MimeUtils.GenerateMessageId(),
+            Subject = content.Subject,
+            Body = BuildMessageBody(content)
+        };
+
+        message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
+        message.To.Add(MailboxAddress.Parse(recipient));
+
+        return message;
             dbContext.EmailLogs.Add(emailLog);
             await dbContext.SaveChangesAsync(CancellationToken.None);
         }
@@ -125,6 +258,16 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
 
         return bodyBuilder.ToMessageBody();
     }
+
+    private EmailLog CreateLog(string recipient, EmailContent content, EmailType type) => new()
+    {
+        SenderEmail = _settings.SenderEmail,
+        RecipientEmail = recipient,
+        Subject = content.Subject,
+        Body = content.TextBody,
+        Type = type,
+        SentAt = DateTime.UtcNow
+    };
 
     private sealed class EmailSettings
     {

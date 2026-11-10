@@ -69,23 +69,30 @@ public sealed class GetTestHandler(
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
-        if (now < stage.StartedAt)
-            return Result<CandidateTestDto>.Failure(
-                Error.BusinessRule("This test has not started yet."));
-
-        if (now > stage.EndAt)
+        // Jika kandidat belum benar-benar memulai tes, stage hanya boleh dibuka
+        // di dalam window jadwal. Setelah AttemptStartedAt tercatat, tes tetap
+        // boleh dibuka meskipun EndAt sudah lewat agar kandidat dapat
+        // melanjutkan dan mengumpulkan jawaban sesuai durasi tes.
+        if (stage.AttemptStartedAt is null)
         {
-            stage.Status = ApplicationStageStatus.Expired;
-            stage.TotalScore = null;
-            stage.CompletedAt = now;
-            stage.UpdatedAt = now;
-            application.UpdatedAt = now;
+            if (now < stage.StartedAt)
+                return Result<CandidateTestDto>.Failure(
+                    Error.BusinessRule("This test has not started yet."));
 
-            await db.SaveChangesAsync(ct);
+            if (now > stage.EndAt)
+            {
+                stage.Status = ApplicationStageStatus.Expired;
+                stage.TotalScore = null;
+                stage.CompletedAt = now;
+                stage.UpdatedAt = now;
+                application.UpdatedAt = now;
 
-            return Result<CandidateTestDto>.Failure(
-                Error.BusinessRule(
-                    "The test deadline has passed. The stage has been marked as expired."));
+                await db.SaveChangesAsync(ct);
+
+                return Result<CandidateTestDto>.Failure(
+                    Error.BusinessRule(
+                        "The test deadline has passed. The stage has been marked as expired."));
+            }
         }
 
         var questions = await db.Questions

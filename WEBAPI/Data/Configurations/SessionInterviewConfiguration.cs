@@ -23,6 +23,10 @@ public class SessionInterviewConfiguration : IEntityTypeConfiguration<SessionInt
             .HasConversion<int>()
             .IsRequired();
 
+        builder.Property(x => x.IsLead)
+            .HasDefaultValue(false)
+            .IsRequired();
+
         builder.Property(x => x.CreatedAt)
             .HasColumnType("datetime2")
             .IsRequired();
@@ -36,6 +40,12 @@ public class SessionInterviewConfiguration : IEntityTypeConfiguration<SessionInt
 
         builder.HasIndex(x => x.StageEmployeeId);
         builder.HasIndex(x => x.InterviewSessionId);
+
+        // Satu sesi wawancara hanya boleh memiliki satu lead interviewer
+        builder.HasIndex(x => x.InterviewSessionId)
+            .IsUnique()
+            .HasFilter("[IsLead] = 1")
+            .HasDatabaseName("UX_SessionInterview_OneLeadPerSession");
 
         builder.HasOne(x => x.StageEmployee)
             .WithMany(x => x.SessionInterviews)

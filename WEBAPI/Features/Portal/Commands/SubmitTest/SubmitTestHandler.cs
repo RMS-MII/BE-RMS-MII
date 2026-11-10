@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using WEBAPI.Common;
 using WEBAPI.Common.Results;
 using WEBAPI.Data;
 using WEBAPI.Entities;
@@ -69,11 +70,15 @@ public sealed class SubmitTestHandler(
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
+        if (stage.AttemptStartedAt is null)
+            return Result<SubmitTestResultDto>.Failure(
+                Error.BusinessRule("This test has not been started yet."));
+
         if (now < stage.StartedAt)
             return Result<SubmitTestResultDto>.Failure(
                 Error.BusinessRule("This test has not started yet."));
 
-        if (now > stage.EndAt)
+        if (TestAttemptPolicy.IsPastDeadline(stage, now))
         {
             stage.Status = ApplicationStageStatus.Expired;
             stage.TotalScore = null;
@@ -85,7 +90,7 @@ public sealed class SubmitTestHandler(
 
             return Result<SubmitTestResultDto>.Failure(
                 Error.BusinessRule(
-                    "The test deadline has passed. The stage has been marked as expired."));
+                    "The test duration has ended. The stage has been marked as expired."));
         }
 
         var questions = await db.Questions

@@ -17,6 +17,8 @@ public class ApplicationStageConfiguration : IEntityTypeConfiguration<Applicatio
         builder.Property(a => a.StartedAt)
             .HasColumnType("datetime2")
             .IsRequired();
+        builder.Property(a => a.AttemptStartedAt)
+            .HasColumnType("datetime2");
         builder.Property(a => a.CompletedAt)
             .HasColumnType("datetime2");
         builder.Property(a => a.CreatedAt)

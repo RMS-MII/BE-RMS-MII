@@ -26,6 +26,7 @@ public static class CandidateTestMapping
             StageCategory = stageType.StageCategory,
             StartedAt = stage.StartedAt,
             EndAt = stage.EndAt,
+            AttemptStartedAt = stage.AttemptStartedAt,
             ServerTimeUtc = now,
             DurationTest = stage.DurationTest,
             IsAttempts = stage.IsAttempts,

@@ -19,6 +19,7 @@ public static class ServiceCollectionExtension
         
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<ApplicationStageProgressionService>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddValidatorsFromAssembly(typeof(Program).Assembly);

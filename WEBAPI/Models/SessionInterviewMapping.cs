@@ -13,7 +13,8 @@ public static class SessionInterviewMapping
         Email = si.StageEmployee?.Employee?.Email ?? string.Empty,
         JobTitle = si.StageEmployee?.Employee?.JobTitle ?? string.Empty,
         DepartmentName = si.StageEmployee?.Employee?.Department?.Name ?? string.Empty,
-        Status = si.Status
+        Status = si.Status,
+        IsLead = si.IsLead
     };
 
     public static List<ScheduledInterviewerDto> ToScheduledInterviewerDtoList(
