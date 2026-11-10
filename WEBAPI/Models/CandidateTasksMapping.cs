@@ -11,10 +11,15 @@ public static class CandidateTasksMapping
     public static CandidateApplicationTaskDto ToCandidateApplicationTaskDto(
         this BatchApplication application, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests = null)
     {
+        var usesLifecycle = application.RecruitmentBatch?.BatchStages.Any(stage =>
+            stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive) == true;
+        var unpublishedDecision = usesLifecycle && application.ApplicationStages.Any(stage =>
+            stage.BatchStage?.LifecycleStatus == BatchStageLifecycleStatus.Active &&
+            stage.Status.IsTerminalStage());
         var orderedStages = BatchStageSequence.GetOrderedStages(application.RecruitmentBatch?.BatchStages.ToList() ?? []);
         var positions = orderedStages.Select((stage, index) => (stage.Id, index))
             .ToDictionary(item => item.Id, item => item.index);
-        return new()
+        return new CandidateApplicationTaskDto
         {
             Id = application.Id,
             CodeApplication = application.CodeApplication,
@@ -22,7 +27,9 @@ public static class CandidateTasksMapping
             BatchName = application.RecruitmentBatch?.Name ?? string.Empty,
             DepartmentId = application.RecruitmentBatch?.DepartmentId ?? Guid.Empty,
             DepartmentName = application.RecruitmentBatch?.Department?.Name ?? string.Empty,
-            Status = application.Status,
+            Status = unpublishedDecision && application.FinalResultStatus is null
+                ? ApplicationStatus.InProcess
+                : application.Status,
             FinalResultStatus = application.FinalResultStatus,
             OfferingLetterStatus = application.OfferingLetterStatus,
             FileOfferingLetter = string.IsNullOrWhiteSpace(application.FileOfferingLetter)
@@ -34,14 +41,18 @@ public static class CandidateTasksMapping
             Stages = application.ApplicationStages
                 .OrderBy(stage => positions.GetValueOrDefault(stage.BatchStageId, int.MaxValue))
                 .ThenBy(stage => stage.CreatedAt)
-                .Select(stage => stage.ToCandidateStageTaskDto(now, requests))
+                .Select(stage => stage.ToCandidateStageTaskDto(now, requests, usesLifecycle))
                 .ToList()
         };
     }
 
     private static CandidateStageTaskDto ToCandidateStageTaskDto(
-        this ApplicationStage stage, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests)
+        this ApplicationStage stage, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests,
+        bool usesLifecycle)
     {
+        var hideDecision = usesLifecycle &&
+            stage.BatchStage?.LifecycleStatus != BatchStageLifecycleStatus.Completed &&
+            stage.Status.IsTerminalStage();
         var sessions = stage.InterviewSessions
             .OrderBy(session => session.ScheduledStart)
             .Select(session => session.ToCandidateSessionTaskDto(now, requests))
@@ -68,11 +79,15 @@ public static class CandidateTasksMapping
             StageTypeId = stage.BatchStage?.StageTypeId ?? Guid.Empty,
             StageTypeName = stageType?.Name ?? string.Empty,
             StageCategory = stageType?.StageCategory,
-            Status = stage.Status,
+            Status = hideDecision
+                ? stage.BatchStage?.StageType?.StageCategory == StageCategory.Test && stage.IsAttempts
+                    ? ApplicationStageStatus.Submitted
+                    : ApplicationStageStatus.InProgress
+                : stage.Status,
             StartedAt = stage.StartedAt,
             EndAt = stage.EndAt,
             AttemptStartedAt = stage.AttemptStartedAt,
-            CompletedAt = stage.CompletedAt,
+            CompletedAt = hideDecision ? null : stage.CompletedAt,
             IsAttempts = stage.IsAttempts,
             DurationTest = stage.DurationTest,
             CanTakeTest = CandidateActionPolicy.IsActive(stage) && stageType?.StageCategory == StageCategory.Test

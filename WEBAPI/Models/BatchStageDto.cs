@@ -12,6 +12,7 @@ public class BatchStageDto
     public string StageName { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public BatchStageLifecycleStatus LifecycleStatus { get; set; }
+    public int? CandidateCount { get; set; }
     public decimal? PassingScore { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }

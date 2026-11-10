@@ -116,7 +116,8 @@ public enum EmailType
     RescheduleResult = 5,
     TakeHome = 6,
     Rejection = 7,
-    FinalResult = 8
+    FinalResult = 8,
+    StageResult = 9
 }
 
 public enum EmailDeliveryStatus
@@ -290,6 +291,7 @@ public static class EnumHelper
         EmailType.TakeHome => "Instruksi Take-Home Test",
         EmailType.Rejection => "Surat Penolakan",
         EmailType.FinalResult => "Pengumuman Hasil Akhir & Offering",
+        EmailType.StageResult => "Pengumuman Hasil Tahap",
         _ => type.ToString()
     };
 

@@ -38,7 +38,15 @@ public sealed class EvaluateStageHandler(
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("Only candidates in the active batch stage can be evaluated."));
 
-        if (application.Status.IsFinal() || application.FinalResultStatus is not null)
+        var canReviseUnpublished = usesBatchStageLifecycle &&
+            stage.BatchStage.LifecycleStatus == BatchStageLifecycleStatus.Active &&
+            stage.Status is ApplicationStageStatus.Prioritized or ApplicationStageStatus.Considered
+                or ApplicationStageStatus.Rejected or ApplicationStageStatus.Dropped;
+
+        if ((application.Status.IsFinal() &&
+             !(canReviseUnpublished && application.FinalResultStatus is null &&
+               application.Status is ApplicationStatus.Rejected or ApplicationStatus.Dropped)) ||
+            application.FinalResultStatus is not null)
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("Application has already been finalized."));
 
@@ -53,7 +61,7 @@ public sealed class EvaluateStageHandler(
             stage.Status == ApplicationStageStatus.Expired &&
             stageType.StageCategory == StageCategory.Test;
 
-        if (stage.Status.IsTerminalStage() && !canConvertExpiredTestToDropped)
+        if (stage.Status.IsTerminalStage() && !canConvertExpiredTestToDropped && !canReviseUnpublished)
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("Stage has already been evaluated."));
 
@@ -66,7 +74,8 @@ public sealed class EvaluateStageHandler(
         if (stageType.StageCategory == StageCategory.Test)
         {
             if (request.Status != ApplicationStageStatus.Dropped &&
-                stage.Status != ApplicationStageStatus.Submitted)
+                stage.Status != ApplicationStageStatus.Submitted &&
+                !(canReviseUnpublished && stage.IsAttempts))
                 return Result<ApplicationStageDto>.Failure(
                     Error.BusinessRule(
                         "Test stage must be submitted before it can be evaluated."));
@@ -94,7 +103,9 @@ public sealed class EvaluateStageHandler(
         stage.UpdatedAt = now;
         application.UpdatedAt = now;
 
-        if (request.Status == ApplicationStageStatus.Rejected)
+        if (usesBatchStageLifecycle)
+            application.Status = ApplicationStatus.InProcess;
+        else if (request.Status == ApplicationStageStatus.Rejected)
             application.Status = ApplicationStatus.Rejected;
         else if (request.Status == ApplicationStageStatus.Dropped)
             application.Status = ApplicationStatus.Dropped;

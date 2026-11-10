@@ -225,8 +225,9 @@ public sealed class ActivateBatchStageHandler(
 
                 if (existing is null)
                 {
-                    application.ApplicationStages.Add(CreateApplicationStage(
-                        application.Id, targetStage, startedAt, now, durationTest));
+                    existing = CreateApplicationStage(
+                        application.Id, targetStage, startedAt, now, durationTest);
+                    application.ApplicationStages.Add(existing);
                 }
 
                 startedApplications.Add((application, existing));
@@ -240,9 +241,27 @@ public sealed class ActivateBatchStageHandler(
         targetStage.LifecycleStatus = BatchStageLifecycleStatus.Active;
         targetStage.UpdatedAt = now;
 
-        if (targetStage.StageType.StageCategory == StageCategory.Test)
+        var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
+        if (currentStage is not null)
         {
-            var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
+            var passedMessages = startedApplications
+                .Where(item => !string.IsNullOrWhiteSpace(item.Application.Candidate.Email))
+                .Select(item => new BulkEmailMessage(
+                    item.Application.Candidate.Email,
+                    EmailTemplates.StagePassed(
+                        item.Application.Candidate.FullName,
+                        currentStage.StageName,
+                        targetStage.StageName,
+                        batch.Name,
+                        $"{frontendUrl}/portal/{item.Application.CandidateId}",
+                        targetStage.StageType.StageCategory == StageCategory.Test
+                            ? item.Stage.EndAt
+                            : null)))
+                .ToList();
+            emailService.QueueBulkEmail(passedMessages, EmailType.StageResult);
+        }
+        else if (targetStage.StageType.StageCategory == StageCategory.Test)
+        {
             var invitations = startedApplications
                 .Where(item => !string.IsNullOrWhiteSpace(item.Application.Candidate.Email))
                 .Select(item => new BulkEmailMessage(

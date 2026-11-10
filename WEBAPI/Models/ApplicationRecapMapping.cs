@@ -64,6 +64,7 @@ public static class ApplicationRecapMapping
         {
             ApplicationStageId = applicationStage?.Id,
             BatchStageId = batchStage.Id,
+            LifecycleStatus = batchStage.LifecycleStatus,
             Sequence = sequence,
             StageName = batchStage.StageName,
             StageTypeId = batchStage.StageTypeId,
