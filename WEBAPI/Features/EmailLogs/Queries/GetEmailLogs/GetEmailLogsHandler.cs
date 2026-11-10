@@ -50,7 +50,8 @@ public sealed class GetEmailLogsHandler(RmsDbContext db)
                 Status = log.Status,
                 AttemptedAt = log.AttemptedAt,
                 SentAt = log.SentAt,
-                ErrorMessage = log.ErrorMessage
+                ErrorMessage = log.ErrorMessage,
+                CanRetry = log.Status == WEBAPI.Entities.Enums.EmailDeliveryStatus.Failed
             })
             .ToListAsync(ct);
 

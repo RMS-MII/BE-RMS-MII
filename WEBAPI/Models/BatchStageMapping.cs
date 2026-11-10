@@ -25,6 +25,7 @@ public static class BatchStageMapping
         StageCategory = stage.StageType?.StageCategory,
         StageName = stage.StageName,
         IsActive = stage.IsActive,
+        LifecycleStatus = stage.LifecycleStatus,
         PassingScore = stage.PassingScore,
         StartDate = stage.StartDate,
         EndDate = stage.EndDate,

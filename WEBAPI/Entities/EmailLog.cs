@@ -10,6 +10,7 @@ public class EmailLog
     public EmailType Type { get; set; }
     public string Subject { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
+    public string? HtmlBody { get; set; }
     public EmailDeliveryStatus Status { get; set; } = EmailDeliveryStatus.Sent;
     public DateTime AttemptedAt { get; set; }
     public DateTime? SentAt { get; set; }

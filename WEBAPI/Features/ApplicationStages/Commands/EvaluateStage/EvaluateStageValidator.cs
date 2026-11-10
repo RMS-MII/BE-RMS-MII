@@ -14,8 +14,9 @@ public sealed class EvaluateStageValidator : AbstractValidator<EvaluateStageComm
             .IsInEnum()
             .Must(status => status is ApplicationStageStatus.Prioritized
                 or ApplicationStageStatus.Considered
-                or ApplicationStageStatus.Rejected)
-            .WithMessage("Status must be Prioritized, Considered, or Rejected.");
+                or ApplicationStageStatus.Rejected
+                or ApplicationStageStatus.Dropped)
+            .WithMessage("Status must be Prioritized, Considered, Rejected, or Dropped.");
 
         RuleFor(x => x.Notes)
             .NotEmpty()

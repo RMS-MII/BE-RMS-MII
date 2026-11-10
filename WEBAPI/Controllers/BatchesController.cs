@@ -8,6 +8,8 @@ using WEBAPI.Features.Applications.Commands.BulkStartNextStage;
 using WEBAPI.Features.Applications.Commands.RegisterCandidates;
 using WEBAPI.Features.Applications.Queries.GetApplications;
 using WEBAPI.Features.Batches.Commands.ConfigureBatchStages;
+using WEBAPI.Features.Batches.Commands.ActivateBatchStage;
+using WEBAPI.Features.Batches.Commands.CompleteBatchStage;
 using WEBAPI.Features.Batches.Commands.CreateBatch;
 using WEBAPI.Features.Batches.Commands.UpdateBatchStatus;
 using WEBAPI.Features.Batches.Queries.GetBatchDetail;
@@ -170,6 +172,46 @@ public sealed class BatchesController(ISender sender) : ControllerBase
         };
 
         var result = await sender.Send(command, ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengaktifkan stage pertama atau melanjutkan ke stage berikutnya secara berurutan (Khusus HR).
+    /// </summary>
+    /// <param name="batchId">ID batch rekrutmen</param>
+    /// <param name="stageId">ID stage yang akan diaktifkan</param>
+    /// <param name="ct">Cancellation token</param>
+    [HttpPost("{batchId:guid}/stages/{stageId:guid}/activate")]
+    [ProducesResponseType<BatchStageTransitionDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ActivateStage(
+        Guid batchId, Guid stageId, CancellationToken ct)
+    {
+        var result = await sender.Send(new ActivateBatchStageCommand(batchId, stageId), ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Menyelesaikan stage terakhir dan menetapkan hasil akhir kandidat berdasarkan hasil stage tersebut (Khusus HR).
+    /// </summary>
+    /// <param name="batchId">ID batch rekrutmen</param>
+    /// <param name="stageId">ID stage terakhir yang akan diselesaikan</param>
+    /// <param name="ct">Cancellation token</param>
+    [HttpPost("{batchId:guid}/stages/{stageId:guid}/complete")]
+    [ProducesResponseType<BatchStageTransitionDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CompleteStage(
+        Guid batchId, Guid stageId, CancellationToken ct)
+    {
+        var result = await sender.Send(new CompleteBatchStageCommand(batchId, stageId), ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 

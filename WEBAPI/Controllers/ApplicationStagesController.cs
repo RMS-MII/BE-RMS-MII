@@ -16,7 +16,7 @@ namespace WEBAPI.Controllers;
 public sealed class ApplicationStagesController(ISender sender) : ControllerBase
 {
     /// <summary>
-    /// Menilai dan memutuskan status kelulusan tahapan seleksi kandidat (Passed / Failed) oleh HR.
+    /// Menilai hasil tahapan seleksi kandidat (Prioritized / Considered / Rejected / Dropped) oleh HR.
     /// </summary>
     /// <param name="id">ID ApplicationStage kandidat</param>
     /// <param name="request">Status kelulusan dan catatan evaluasi</param>

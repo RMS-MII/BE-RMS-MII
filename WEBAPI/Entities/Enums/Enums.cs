@@ -62,6 +62,13 @@ public enum ApplicationStageStatus
     Dropped = 7
 }
 
+public enum BatchStageLifecycleStatus
+{
+    Inactive = 0,
+    Active = 1,
+    Completed = 2
+}
+
 public enum StageEmployeeStatus
 {
     Pending = 1,
@@ -115,7 +122,9 @@ public enum EmailType
 public enum EmailDeliveryStatus
 {
     Sent = 1,
-    Failed = 2
+    Failed = 2,
+    Pending = 3,
+    Sending = 4
 }
 
 #endregion

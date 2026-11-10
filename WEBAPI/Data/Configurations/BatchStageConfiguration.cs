@@ -20,8 +20,17 @@ public class BatchStageConfiguration : IEntityTypeConfiguration<BatchStage>
         builder.HasIndex(x => new { x.RecruitmentBatchId, x.StageName })
             .IsUnique();
 
+        builder.HasIndex(x => x.RecruitmentBatchId)
+            .IsUnique()
+            .HasFilter("[LifecycleStatus] = 1");
+
         builder.Property(x => x.IsActive)
             .HasDefaultValue(true);
+
+        builder.Property(x => x.LifecycleStatus)
+            .HasConversion<int>()
+            .HasDefaultValue(WEBAPI.Entities.Enums.BatchStageLifecycleStatus.Inactive)
+            .IsRequired();
 
         builder.Property(x => x.PassingScore)
             .HasPrecision(18, 2);

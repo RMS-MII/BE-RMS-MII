@@ -27,12 +27,14 @@ public sealed class ConfigureBatchStagesHandler(
 
         var isInUse = await db.BatchStages
             .AnyAsync(s => s.RecruitmentBatchId == request.BatchId &&
-                           (s.ApplicationStages.Any() || s.StageEmployees.Any()), ct);
+                           (s.ApplicationStages.Any() ||
+                            s.StageEmployees.Any() ||
+                            s.LifecycleStatus != WEBAPI.Entities.Enums.BatchStageLifecycleStatus.Inactive), ct);
 
         if (isInUse)
             return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
                 Error.BusinessRule(
-                    "Stages cannot be reconfigured after candidates or interviewers are assigned."));
+                    "Stages cannot be reconfigured after candidates or interviewers are assigned, or a stage has been activated."));
 
         var requestedTypeIds = request.Stages
             .Select(stage => stage.StageTypeId)
@@ -82,6 +84,7 @@ public sealed class ConfigureBatchStagesHandler(
                     StageType = stageTypes[item.StageTypeId],
                     StageName = item.StageName?.Trim() ?? string.Empty,
                     IsActive = item.IsActive,
+                    LifecycleStatus = WEBAPI.Entities.Enums.BatchStageLifecycleStatus.Inactive,
                     PassingScore = item.PassingScore,
                     StartDate = item.StartDate,
                     EndDate = item.EndDate,

@@ -1,3 +1,4 @@
+using System.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
@@ -19,8 +20,13 @@ public sealed class RegisterCandidatesHandler(
     public async Task<Result<IReadOnlyCollection<BatchApplicationDto>>> Handle(
         RegisterCandidatesCommand request, CancellationToken ct)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, ct);
+
         var batch = await db.RecruitmentBatches
             .AsNoTracking()
+            .Include(item => item.BatchStages)
+                .ThenInclude(stage => stage.StageType)
             .FirstOrDefaultAsync(b => b.Id == request.BatchId, ct);
 
         if (batch is null)
@@ -149,12 +155,67 @@ public sealed class RegisterCandidatesHandler(
             })
             .ToList();
 
+        var activeBatchStage = batch.BatchStages
+            .SingleOrDefault(stage =>
+                stage.LifecycleStatus == BatchStageLifecycleStatus.Active);
+        var usesBatchStageLifecycle = batch.BatchStages.Any(stage =>
+            stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive);
+
+        if (usesBatchStageLifecycle && activeBatchStage is null)
+            return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
+                Error.BusinessRule(
+                    "Candidates cannot be registered because this batch has no active selection stage."));
+
+        if (activeBatchStage is not null)
+        {
+            if (now > activeBatchStage.EndDate)
+                return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
+                    Error.BusinessRule(
+                        "The active selection stage has ended. Candidates can no longer be registered into it."));
+
+            var durationInMinutes = activeBatchStage.StageType?.StageCategory == StageCategory.Test
+                ? await db.QuestionBanks
+                    .AsNoTracking()
+                    .Where(questionBank =>
+                        questionBank.DepartmentId == batch.DepartmentId &&
+                        questionBank.StageTypeId == activeBatchStage.StageTypeId)
+                    .OrderBy(questionBank => questionBank.CreatedAt)
+                    .ThenBy(questionBank => questionBank.Id)
+                    .Select(questionBank => (int?)questionBank.DurationInMinutes)
+                    .FirstOrDefaultAsync(ct)
+                : null;
+
+            var startedAt = activeBatchStage.StartDate > now
+                ? activeBatchStage.StartDate
+                : now;
+            var durationTest = durationInMinutes.HasValue
+                ? TimeSpan.FromMinutes(durationInMinutes.Value)
+                : (TimeSpan?)null;
+
+            foreach (var application in applications)
+            {
+                application.ApplicationStages.Add(new ApplicationStage
+                {
+                    Id = Guid.CreateVersion7(),
+                    BatchApplicationId = application.Id,
+                    BatchStageId = activeBatchStage.Id,
+                    Status = ApplicationStageStatus.InProgress,
+                    StartedAt = startedAt,
+                    EndAt = activeBatchStage.EndDate,
+                    IsAttempts = false,
+                    DurationTest = durationTest,
+                    CreatedAt = now
+                });
+            }
+        }
+
         db.Candidates.AddRange(newCandidates);
         db.BatchApplications.AddRange(applications);
 
         try
         {
             await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
         catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
