@@ -40,6 +40,8 @@ public sealed class GetApplicationsHandler(RmsDbContext db)
 
         var applications = await query
             .Include(application => application.Candidate)
+            .Include(application => application.ApplicationStages)
+                .ThenInclude(stage => stage.BatchStage)
             .OrderByDescending(application => application.AppliedAt)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
