@@ -225,8 +225,8 @@ public sealed class ActivateBatchStageHandler(
 
                 if (existing is null)
                 {
-                    existing = CreateApplicationStage(application.Id, targetStage, startedAt, now, durationTest);
-                    db.ApplicationStages.Add(existing);
+                    application.ApplicationStages.Add(CreateApplicationStage(
+                        application.Id, targetStage, startedAt, now, durationTest));
                 }
 
                 startedApplications.Add((application, existing));
