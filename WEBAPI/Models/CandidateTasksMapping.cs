@@ -1,3 +1,4 @@
+using WEBAPI.Features.Batches;
 using WEBAPI.Features.Portal;
 using WEBAPI.Common;
 using WEBAPI.Entities;
@@ -8,30 +9,35 @@ namespace WEBAPI.Models;
 public static class CandidateTasksMapping
 {
     public static CandidateApplicationTaskDto ToCandidateApplicationTaskDto(
-        this BatchApplication application, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests = null) => new()
+        this BatchApplication application, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests = null)
     {
-        Id = application.Id,
-        CodeApplication = application.CodeApplication,
-        RecruitmentBatchId = application.RecruitmentBatchId,
-        BatchName = application.RecruitmentBatch?.Name ?? string.Empty,
-        DepartmentId = application.RecruitmentBatch?.DepartmentId ?? Guid.Empty,
-        DepartmentName = application.RecruitmentBatch?.Department?.Name ?? string.Empty,
-        Status = application.Status,
-        FinalResultStatus = application.FinalResultStatus,
-        OfferingLetterStatus = application.OfferingLetterStatus,
-        FileOfferingLetter = string.IsNullOrWhiteSpace(application.FileOfferingLetter)
-            ? null
-            : application.FileOfferingLetter,
-        AppliedAt = application.AppliedAt,
-        Pipeline = (application.RecruitmentBatch?.BatchStages ?? []).Where(s => s.IsActive)
-            .OrderBy(s => s.StartDate).ThenBy(s => s.CreatedAt)
-            .Select(s => new CandidatePipelineDto(s.Id, s.StageName, s.NextStageId)).ToList(),
-        Stages = application.ApplicationStages
-            .OrderBy(stage => stage.BatchStage?.StartDate ?? stage.StartedAt)
-            .ThenBy(stage => stage.CreatedAt)
-            .Select(stage => stage.ToCandidateStageTaskDto(now, requests))
-            .ToList()
-    };
+        var orderedStages = BatchStageSequence.GetOrderedStages(application.RecruitmentBatch?.BatchStages.ToList() ?? []);
+        var positions = orderedStages.Select((stage, index) => (stage.Id, index))
+            .ToDictionary(item => item.Id, item => item.index);
+        return new()
+        {
+            Id = application.Id,
+            CodeApplication = application.CodeApplication,
+            RecruitmentBatchId = application.RecruitmentBatchId,
+            BatchName = application.RecruitmentBatch?.Name ?? string.Empty,
+            DepartmentId = application.RecruitmentBatch?.DepartmentId ?? Guid.Empty,
+            DepartmentName = application.RecruitmentBatch?.Department?.Name ?? string.Empty,
+            Status = application.Status,
+            FinalResultStatus = application.FinalResultStatus,
+            OfferingLetterStatus = application.OfferingLetterStatus,
+            FileOfferingLetter = string.IsNullOrWhiteSpace(application.FileOfferingLetter)
+                ? null
+                : application.FileOfferingLetter,
+            AppliedAt = application.AppliedAt,
+            Pipeline = orderedStages.Where(s => s.IsActive)
+                .Select(s => new CandidatePipelineDto(s.Id, s.StageName, s.NextStageId)).ToList(),
+            Stages = application.ApplicationStages
+                .OrderBy(stage => positions.GetValueOrDefault(stage.BatchStageId, int.MaxValue))
+                .ThenBy(stage => stage.CreatedAt)
+                .Select(stage => stage.ToCandidateStageTaskDto(now, requests))
+                .ToList()
+        };
+    }
 
     private static CandidateStageTaskDto ToCandidateStageTaskDto(
         this ApplicationStage stage, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests)

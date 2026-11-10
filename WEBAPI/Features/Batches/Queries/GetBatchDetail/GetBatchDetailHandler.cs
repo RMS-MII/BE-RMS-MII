@@ -24,11 +24,6 @@ public sealed class GetBatchDetailHandler(RmsDbContext db)
                 Error.NotFound("Batch was not found."));
 
         var dto = batch.ToDto();
-        dto.BatchStages = dto.BatchStages
-            .OrderBy(s => s.StartDate)
-            .ThenBy(s => s.CreatedAt)
-            .ToList();
-
         return Result<RecruitmentBatchDto>.Success(dto);
     }
 }

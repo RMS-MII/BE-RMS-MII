@@ -1,3 +1,4 @@
+using WEBAPI.Features.Batches;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 
@@ -7,10 +8,8 @@ public static class ApplicationRecapMapping
 {
     public static ApplicationRecapDto ToRecapDto(this BatchApplication application)
     {
-        var activeStages = application.RecruitmentBatch.BatchStages
+        var activeStages = BatchStageSequence.GetOrderedStages(application.RecruitmentBatch.BatchStages.ToList())
             .Where(stage => stage.IsActive)
-            .OrderBy(stage => stage.StartDate)
-            .ThenBy(stage => stage.CreatedAt)
             .ToList();
 
         var applicationStages = application.ApplicationStages
