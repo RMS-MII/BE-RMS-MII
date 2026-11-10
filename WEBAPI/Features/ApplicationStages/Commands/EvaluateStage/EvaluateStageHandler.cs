@@ -98,7 +98,9 @@ public sealed class EvaluateStageHandler(
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
         stage.Status = request.Status;
-        stage.Notes = request.Notes.Trim();
+        stage.Notes = string.IsNullOrWhiteSpace(request.Notes)
+            ? null
+            : request.Notes.Trim();
         stage.CompletedAt = now;
         stage.UpdatedAt = now;
         application.UpdatedAt = now;

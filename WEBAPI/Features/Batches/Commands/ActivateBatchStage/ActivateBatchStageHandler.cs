@@ -238,9 +238,6 @@ public sealed class ActivateBatchStageHandler(
             currentStage.UpdatedAt = now;
         }
 
-        targetStage.LifecycleStatus = BatchStageLifecycleStatus.Active;
-        targetStage.UpdatedAt = now;
-
         var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
         if (currentStage is not null)
         {
@@ -290,6 +287,13 @@ public sealed class ActivateBatchStageHandler(
 
         try
         {
+            // The filtered unique index permits only one Active stage per batch.
+            // Persist the old stage as Completed before activating the next one.
+            if (currentStage is not null)
+                await db.SaveChangesAsync(ct);
+
+            targetStage.LifecycleStatus = BatchStageLifecycleStatus.Active;
+            targetStage.UpdatedAt = now;
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
         }

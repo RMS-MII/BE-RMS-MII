@@ -8,12 +8,12 @@ public static class ApplicationRecapMapping
 {
     public static ApplicationRecapDto ToRecapDto(this BatchApplication application)
     {
-        var activeStages = BatchStageSequence.GetOrderedStages(application.RecruitmentBatch.BatchStages.ToList())
-            .Where(stage => stage.IsActive)
-            .ToList();
-
         var applicationStages = application.ApplicationStages
             .ToDictionary(stage => stage.BatchStageId);
+
+        var activeStages = BatchStageSequence.GetOrderedStages(application.RecruitmentBatch.BatchStages.ToList())
+            .Where(stage => stage.IsActive || applicationStages.ContainsKey(stage.Id))
+            .ToList();
 
         var stages = activeStages
             .Select((batchStage, index) => batchStage.ToRecapDto(
