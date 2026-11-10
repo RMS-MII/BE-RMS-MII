@@ -43,7 +43,8 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         await client.SendAsync(message, cancellationToken);
         await client.DisconnectAsync(true, cancellationToken);
 
-        var attemptedAt = DateTime.UtcNow;
+        Log.Information("Sent email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
+
         var log = new EmailLog
         {
             SenderEmail = _settings.SenderEmail,
@@ -52,21 +53,11 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
             Body = content.TextBody,
             Type = type,
             Status = EmailDeliveryStatus.Sent,
-            AttemptedAt = attemptedAt,
-            SentAt = null
+            AttemptedAt = DateTime.UtcNow,
+            SentAt = DateTime.UtcNow
         };
 
-        try
-        {
-            var message = new MimeMessage
-            {
-                MessageId = MimeUtils.GenerateMessageId(),
-                Subject = content.Subject,
-                Body = BuildMessageBody(content)
-            };
-        Log.Information("Sent email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
-
-        dbContext.EmailLogs.Add(CreateLog(recipient, content, type));
+        dbContext.EmailLogs.Add(log);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -80,15 +71,7 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
 
         var results = new List<EmailSendResult>(messages.Count);
         var logs = new List<EmailLog>(messages.Count);
-            message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
-            message.To.Add(MailboxAddress.Parse(recipient));
 
-            using var client = new SmtpClient();
-            await client.ConnectAsync(
-                _settings.Host,
-                _settings.Port,
-                _settings.Security,
-                cancellationToken);
         using var client = new SmtpClient();
 
         try
@@ -100,10 +83,7 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
             Log.Error(ex, "Failed to connect to SMTP server for bulk email [{Type}]", type);
 
             return messages
-                .Select(message => new EmailSendResult(
-                    message.RecipientEmail,
-                    false,
-                    ex.Message))
+                .Select(message => new EmailSendResult(message.RecipientEmail, false, ex.Message))
                 .ToList();
         }
 
@@ -174,55 +154,38 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
             _settings.Security,
             cancellationToken);
 
-            if (!string.IsNullOrWhiteSpace(_settings.UserName))
-                await client.AuthenticateAsync(
-                    _settings.UserName,
-                    _settings.Password,
-                    cancellationToken);
         if (!string.IsNullOrWhiteSpace(_settings.UserName))
+        {
             await client.AuthenticateAsync(
                 _settings.UserName,
                 _settings.Password,
                 cancellationToken);
+        }
     }
 
     private static string NormalizeRecipient(string recipientEmail)
     {
         var recipient = recipientEmail.Trim();
+
         if (string.IsNullOrWhiteSpace(recipient))
+        {
             throw new ArgumentException("Recipient email must not be empty.", nameof(recipientEmail));
+        }
 
         return recipient;
     }
-            await client.SendAsync(message, cancellationToken);
-            await client.DisconnectAsync(true, cancellationToken);
 
     private static void ValidateContent(EmailContent content)
     {
         if (string.IsNullOrWhiteSpace(content.Subject))
-            throw new ArgumentException("Email subject must not be empty.", nameof(content));
-    }
-            log.SentAt = DateTime.UtcNow;
-            Log.Information("Sent email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
-        }
-        catch (Exception exception)
         {
-            log.Status = EmailDeliveryStatus.Failed;
-            log.ErrorMessage = Truncate(exception.GetBaseException().Message, 1000);
-            await SaveLogSafelyAsync(log);
-            Log.Error(exception, "Failed to send email [{Type}] to {Recipient}: {Subject}", type, recipient, content.Subject);
-            throw;
+            throw new ArgumentException("Email subject must not be empty.", nameof(content));
         }
-
-        await SaveLogSafelyAsync(log);
     }
 
     private MimeMessage BuildMessage(string recipient, EmailContent content)
     {
         var message = new MimeMessage
-    private async Task SaveLogSafelyAsync(EmailLog emailLog)
-    {
-        try
         {
             MessageId = MimeUtils.GenerateMessageId(),
             Subject = content.Subject,
@@ -233,18 +196,7 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         message.To.Add(MailboxAddress.Parse(recipient));
 
         return message;
-            dbContext.EmailLogs.Add(emailLog);
-            await dbContext.SaveChangesAsync(CancellationToken.None);
-        }
-        catch (Exception exception)
-        {
-            dbContext.Entry(emailLog).State = EntityState.Detached;
-            Log.Error(exception, "Failed to persist email delivery log {EmailLogId}", emailLog.Id);
-        }
     }
-
-    private static string Truncate(string value, int maxLength) =>
-        value.Length <= maxLength ? value : value[..maxLength];
 
     private static MimeEntity BuildMessageBody(EmailContent content)
     {
@@ -254,7 +206,9 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         };
 
         if (!string.IsNullOrWhiteSpace(content.HtmlBody))
+        {
             bodyBuilder.HtmlBody = content.HtmlBody;
+        }
 
         return bodyBuilder.ToMessageBody();
     }
@@ -266,6 +220,8 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         Subject = content.Subject,
         Body = content.TextBody,
         Type = type,
+        Status = EmailDeliveryStatus.Sent,
+        AttemptedAt = DateTime.UtcNow,
         SentAt = DateTime.UtcNow
     };
 
@@ -282,23 +238,15 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         public static EmailSettings FromConfiguration(IConfiguration configuration)
         {
             var portValue = configuration["MailSettings:Port"];
-            var port = int.TryParse(portValue, out var parsedPort) && parsedPort > 0
-                ? parsedPort
-                : 2525;
+            var port = int.TryParse(portValue, out var parsedPort) && parsedPort > 0 ? parsedPort : 2525;
 
             return new EmailSettings
             {
-                Host = configuration["MailSettings:Host"]?.Trim() is { Length: > 0 } host
-                    ? host
-                    : "localhost",
+                Host = configuration["MailSettings:Host"]?.Trim() is { Length: > 0 } host ? host : "localhost",
                 Port = port,
                 Security = ParseSecurity(configuration["MailSettings:Security"]),
-                SenderName = configuration["MailSettings:SenderName"]?.Trim() is { Length: > 0 } senderName
-                    ? senderName
-                    : "RMS",
-                SenderEmail = configuration["MailSettings:SenderEmail"]?.Trim() is { Length: > 0 } senderEmail
-                    ? senderEmail
-                    : "no-reply@rms.local",
+                SenderName = configuration["MailSettings:SenderName"]?.Trim() is { Length: > 0 } senderName ? senderName : "RMS",
+                SenderEmail = configuration["MailSettings:SenderEmail"]?.Trim() is { Length: > 0 } senderEmail ? senderEmail : "no-reply@rms.local",
                 UserName = configuration["MailSettings:UserName"]?.Trim() ?? string.Empty,
                 Password = configuration["MailSettings:Password"] ?? string.Empty
             };
