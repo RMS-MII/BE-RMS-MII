@@ -1,3 +1,4 @@
+using System.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,7 @@ public class ReviewRescheduleHandler(
         ReviewRescheduleCommand command,
         CancellationToken ct)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var request = await db.RescheduleRequests
             .FirstOrDefaultAsync(r => r.Id == command.RescheduleRequestId, ct);
 
@@ -64,8 +66,20 @@ public class ReviewRescheduleHandler(
         // 3. Saat disetujui, pastikan jadwal baru tidak bentrok dengan jadwal interviewer lain
         if (command.Decision == RescheduleStatus.Approved)
         {
-            var interviewerStageEmployeeIds = session.SessionInterviews
-                .Select(si => si.StageEmployeeId)
+            if (request.ProposedStart <= now || request.ProposedEnd <= request.ProposedStart)
+                return Result<RescheduleRequestDto>.Failure(
+                    Error.BusinessRule("Usulan jadwal sudah lewat atau rentang waktunya tidak valid. Ajukan jadwal baru."));
+
+            if (!WEBAPI.Features.Portal.CandidateActionPolicy.IsActive(session.ApplicationStage) ||
+                session.Status == InterviewSessionStatus.Rescheduled ||
+                session.ScheduledStart <= now ||
+                session.SessionInterviews.Any(si => si.Status == SessionInterviewStatus.Completed))
+                return Result<RescheduleRequestDto>.Failure(
+                    Error.BusinessRule("Reschedule hanya dapat disetujui sebelum interview dimulai dan selama tahap masih aktif."));
+
+            var interviewerEmployeeIds = session.SessionInterviews
+                .Where(si => si.Status != SessionInterviewStatus.Cancelled)
+                .Select(si => si.StageEmployee.EmployeeId)
                 .ToList();
 
             var conflictingSessions = await db.SessionInterviews
@@ -74,7 +88,7 @@ public class ReviewRescheduleHandler(
                     .ThenInclude(se => se.Employee)
                 .Where(si =>
                     si.InterviewSessionId != session.Id &&
-                    interviewerStageEmployeeIds.Contains(si.StageEmployeeId) &&
+                    interviewerEmployeeIds.Contains(si.StageEmployee.EmployeeId) &&
                     si.Status != SessionInterviewStatus.Cancelled &&
                     si.InterviewSession.Status != InterviewSessionStatus.Rescheduled &&
                     si.InterviewSession.ScheduledStart < request.ProposedEnd &&
@@ -107,6 +121,7 @@ public class ReviewRescheduleHandler(
         }
 
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         // 6. Kirim email notifikasi hasil keputusan reschedule
         await SendDecisionEmailsAsync(request, session, ct);
