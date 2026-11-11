@@ -33,9 +33,17 @@ public sealed class ActivateBatchStageHandler(
         if (batch is null)
             return Result<BatchStageTransitionDto>.Failure(Error.NotFound("Batch was not found."));
 
-        if (batch.Status == BatchStatus.Draft)
+        if (batch.Status != BatchStatus.Open)
             return Result<BatchStageTransitionDto>.Failure(
                 Error.BusinessRule("Open the recruitment batch before activating a stage."));
+
+        var hasCandidates = await db.BatchApplications
+            .AsNoTracking()
+            .AnyAsync(application => application.RecruitmentBatchId == batch.Id, ct);
+
+        if (!hasCandidates)
+            return Result<BatchStageTransitionDto>.Failure(
+                Error.BusinessRule("The recruitment batch has no candidates yet."));
 
         var stages = await db.BatchStages
             .Where(stage => stage.RecruitmentBatchId == request.BatchId)
