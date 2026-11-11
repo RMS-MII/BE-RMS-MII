@@ -44,6 +44,10 @@ public class RespondInvitationHandler(
                 Error.Forbidden("Anda tidak memiliki izin untuk merespons penugasan milik pewawancara lain."));
         }
 
+        if (assignment.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<RespondInvitationResponse>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
+
         // Cek jika penugasan sudah memiliki jadwal sesi wawancara yang aktif
         var hasActiveSessions = await db.SessionInterviews
             .AnyAsync(si => si.StageEmployeeId == assignment.Id && si.Status != SessionInterviewStatus.Cancelled, ct);

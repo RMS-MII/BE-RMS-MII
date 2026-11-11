@@ -6,7 +6,8 @@ namespace WEBAPI.Features.Portal;
 public static class CandidateActionPolicy
 {
     public static bool IsActive(ApplicationStage stage) =>
-        !stage.BatchApplication.Status.IsFinal() && stage.BatchApplication.FinalResultStatus is null
+        (stage.BatchApplication.RecruitmentBatch ?? stage.BatchStage?.RecruitmentBatch)?.Status != BatchStatus.Closed
+        && !stage.BatchApplication.Status.IsFinal() && stage.BatchApplication.FinalResultStatus is null
         && !stage.Status.IsTerminalStage();
 
     public static bool CanConfirm(InterviewSession session, DateTime now) =>

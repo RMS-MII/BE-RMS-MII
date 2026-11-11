@@ -46,6 +46,7 @@ public class ReviewRescheduleHandler(
         var session = await db.InterviewSessions
             .Include(s => s.ApplicationStage)
                 .ThenInclude(ast => ast.BatchStage)
+                    .ThenInclude(batchStage => batchStage.RecruitmentBatch)
             .Include(s => s.ApplicationStage)
                 .ThenInclude(ast => ast.BatchApplication)
                     .ThenInclude(ba => ba.Candidate)
@@ -60,9 +61,7 @@ public class ReviewRescheduleHandler(
                 Error.NotFound($"Sesi wawancara dengan ID '{request.InterviewSessionId}' tidak ditemukan."));
         }
 
-        if (await db.RecruitmentBatches.AnyAsync(batch =>
-                batch.Id == session.ApplicationStage.BatchStage.RecruitmentBatchId &&
-                batch.Status == BatchStatus.Closed, ct))
+        if (session.ApplicationStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
             return Result<RescheduleRequestDto>.Failure(
                 Error.BusinessRule("Closed recruitment interview schedules cannot be changed."));
 

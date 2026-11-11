@@ -65,6 +65,14 @@ public sealed class ConfigureBatchStagesHandler(
             return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
                 Error.Validation($"Unknown stage type id(s): {string.Join(", ", unknownTypeIds)}."));
 
+        var testWithoutPassingScore = request.Stages.FirstOrDefault(stage =>
+            stageTypes[stage.StageTypeId].StageCategory == StageCategory.Test &&
+            stage.PassingScore is null);
+
+        if (testWithoutPassingScore is not null)
+            return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
+                Error.Validation($"Test stage '{testWithoutPassingScore.StageName}' requires a passing score."));
+
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
         try

@@ -19,6 +19,7 @@ public sealed class EvaluateStageHandler(
     {
         var stage = await db.ApplicationStages
             .Include(applicationStage => applicationStage.BatchApplication)
+                .ThenInclude(application => application.RecruitmentBatch)
             .Include(applicationStage => applicationStage.BatchStage)
                 .ThenInclude(batchStage => batchStage.StageType)
             .FirstOrDefaultAsync(applicationStage => applicationStage.Id == request.StageId, ct);
@@ -26,6 +27,10 @@ public sealed class EvaluateStageHandler(
         if (stage is null)
             return Result<ApplicationStageDto>.Failure(
                 Error.NotFound("Application stage was not found."));
+
+        if (stage.BatchApplication.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<ApplicationStageDto>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
 
         var application = stage.BatchApplication;
 

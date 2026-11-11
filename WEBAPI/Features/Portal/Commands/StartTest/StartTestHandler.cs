@@ -19,6 +19,7 @@ public sealed class StartTestHandler(
     {
         var stage = await db.ApplicationStages
             .Include(applicationStage => applicationStage.BatchApplication)
+                .ThenInclude(application => application.RecruitmentBatch)
             .Include(applicationStage => applicationStage.BatchStage)
                 .ThenInclude(batchStage => batchStage.StageType)
             .FirstOrDefaultAsync(applicationStage =>
@@ -29,7 +30,16 @@ public sealed class StartTestHandler(
             return Result<StartTestResultDto>.Failure(
                 Error.NotFound("Test stage was not found or has not been started yet."));
 
+        if (stage.BatchStage.StageType?.StageCategory == StageCategory.Test &&
+            (stage.IsAttempts || stage.Status == ApplicationStageStatus.Submitted))
+            return Result<StartTestResultDto>.Failure(
+                Error.BusinessRule("This test has already been submitted."));
+
         var application = stage.BatchApplication;
+
+        if (application.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<StartTestResultDto>.Failure(
+                Error.BusinessRule("This recruitment batch has closed."));
 
         if (application.Status.IsFinal() || application.FinalResultStatus is not null)
             return Result<StartTestResultDto>.Failure(
@@ -48,10 +58,6 @@ public sealed class StartTestHandler(
         if (stage.Status != ApplicationStageStatus.InProgress)
             return Result<StartTestResultDto>.Failure(
                 Error.BusinessRule("This test can no longer be started."));
-
-        if (stage.IsAttempts)
-            return Result<StartTestResultDto>.Failure(
-                Error.BusinessRule("This test has already been attempted."));
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
