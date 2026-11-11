@@ -41,6 +41,19 @@ public static class InterviewerDashboardMapping
             FileTakeHome = session.FileTakeHome,
             FileSubmission = session.SubmissionFile,
             IsLead = si.IsLead,
+            PanelInterviewers = session.SessionInterviews
+                .OrderByDescending(panel => panel.IsLead)
+                .ThenBy(panel => panel.StageEmployee.Employee.FullName)
+                .Select(panel => new DashboardPanelInterviewerDto
+                {
+                    SessionInterviewId = panel.Id,
+                    FullName = panel.StageEmployee.Employee.FullName,
+                    Email = panel.StageEmployee.Employee.Email,
+                    JobTitle = panel.StageEmployee.Employee.JobTitle,
+                    Status = panel.Status,
+                    IsLead = panel.IsLead
+                })
+                .ToList(),
             IsAssessmentSubmitted = assessment is not null,
             AssessmentScore = assessment?.Score,
             AssessmentRecommendation = assessment?.Recommendation

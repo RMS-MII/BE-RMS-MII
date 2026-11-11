@@ -66,6 +66,22 @@ public sealed class GetInterviewerSessionsHandler(
             .OrderBy(si => si.InterviewSession.ScheduledStart)
             .ToListAsync(ct);
 
+        var sessionIds = sessions.Select(si => si.InterviewSessionId).Distinct().ToArray();
+        var panelInterviewers = await db.SessionInterviews
+            .AsNoTracking()
+            .Include(panel => panel.StageEmployee)
+                .ThenInclude(stageEmployee => stageEmployee.Employee)
+            .Where(panel => sessionIds.Contains(panel.InterviewSessionId))
+            .ToListAsync(ct);
+        var panelsBySession = panelInterviewers
+            .GroupBy(panel => panel.InterviewSessionId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        foreach (var session in sessions)
+        {
+            session.InterviewSession.SessionInterviews = panelsBySession.GetValueOrDefault(session.InterviewSessionId) ?? [];
+        }
+
         var result = sessions
             .Select(si => si.ToDashboardInterviewSessionDto())
             .ToList();

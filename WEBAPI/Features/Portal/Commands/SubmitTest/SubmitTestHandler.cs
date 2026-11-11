@@ -184,12 +184,21 @@ public sealed class SubmitTestHandler(
 
         totalScore = Math.Round(totalScore, 2, MidpointRounding.AwayFromZero);
 
-        stage.Status = ApplicationStageStatus.Submitted;
         stage.TotalScore = totalScore;
         stage.CompletedAt = now;
         stage.UpdatedAt = now;
         stage.IsAttempts = true;
         application.UpdatedAt = now;
+
+        // Auto-evaluate submitted test against the stage passing score.
+        // No HR manual evaluation is required anymore.
+        stage.Status = stage.BatchStage.PassingScore.HasValue &&
+                        totalScore >= stage.BatchStage.PassingScore.Value
+            ? ApplicationStageStatus.Considered
+            : ApplicationStageStatus.Rejected;
+
+        if (stage.Status == ApplicationStageStatus.Rejected)
+            application.Status = ApplicationStatus.Rejected;
 
         db.CandidateAnswers.AddRange(candidateAnswers);
         await db.SaveChangesAsync(ct);

@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
-using WEBAPI.Features.Applications.Commands.BulkStartNextStage;
 using WEBAPI.Features.Applications.Commands.RegisterCandidates;
 using WEBAPI.Features.Applications.Queries.GetApplications;
 using WEBAPI.Features.Batches.Commands.ConfigureBatchStages;
@@ -72,33 +71,6 @@ public sealed class BatchesController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetStages(Guid id, CancellationToken ct)
     {
         var result = await sender.Send(new GetBatchStagesQuery(id), ct);
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
-    }
-
-    /// <summary>
-    /// Memulai tahap berikutnya secara massal untuk seluruh kandidat yang sudah dievaluasi pada suatu tahap (Khusus HR).
-    /// Bulk start hanya dapat dilakukan setelah semua kandidat pada tahap tersebut selesai dievaluasi.
-    /// </summary>
-    /// <param name="id">ID Batch rekrutmen</param>
-    /// <param name="stageId">ID BatchStage yang sudah selesai dievaluasi</param>
-    /// <param name="ct">Cancellation token</param>
-    [HttpPost("{id:guid}/stages/{stageId:guid}/bulk-start")]
-    [ProducesResponseType<BulkStartNextStageDto>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> BulkStartNextStage(
-        Guid id,
-        Guid stageId,
-        CancellationToken ct)
-    {
-        var result = await sender.Send(
-            new BulkStartNextStageCommand(id, stageId),
-            ct);
-
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
