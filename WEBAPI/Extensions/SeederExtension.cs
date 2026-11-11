@@ -36,6 +36,11 @@ public static class SeederExtension
                 await DataSeeder.SeedAsync(db, passwordHasher);
             }
 
+            if (args?.Contains("--seed-sample-applications") == true)
+            {
+                await SampleBatchApplicationsSeeder.SeedAsync(db);
+            }
+
             // Warm up EF Core model, database connection pool, and crypto providers to eliminate first-request latency
             await WarmupServicesAsync(db, passwordHasher, logger);
         }
