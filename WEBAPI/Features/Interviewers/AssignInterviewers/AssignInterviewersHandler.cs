@@ -37,6 +37,10 @@ public class AssignInterviewersHandler(
             return Result<AssignInterviewersResponse>.Failure(
                 Error.Conflict($"Tahapan '{stage.StageName}' tidak terdaftar pada Batch yang ditentukan."));
 
+        if (stage.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<AssignInterviewersResponse>.Failure(
+                Error.BusinessRule("Closed recruitment interviewer assignments cannot be changed."));
+
         // 2. Validasi apakah tahapan adalah tipe Interview
         if (stage.StageType.StageCategory != StageCategory.Interview)
             return Result<AssignInterviewersResponse>.Failure(

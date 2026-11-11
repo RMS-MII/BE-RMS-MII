@@ -60,6 +60,12 @@ public class ReviewRescheduleHandler(
                 Error.NotFound($"Sesi wawancara dengan ID '{request.InterviewSessionId}' tidak ditemukan."));
         }
 
+        if (await db.RecruitmentBatches.AnyAsync(batch =>
+                batch.Id == session.ApplicationStage.BatchStage.RecruitmentBatchId &&
+                batch.Status == BatchStatus.Closed, ct))
+            return Result<RescheduleRequestDto>.Failure(
+                Error.BusinessRule("Closed recruitment interview schedules cannot be changed."));
+
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
         var reviewerId = currentUser.EmployeeId ?? currentUser.AccountId;
 

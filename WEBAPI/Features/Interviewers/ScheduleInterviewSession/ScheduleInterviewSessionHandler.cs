@@ -42,6 +42,13 @@ public class ScheduleInterviewSessionHandler(
                 Error.NotFound($"ApplicationStage dengan ID '{command.ApplicationStageId}' tidak ditemukan."));
         }
 
+        if (appStage.BatchStage.RecruitmentBatch.Status != BatchStatus.Open ||
+            appStage.BatchStage.LifecycleStatus != BatchStageLifecycleStatus.Active)
+        {
+            return Result<InterviewSessionDto>.Failure(
+                Error.BusinessRule("Interviews can only be scheduled while the interview stage is active in an open recruitment batch."));
+        }
+
         // 2. Validasi kategori tahapan harus Wawancara
         if (appStage.BatchStage.StageType.StageCategory != StageCategory.Interview)
         {

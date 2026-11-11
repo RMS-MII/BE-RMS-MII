@@ -4,6 +4,7 @@ using WEBAPI.Common.Results;
 using WEBAPI.Data;
 using WEBAPI.Data.Repositories;
 using WEBAPI.Entities;
+using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
 
@@ -25,6 +26,10 @@ public sealed class ConfigureBatchStagesHandler(
         if (batch is null)
             return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
                 Error.NotFound("Batch was not found."));
+
+        if (batch.Status == BatchStatus.Closed)
+            return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
+                Error.BusinessRule("Closed recruitment stages cannot be edited."));
 
         var outOfRangeStage = request.Stages.FirstOrDefault(stage =>
             stage.StartDate < batch.StartDate || stage.EndDate > batch.EndDate);
