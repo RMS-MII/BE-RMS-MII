@@ -15,6 +15,7 @@ using WEBAPI.Features.Batches.Queries.GetBatchDetail;
 using WEBAPI.Features.Batches.Queries.GetBatches;
 using WEBAPI.Features.Batches.Queries.GetBatchInterviewSessions;
 using WEBAPI.Features.Batches.Queries.GetBatchStages;
+using WEBAPI.Features.Batches.Queries.GetBatchDashboard;
 using WEBAPI.Models;
 
 namespace WEBAPI.Controllers;
@@ -71,6 +72,23 @@ public sealed class BatchesController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetStages(Guid id, CancellationToken ct)
     {
         var result = await sender.Send(new GetBatchStagesQuery(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengambil data dashboard keseluruhan untuk dashboard admin (Khusus HR).
+    /// Menampilkan jumlah candidate, candidate diterima, candidate tidak lolos, dan jumlah employee keseluruhan.
+    /// </summary>
+    /// <param name="ct">Cancellation token</param>
+    [HttpGet("dashboard")]
+    [ProducesResponseType<GetBatchDashboardDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetBatchDashboard(CancellationToken ct)
+    {
+        var result = await sender.Send(new GetBatchDashboardQuery(), ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
