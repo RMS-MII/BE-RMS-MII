@@ -33,10 +33,21 @@ public class DashboardInterviewSessionDto
     public DateTime? EndedSubmissionAt { get; set; }
     public string? FileSubmission { get; set; }
     public bool IsLead { get; set; }
+    public List<DashboardPanelInterviewerDto> PanelInterviewers { get; set; } = [];
     public bool IsAssessmentSubmitted { get; set; }
     public decimal? AssessmentScore { get; set; }
     public Recommendation? AssessmentRecommendation { get; set; }
     public string? AssessmentRecommendationName => AssessmentRecommendation?.ToDisplayName();
+}
+
+public class DashboardPanelInterviewerDto
+{
+    public Guid SessionInterviewId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string JobTitle { get; set; } = string.Empty;
+    public SessionInterviewStatus Status { get; set; }
+    public bool IsLead { get; set; }
 }
 
 public class InterviewerDashboardDto

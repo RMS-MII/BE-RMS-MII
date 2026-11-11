@@ -41,7 +41,6 @@ public class GetInterviewerDashboardHandler(
         // 2. Ambil seluruh penugasan sesi wawancara untuk pewawancara ini (AsNoTracking)
         var mySessionInterviews = await db.SessionInterviews
             .AsNoTracking()
-            .AsSplitQuery()
             .Include(si => si.InterviewSession)
                 .ThenInclude(s => s.ApplicationStage)
                     .ThenInclude(ast => ast.BatchStage)
@@ -54,6 +53,22 @@ public class GetInterviewerDashboardHandler(
             .Include(si => si.StageEmployee)
             .Where(si => si.StageEmployee.EmployeeId == currentEmployeeId.Value)
             .ToListAsync(ct);
+
+        var sessionIds = mySessionInterviews.Select(si => si.InterviewSessionId).Distinct().ToArray();
+        var panelInterviewers = await db.SessionInterviews
+            .AsNoTracking()
+            .Include(panel => panel.StageEmployee)
+                .ThenInclude(stageEmployee => stageEmployee.Employee)
+            .Where(panel => sessionIds.Contains(panel.InterviewSessionId))
+            .ToListAsync(ct);
+        var panelsBySession = panelInterviewers
+            .GroupBy(panel => panel.InterviewSessionId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        foreach (var session in mySessionInterviews)
+        {
+            session.InterviewSession.SessionInterviews = panelsBySession.GetValueOrDefault(session.InterviewSessionId) ?? [];
+        }
 
         // 3. Filter sesi mendatang (upcoming)
         var upcomingSessions = mySessionInterviews
