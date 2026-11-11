@@ -57,6 +57,12 @@ public class ConfirmSessionHandler(
                 Error.Forbidden("Anda tidak memiliki hak akses untuk mengonfirmasi sesi wawancara milik pewawancara lain."));
         }
 
+        if (!sessionInterview.IsLead)
+        {
+            return Result<ConfirmSessionResponse>.Failure(
+                Error.Forbidden("Hanya lead interviewer yang dapat mengonfirmasi jadwal wawancara."));
+        }
+
         // 4. Validasi status sesi
         var session = sessionInterview.InterviewSession;
 
