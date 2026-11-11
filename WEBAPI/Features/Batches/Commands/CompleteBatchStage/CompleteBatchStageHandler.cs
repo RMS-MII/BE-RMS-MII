@@ -29,9 +29,9 @@ public sealed class CompleteBatchStageHandler(
         if (batch is null)
             return Result<BatchStageTransitionDto>.Failure(Error.NotFound("Batch was not found."));
 
-        if (batch.Status == BatchStatus.Draft)
+        if (batch.Status != BatchStatus.Open)
             return Result<BatchStageTransitionDto>.Failure(
-                Error.BusinessRule("The recruitment batch must be opened before completing its final stage."));
+                Error.BusinessRule("The recruitment batch must be open before completing its final stage."));
 
         var stages = await db.BatchStages
             .Where(stage => stage.RecruitmentBatchId == request.BatchId)

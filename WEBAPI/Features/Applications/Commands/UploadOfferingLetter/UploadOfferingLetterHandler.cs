@@ -32,7 +32,7 @@ public sealed class UploadOfferingLetterHandler(
 
         if (application.RecruitmentBatch.Status == BatchStatus.Closed)
             return Result<BatchApplicationDto>.Failure(
-                Error.BusinessRule("A closed recruitment batch cannot be edited."));
+                Error.BusinessRule("Closed recruitment applications cannot be changed."));
 
         if (application.FinalResultStatus != FinalResultStatus.Accepted ||
             application.Status != ApplicationStatus.Accepted)

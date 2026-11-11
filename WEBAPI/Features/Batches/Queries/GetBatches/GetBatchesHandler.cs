@@ -37,15 +37,14 @@ public sealed class GetBatchesHandler(RmsDbContext db)
             .ToListAsync(ct);
 
         var batchIds = batches.Select(batch => batch.Id).ToArray();
-        var activeStages = await db.BatchStages
+        var batchStages = await db.BatchStages
             .AsNoTracking()
-            .Where(stage => batchIds.Contains(stage.RecruitmentBatchId)
-                && stage.LifecycleStatus == BatchStageLifecycleStatus.Active)
-            .Select(stage => new { stage.RecruitmentBatchId, stage.StageName })
+            .Where(stage => batchIds.Contains(stage.RecruitmentBatchId))
+            .Select(stage => new { stage.RecruitmentBatchId, stage.StageName, stage.IsActive, stage.LifecycleStatus })
             .ToListAsync(ct);
-        var activeStageNames = activeStages
+        var stagesByBatch = batchStages
             .GroupBy(stage => stage.RecruitmentBatchId)
-            .ToDictionary(group => group.Key, group => group.First().StageName);
+            .ToDictionary(group => group.Key, group => group.ToList());
 
         var activeCandidateCounts = await db.BatchApplications
             .AsNoTracking()
@@ -58,8 +57,12 @@ public sealed class GetBatchesHandler(RmsDbContext db)
         var items = batches.ToDtoList();
         foreach (var item in items)
         {
-            item.CurrentStageName = activeStageNames.GetValueOrDefault(item.Id);
+            var stages = stagesByBatch.GetValueOrDefault(item.Id) ?? [];
+            item.CurrentStageName = stages.FirstOrDefault(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Active)?.StageName;
             item.ActiveCandidateCount = activeCandidateCounts.GetValueOrDefault(item.Id);
+            var configuredStages = stages.Where(stage => stage.IsActive).ToList();
+            item.CanClose = item.Status == BatchStatus.Open && configuredStages.Count > 0 &&
+                configuredStages.All(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Completed);
         }
 
         var result = new PagedResult<RecruitmentBatchDto>(

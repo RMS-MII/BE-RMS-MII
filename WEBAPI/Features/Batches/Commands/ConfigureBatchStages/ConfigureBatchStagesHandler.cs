@@ -29,7 +29,7 @@ public sealed class ConfigureBatchStagesHandler(
 
         if (batch.Status == BatchStatus.Closed)
             return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
-                Error.BusinessRule("A closed recruitment batch cannot be edited."));
+                Error.BusinessRule("Closed recruitment stages cannot be edited."));
 
         var outOfRangeStage = request.Stages.FirstOrDefault(stage =>
             stage.StartDate < batch.StartDate || stage.EndDate > batch.EndDate);

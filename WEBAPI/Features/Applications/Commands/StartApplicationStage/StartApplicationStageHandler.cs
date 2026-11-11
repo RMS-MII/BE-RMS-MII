@@ -33,7 +33,7 @@ public sealed class StartApplicationStageHandler(
 
         if (application.RecruitmentBatch.Status == BatchStatus.Closed)
             return Result<ApplicationStageDto>.Failure(
-                Error.BusinessRule("A closed recruitment batch cannot be edited."));
+                Error.BusinessRule("Closed recruitment applications cannot be changed."));
 
         if (application.Status.IsFinal() || application.FinalResultStatus is not null)
             return Result<ApplicationStageDto>.Failure(

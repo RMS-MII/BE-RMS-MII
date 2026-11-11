@@ -39,7 +39,7 @@ public class AssignInterviewersHandler(
 
         if (stage.RecruitmentBatch.Status == BatchStatus.Closed)
             return Result<AssignInterviewersResponse>.Failure(
-                Error.BusinessRule("A closed recruitment batch cannot be edited."));
+                Error.BusinessRule("Closed recruitment interviewer assignments cannot be changed."));
 
         // 2. Validasi apakah tahapan adalah tipe Interview
         if (stage.StageType.StageCategory != StageCategory.Interview)

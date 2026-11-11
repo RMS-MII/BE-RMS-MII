@@ -63,7 +63,7 @@ public class ReviewRescheduleHandler(
 
         if (session.ApplicationStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
             return Result<RescheduleRequestDto>.Failure(
-                Error.BusinessRule("A closed recruitment batch cannot be edited."));
+                Error.BusinessRule("Closed recruitment interview schedules cannot be changed."));
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
         var reviewerId = currentUser.EmployeeId ?? currentUser.AccountId;

@@ -19,6 +19,7 @@ public class RecruitmentBatchDto
     public IReadOnlyCollection<BatchStageDto> BatchStages { get; set; } = [];
     public string? CurrentStageName { get; set; }
     public int? ActiveCandidateCount { get; set; }
+    public bool? CanClose { get; set; }
 }
 
 public record CreateRecruitmentBatchDto

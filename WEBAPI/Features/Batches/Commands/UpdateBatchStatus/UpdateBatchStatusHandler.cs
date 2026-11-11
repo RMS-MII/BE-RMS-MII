@@ -34,9 +34,10 @@ public sealed class UpdateBatchStatusHandler(RmsDbContext db, IDateTimeProvider 
                 "Configure at least one selection stage before opening this recruitment batch."));
 
         if (request.Status == BatchStatus.Closed &&
-            batch.BatchStages.Any(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Active))
+            (!batch.BatchStages.Any(stage => stage.IsActive) ||
+             batch.BatchStages.Any(stage => stage.IsActive && stage.LifecycleStatus != BatchStageLifecycleStatus.Completed)))
             return Result<RecruitmentBatchDto>.Failure(Error.BusinessRule(
-                "Complete the active stage before closing this recruitment batch."));
+                "Complete all active selection stages before closing this recruitment batch."));
 
         if (batch.Status != request.Status)
         {
@@ -47,7 +48,8 @@ public sealed class UpdateBatchStatusHandler(RmsDbContext db, IDateTimeProvider 
                 .Where(b => b.Id == request.BatchId && b.Status == batch.Status)
                 .Where(b => request.Status != BatchStatus.Open || b.BatchStages.Any())
                 .Where(b => request.Status != BatchStatus.Closed ||
-                    !b.BatchStages.Any(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Active))
+                    (b.BatchStages.Any(stage => stage.IsActive) &&
+                     !b.BatchStages.Any(stage => stage.IsActive && stage.LifecycleStatus != BatchStageLifecycleStatus.Completed)))
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(b => b.Status, request.Status)
                     .SetProperty(b => b.UpdatedAt, now), ct);
