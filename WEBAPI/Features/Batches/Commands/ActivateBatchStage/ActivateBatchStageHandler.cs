@@ -76,6 +76,22 @@ public sealed class ActivateBatchStageHandler(
             return Result<BatchStageTransitionDto>.Failure(
                 Error.Conflict("A completed stage cannot be activated again."));
 
+        if (targetStage.StageType?.StageCategory == StageCategory.Interview)
+        {
+            var interviewers = await db.StageEmployees
+                .Where(stageEmployee => stageEmployee.BatchStageId == targetStage.Id)
+                .ToListAsync(ct);
+
+            var acceptedInterviewers = interviewers
+                .Where(stageEmployee => stageEmployee.Status == StageEmployeeStatus.Accepted)
+                .ToList();
+
+            if (acceptedInterviewers.Count == 0)
+                return Result<BatchStageTransitionDto>.Failure(
+                    Error.BusinessRule(
+                        $"Tahapan wawancara '{targetStage.StageName}' belum dapat dimulai karena belum ada pewawancara yang menyetujui penugasan (Accepted)."));
+        }
+
         var orderedStages = BatchStageSequence.GetOrderedStages(stages);
         if (orderedStages.Count != stages.Count)
             return Result<BatchStageTransitionDto>.Failure(
