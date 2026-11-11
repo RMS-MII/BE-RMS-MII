@@ -17,6 +17,8 @@ public class RecruitmentBatchDto
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public IReadOnlyCollection<BatchStageDto> BatchStages { get; set; } = [];
+    public string? CurrentStageName { get; set; }
+    public int? ActiveCandidateCount { get; set; }
 }
 
 public record CreateRecruitmentBatchDto

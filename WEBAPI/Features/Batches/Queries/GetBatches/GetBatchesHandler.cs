@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Data;
+using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 
 namespace WEBAPI.Features.Batches.Queries.GetBatches;
@@ -35,8 +36,34 @@ public sealed class GetBatchesHandler(RmsDbContext db)
             .Take(request.PageSize)
             .ToListAsync(ct);
 
+        var batchIds = batches.Select(batch => batch.Id).ToArray();
+        var activeStages = await db.BatchStages
+            .AsNoTracking()
+            .Where(stage => batchIds.Contains(stage.RecruitmentBatchId)
+                && stage.LifecycleStatus == BatchStageLifecycleStatus.Active)
+            .Select(stage => new { stage.RecruitmentBatchId, stage.StageName })
+            .ToListAsync(ct);
+        var activeStageNames = activeStages
+            .GroupBy(stage => stage.RecruitmentBatchId)
+            .ToDictionary(group => group.Key, group => group.First().StageName);
+
+        var activeCandidateCounts = await db.BatchApplications
+            .AsNoTracking()
+            .Where(application => batchIds.Contains(application.RecruitmentBatchId)
+                && application.Status == ApplicationStatus.InProcess)
+            .GroupBy(application => application.RecruitmentBatchId)
+            .Select(group => new { BatchId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.BatchId, item => item.Count, ct);
+
+        var items = batches.ToDtoList();
+        foreach (var item in items)
+        {
+            item.CurrentStageName = activeStageNames.GetValueOrDefault(item.Id);
+            item.ActiveCandidateCount = activeCandidateCounts.GetValueOrDefault(item.Id);
+        }
+
         var result = new PagedResult<RecruitmentBatchDto>(
-            batches.ToDtoList(),
+            items,
             request.Page,
             request.PageSize,
             totalItems);
