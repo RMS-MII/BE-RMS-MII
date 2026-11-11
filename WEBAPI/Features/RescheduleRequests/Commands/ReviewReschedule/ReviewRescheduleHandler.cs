@@ -181,7 +181,7 @@ public class ReviewRescheduleHandler(
         {
             recipients[candidate.Email] = (
                 candidate.FullName,
-                $"{frontendUrl}/portal/{candidate.Id}");
+                EmailTemplates.GetCandidatePortalUrl(configuration, candidate.Id));
         }
 
         foreach (var recipient in recipients)

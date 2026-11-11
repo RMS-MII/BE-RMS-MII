@@ -73,8 +73,8 @@ public class AssignTakeHomeHandler(
         // 5. Kirim email instruksi take-home test kepada kandidat (Aturan Bisnis #9)
         var candidate = session.ApplicationStage.BatchApplication.Candidate;
         var stageName = session.ApplicationStage.BatchStage.StageName;
-        var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
-        var submissionPortalLink = $"{frontendUrl}/portal/{candidate.Id}/sessions/{session.Id}/submission";
+        var portalUrl = EmailTemplates.GetCandidatePortalUrl(configuration, candidate.Id);
+        var submissionPortalLink = $"{portalUrl}/sessions/{session.Id}/submission";
 
         var content = EmailTemplates.TakeHome(
             candidate.FullName,

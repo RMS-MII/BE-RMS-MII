@@ -14,13 +14,12 @@
 
 ## Publish / Deployment
 appsettings.Production.json
+appsettings.Development.json
 publish/
 
 ## Migrations
 Migrations/
-!WEBAPI/Migrations/
 WEBAPI/Migrations/*
-!WEBAPI/Migrations/*.cs
 
 ## Docs
 Docs/

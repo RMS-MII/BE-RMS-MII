@@ -96,8 +96,7 @@ public sealed class ApplicationStageProgressionService(
         BatchStage batchStage,
         ApplicationStage applicationStage)
     {
-        var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
-        var portalUrl = $"{frontendUrl}/portal/{application.CandidateId}";
+        var portalUrl = EmailTemplates.GetCandidatePortalUrl(configuration, application.CandidateId);
 
         return EmailTemplates.StageInvitation(
             application.Candidate.FullName,

@@ -238,7 +238,6 @@ public sealed class ActivateBatchStageHandler(
             currentStage.UpdatedAt = now;
         }
 
-        var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
         if (currentStage is not null)
         {
             var passedMessages = startedApplications
@@ -250,7 +249,7 @@ public sealed class ActivateBatchStageHandler(
                         currentStage.StageName,
                         targetStage.StageName,
                         batch.Name,
-                        $"{frontendUrl}/portal/{item.Application.CandidateId}",
+                        EmailTemplates.GetCandidatePortalUrl(configuration, item.Application.CandidateId),
                         targetStage.StageType.StageCategory == StageCategory.Test
                             ? item.Stage.EndAt
                             : null)))
@@ -267,7 +266,7 @@ public sealed class ActivateBatchStageHandler(
                         item.Application.Candidate.FullName,
                         batch.Name,
                         targetStage.StageName,
-                        $"{frontendUrl}/portal/{item.Application.CandidateId}",
+                        EmailTemplates.GetCandidatePortalUrl(configuration, item.Application.CandidateId),
                         item.Stage.EndAt)))
                 .ToList();
             emailService.QueueBulkEmail(invitations, EmailType.StageInvitation);

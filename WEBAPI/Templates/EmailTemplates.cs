@@ -6,6 +6,7 @@ namespace WEBAPI.Templates;
 public static class EmailTemplates
 {
     private const string DefaultFrontendUrl = "http://localhost:5173";
+    private const string DefaultCandidatePortalUrl = "http://localhost:5175";
     private static readonly CultureInfo IndonesianCulture = CultureInfo.GetCultureInfo("id-ID");
 
     public static string GetFrontendUrl(IConfiguration configuration)
@@ -14,6 +15,13 @@ public static class EmailTemplates
         return string.IsNullOrWhiteSpace(configuredUrl)
             ? DefaultFrontendUrl
             : configuredUrl;
+    }
+
+    public static string GetCandidatePortalUrl(IConfiguration configuration, Guid candidateId)
+    {
+        var configuredUrl = configuration["App:CandidatePortalUrl"]?.Trim().TrimEnd('/');
+        var baseUrl = string.IsNullOrWhiteSpace(configuredUrl) ? DefaultCandidatePortalUrl : configuredUrl;
+        return $"{baseUrl}/portal/{candidateId}";
     }
 
     public static EmailContent StageInvitation(

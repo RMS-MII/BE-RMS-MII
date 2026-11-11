@@ -91,8 +91,8 @@ public class ConfirmSessionHandler(
             // 6. Kirim email undangan ke kandidat (Aturan Bisnis #7)
             var candidate = session.ApplicationStage.BatchApplication.Candidate;
             var stageName = session.ApplicationStage.BatchStage.StageName;
-            var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
-            var candidatePortalLink = $"{frontendUrl}/portal/{candidate.Id}/sessions/{session.Id}";
+            var portalUrl = EmailTemplates.GetCandidatePortalUrl(configuration, candidate.Id);
+            var candidatePortalLink = $"{portalUrl}/sessions/{session.Id}";
 
             var content = EmailTemplates.CandidateInterviewInvitation(
                 candidate.FullName,
