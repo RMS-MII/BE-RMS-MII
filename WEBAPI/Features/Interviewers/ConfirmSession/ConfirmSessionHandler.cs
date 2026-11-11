@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using WEBAPI.Common.Results;
@@ -38,6 +38,7 @@ public class ConfirmSessionHandler(
             .Include(si => si.InterviewSession)
                 .ThenInclude(s => s.ApplicationStage)
                     .ThenInclude(ast => ast.BatchStage)
+                        .ThenInclude(batchStage => batchStage.RecruitmentBatch)
             .Include(si => si.InterviewSession)
                 .ThenInclude(s => s.ApplicationStage)
                     .ThenInclude(ast => ast.BatchApplication)
@@ -62,6 +63,10 @@ public class ConfirmSessionHandler(
             return Result<ConfirmSessionResponse>.Failure(
                 Error.Forbidden("Hanya lead interviewer yang dapat mengonfirmasi jadwal wawancara."));
         }
+
+        if (sessionInterview.InterviewSession.ApplicationStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<ConfirmSessionResponse>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
 
         // 4. Validasi status sesi
         var session = sessionInterview.InterviewSession;

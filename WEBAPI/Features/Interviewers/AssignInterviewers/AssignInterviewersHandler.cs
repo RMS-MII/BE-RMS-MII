@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Data;
@@ -36,6 +36,10 @@ public class AssignInterviewersHandler(
         if (stage.RecruitmentBatchId != command.BatchId)
             return Result<AssignInterviewersResponse>.Failure(
                 Error.Conflict($"Tahapan '{stage.StageName}' tidak terdaftar pada Batch yang ditentukan."));
+
+        if (stage.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<AssignInterviewersResponse>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
 
         // 2. Validasi apakah tahapan adalah tipe Interview
         if (stage.StageType.StageCategory != StageCategory.Interview)

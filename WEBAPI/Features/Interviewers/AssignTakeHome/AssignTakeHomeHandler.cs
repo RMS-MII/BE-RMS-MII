@@ -35,6 +35,7 @@ public class AssignTakeHomeHandler(
             .AsSplitQuery()
             .Include(s => s.ApplicationStage)
                 .ThenInclude(ast => ast.BatchStage)
+                    .ThenInclude(batchStage => batchStage.RecruitmentBatch)
             .Include(s => s.ApplicationStage)
                 .ThenInclude(ast => ast.BatchApplication)
                     .ThenInclude(ba => ba.Candidate)

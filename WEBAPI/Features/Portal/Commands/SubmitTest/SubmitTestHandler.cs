@@ -33,7 +33,16 @@ public sealed class SubmitTestHandler(
             return Result<SubmitTestResultDto>.Failure(
                 Error.NotFound("Test stage was not found or has not been started yet."));
 
+        if (stage.BatchStage.StageType?.StageCategory == StageCategory.Test &&
+            (stage.IsAttempts || stage.Status == ApplicationStageStatus.Submitted))
+            return Result<SubmitTestResultDto>.Failure(
+                Error.BusinessRule("This test has already been submitted."));
+
         var application = stage.BatchApplication;
+
+        if (application.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<SubmitTestResultDto>.Failure(
+                Error.BusinessRule("This recruitment batch has closed."));
 
         if (application.Status.IsFinal() || application.FinalResultStatus is not null)
             return Result<SubmitTestResultDto>.Failure(
@@ -51,9 +60,6 @@ public sealed class SubmitTestHandler(
 
         switch (stage.Status)
         {
-            case ApplicationStageStatus.Submitted:
-                return Result<SubmitTestResultDto>.Failure(
-                    Error.BusinessRule("This test has already been submitted."));
             case ApplicationStageStatus.Expired:
                 return Result<SubmitTestResultDto>.Failure(
                     Error.BusinessRule("This test has expired."));
@@ -63,10 +69,6 @@ public sealed class SubmitTestHandler(
                 return Result<SubmitTestResultDto>.Failure(
                     Error.BusinessRule("This test can no longer be submitted."));
         }
-
-        if (stage.IsAttempts)
-            return Result<SubmitTestResultDto>.Failure(
-                Error.BusinessRule("This test has already been attempted."));
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
@@ -190,12 +192,12 @@ public sealed class SubmitTestHandler(
         stage.IsAttempts = true;
         application.UpdatedAt = now;
 
-        // Auto-evaluate submitted test against the stage passing score.
-        // No HR manual evaluation is required anymore.
-        stage.Status = stage.BatchStage.PassingScore.HasValue &&
-                        totalScore >= stage.BatchStage.PassingScore.Value
-            ? ApplicationStageStatus.Considered
-            : ApplicationStageStatus.Rejected;
+        // Existing batches without a threshold still require an HR decision.
+        stage.Status = stage.BatchStage.PassingScore is decimal passingScore
+            ? totalScore >= passingScore
+                ? ApplicationStageStatus.Considered
+                : ApplicationStageStatus.Rejected
+            : ApplicationStageStatus.Submitted;
 
         if (stage.Status == ApplicationStageStatus.Rejected)
             application.Status = ApplicationStatus.Rejected;
@@ -208,8 +210,7 @@ public sealed class SubmitTestHandler(
             ApplicationStageId = stage.Id,
             BatchStageId = stage.BatchStageId,
             StageName = stage.BatchStage.StageName,
-            Status = stage.Status,
-            TotalScore = stage.TotalScore,
+            Status = ApplicationStageStatus.Submitted,
             CompletedAt = stage.CompletedAt,
             ServerTimeUtc = now
         });

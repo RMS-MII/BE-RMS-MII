@@ -32,6 +32,10 @@ public class SubmitAssessmentHandler(
                 .ThenInclude(s => s.ApplicationStage)
                     .ThenInclude(ast => ast.BatchApplication)
                         .ThenInclude(ba => ba.Candidate)
+            .Include(si => si.InterviewSession)
+                .ThenInclude(session => session.ApplicationStage)
+                    .ThenInclude(stage => stage.BatchStage)
+                        .ThenInclude(stage => stage.RecruitmentBatch)
             .Include(si => si.InterviewAssessment)
             .FirstOrDefaultAsync(si => si.Id == command.SessionInterviewId, ct);
 
@@ -58,6 +62,10 @@ public class SubmitAssessmentHandler(
         if (sessionInterview.InterviewSession.Status != InterviewSessionStatus.AcceptedByCandidate)
             return Result<AssessmentDto>.Failure(
                 Error.BusinessRule("Penilaian tersedia setelah kandidat mengonfirmasi jadwal wawancara."));
+
+        if (sessionInterview.InterviewSession.ApplicationStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<AssessmentDto>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
 
         var now = DateTime.UtcNow;
         var assessment = sessionInterview.InterviewAssessment;

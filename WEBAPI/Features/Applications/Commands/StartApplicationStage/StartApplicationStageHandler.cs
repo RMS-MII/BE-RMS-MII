@@ -31,6 +31,10 @@ public sealed class StartApplicationStageHandler(
             return Result<ApplicationStageDto>.Failure(
                 Error.NotFound("Application was not found."));
 
+        if (application.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<ApplicationStageDto>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
+
         if (application.Status.IsFinal() || application.FinalResultStatus is not null)
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("Application has already been finalized."));

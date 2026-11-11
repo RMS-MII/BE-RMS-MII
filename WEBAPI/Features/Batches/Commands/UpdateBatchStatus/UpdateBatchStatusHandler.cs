@@ -33,6 +33,11 @@ public sealed class UpdateBatchStatusHandler(RmsDbContext db, IDateTimeProvider 
             return Result<RecruitmentBatchDto>.Failure(Error.BusinessRule(
                 "Configure at least one selection stage before opening this recruitment batch."));
 
+        if (request.Status == BatchStatus.Closed &&
+            batch.BatchStages.Any(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Active))
+            return Result<RecruitmentBatchDto>.Failure(Error.BusinessRule(
+                "Complete the active stage before closing this recruitment batch."));
+
         if (batch.Status != request.Status)
         {
             var now = dateTimeProvider.GetUtcNow().UtcDateTime;
@@ -41,6 +46,8 @@ public sealed class UpdateBatchStatusHandler(RmsDbContext db, IDateTimeProvider 
             var updated = await db.RecruitmentBatches
                 .Where(b => b.Id == request.BatchId && b.Status == batch.Status)
                 .Where(b => request.Status != BatchStatus.Open || b.BatchStages.Any())
+                .Where(b => request.Status != BatchStatus.Closed ||
+                    !b.BatchStages.Any(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Active))
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(b => b.Status, request.Status)
                     .SetProperty(b => b.UpdatedAt, now), ct);

@@ -4,6 +4,7 @@ using WEBAPI.Common.Results;
 using WEBAPI.Data;
 using WEBAPI.Data.Repositories;
 using WEBAPI.Entities;
+using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
 
@@ -25,6 +26,10 @@ public sealed class ConfigureBatchStagesHandler(
         if (batch is null)
             return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
                 Error.NotFound("Batch was not found."));
+
+        if (batch.Status == BatchStatus.Closed)
+            return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
 
         var outOfRangeStage = request.Stages.FirstOrDefault(stage =>
             stage.StartDate < batch.StartDate || stage.EndDate > batch.EndDate);
@@ -59,6 +64,14 @@ public sealed class ConfigureBatchStagesHandler(
         if (unknownTypeIds.Count > 0)
             return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
                 Error.Validation($"Unknown stage type id(s): {string.Join(", ", unknownTypeIds)}."));
+
+        var testWithoutPassingScore = request.Stages.FirstOrDefault(stage =>
+            stageTypes[stage.StageTypeId].StageCategory == StageCategory.Test &&
+            stage.PassingScore is null);
+
+        if (testWithoutPassingScore is not null)
+            return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
+                Error.Validation($"Test stage '{testWithoutPassingScore.StageName}' requires a passing score."));
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 

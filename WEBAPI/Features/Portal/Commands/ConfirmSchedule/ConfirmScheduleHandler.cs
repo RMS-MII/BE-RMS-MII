@@ -20,6 +20,7 @@ public sealed class ConfirmScheduleHandler(
         var session = await db.InterviewSessions
             .Include(interviewSession => interviewSession.ApplicationStage)
                 .ThenInclude(applicationStage => applicationStage.BatchApplication)
+                    .ThenInclude(application => application.RecruitmentBatch)
             .Include(interviewSession => interviewSession.ApplicationStage)
                 .ThenInclude(applicationStage => applicationStage.BatchStage)
             .FirstOrDefaultAsync(interviewSession =>

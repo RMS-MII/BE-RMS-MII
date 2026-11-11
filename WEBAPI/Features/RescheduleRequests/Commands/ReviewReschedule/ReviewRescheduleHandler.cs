@@ -46,6 +46,7 @@ public class ReviewRescheduleHandler(
         var session = await db.InterviewSessions
             .Include(s => s.ApplicationStage)
                 .ThenInclude(ast => ast.BatchStage)
+                    .ThenInclude(batchStage => batchStage.RecruitmentBatch)
             .Include(s => s.ApplicationStage)
                 .ThenInclude(ast => ast.BatchApplication)
                     .ThenInclude(ba => ba.Candidate)
@@ -59,6 +60,10 @@ public class ReviewRescheduleHandler(
             return Result<RescheduleRequestDto>.Failure(
                 Error.NotFound($"Sesi wawancara dengan ID '{request.InterviewSessionId}' tidak ditemukan."));
         }
+
+        if (session.ApplicationStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<RescheduleRequestDto>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
         var reviewerId = currentUser.EmployeeId ?? currentUser.AccountId;

@@ -30,6 +30,10 @@ public sealed class UploadOfferingLetterHandler(
             return Result<BatchApplicationDto>.Failure(
                 Error.NotFound("Application was not found."));
 
+        if (application.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<BatchApplicationDto>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
+
         if (application.FinalResultStatus != FinalResultStatus.Accepted ||
             application.Status != ApplicationStatus.Accepted)
             return Result<BatchApplicationDto>.Failure(

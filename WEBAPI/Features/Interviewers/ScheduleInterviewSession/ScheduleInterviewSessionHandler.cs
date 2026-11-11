@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -41,6 +41,10 @@ public class ScheduleInterviewSessionHandler(
             return Result<InterviewSessionDto>.Failure(
                 Error.NotFound($"ApplicationStage dengan ID '{command.ApplicationStageId}' tidak ditemukan."));
         }
+
+        if (appStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<InterviewSessionDto>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
 
         // 2. Validasi kategori tahapan harus Wawancara
         if (appStage.BatchStage.StageType.StageCategory != StageCategory.Interview)

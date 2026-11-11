@@ -57,6 +57,10 @@ public sealed class CompleteBatchStageHandler(
             return Result<BatchStageTransitionDto>.Success(BuildCompletedResult(targetStage.Id, participants, true));
         }
 
+        if (batch.Status == BatchStatus.Closed)
+            return Result<BatchStageTransitionDto>.Failure(
+                Error.BusinessRule("A closed recruitment batch cannot be edited."));
+
         if (targetStage.LifecycleStatus != BatchStageLifecycleStatus.Active)
             return Result<BatchStageTransitionDto>.Failure(
                 Error.BusinessRule("Only the active stage can be completed."));

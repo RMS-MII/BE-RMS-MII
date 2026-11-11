@@ -90,11 +90,8 @@ public static class CandidateTasksMapping
             CompletedAt = hideDecision ? null : stage.CompletedAt,
             IsAttempts = stage.IsAttempts,
             DurationTest = stage.DurationTest,
-            CanTakeTest = CandidateActionPolicy.IsActive(stage) && stageType?.StageCategory == StageCategory.Test
-                          && stage.Status == ApplicationStageStatus.InProgress
-                          && !stage.IsAttempts
-                          && now >= stage.StartedAt
-                          && now <= stage.EndAt,
+            CanTakeTest = CandidateActionPolicy.IsActive(stage) && isTestStage &&
+                          (canStartTest || canContinueTest),
             CanConfirmSchedule = sessions.Any(session => session.CanConfirm),
             CanUploadSubmission = sessions.Any(session => session.CanUploadSubmission),
             CanRequestReschedule = sessions.Any(session => session.CanRequestReschedule),

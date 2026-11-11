@@ -32,7 +32,16 @@ public sealed class GetTestHandler(
             return Result<CandidateTestDto>.Failure(
                 Error.NotFound("Test stage was not found or has not been started yet."));
 
+        if (stage.BatchStage.StageType?.StageCategory == StageCategory.Test &&
+            (stage.IsAttempts || stage.Status == ApplicationStageStatus.Submitted))
+            return Result<CandidateTestDto>.Failure(
+                Error.BusinessRule("This test has already been submitted."));
+
         var application = stage.BatchApplication;
+
+        if (application.RecruitmentBatch.Status == BatchStatus.Closed)
+            return Result<CandidateTestDto>.Failure(
+                Error.BusinessRule("This recruitment batch has closed."));
 
         if (application.Status.IsFinal() || application.FinalResultStatus is not null)
             return Result<CandidateTestDto>.Failure(
@@ -50,9 +59,6 @@ public sealed class GetTestHandler(
 
         switch (stage.Status)
         {
-            case ApplicationStageStatus.Submitted:
-                return Result<CandidateTestDto>.Failure(
-                    Error.BusinessRule("This test has already been submitted."));
             case ApplicationStageStatus.Expired:
                 return Result<CandidateTestDto>.Failure(
                     Error.BusinessRule("This test has expired."));
@@ -62,10 +68,6 @@ public sealed class GetTestHandler(
                 return Result<CandidateTestDto>.Failure(
                     Error.BusinessRule("This test can no longer be taken."));
         }
-
-        if (stage.IsAttempts)
-            return Result<CandidateTestDto>.Failure(
-                Error.BusinessRule("This test has already been attempted."));
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
