@@ -135,6 +135,10 @@ public sealed class ActivateBatchStageHandler(
                     application.FinalResultStatus is null)
                 .ToList();
 
+            if (eligibleApplications.Count == 0)
+                return Result<BatchStageTransitionDto>.Failure(
+                    Error.BusinessRule("Register at least one eligible candidate before starting the first stage."));
+
             var durationTest = await GetTestDurationAsync(batch.DepartmentId, targetStage, ct);
             var startedAt = targetStage.StartDate > now ? targetStage.StartDate : now;
 

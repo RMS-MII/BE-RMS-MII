@@ -99,6 +99,7 @@ public class AssignTakeHomeRequest
 {
     public DateTime EndedSubmissionAt { get; set; }
     public string TaskTitle { get; set; } = string.Empty;
+    public string FileTakeHome { get; set; } = string.Empty;
     public string Instructions { get; set; } = string.Empty;
 }
 

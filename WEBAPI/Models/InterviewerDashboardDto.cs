@@ -30,7 +30,9 @@ public class DashboardInterviewSessionDto
     public string BatchName { get; set; } = string.Empty;
     public string StageName { get; set; } = string.Empty;
     public bool HasTakeHome { get; set; }
+    public bool CanAssignTakeHome { get; set; }
     public DateTime? EndedSubmissionAt { get; set; }
+    public string? FileTakeHome { get; set; }
     public string? FileSubmission { get; set; }
     public bool IsLead { get; set; }
     public bool IsAssessmentSubmitted { get; set; }

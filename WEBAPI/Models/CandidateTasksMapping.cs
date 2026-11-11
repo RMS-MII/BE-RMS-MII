@@ -120,8 +120,9 @@ public static class CandidateTasksMapping
             MeetingUrl = session.MeetingUrl,
             Status = session.Status,
             EndedSubmissionAt = session.EndedSubmissionAt,
-            FileSubmission = session.FileSubmission,
-            IsSubmitted = !string.IsNullOrWhiteSpace(session.FileSubmission),
+            FileTakeHome = session.FileTakeHome,
+            FileSubmission = session.SubmissionFile,
+            IsSubmitted = !string.IsNullOrWhiteSpace(session.SubmissionFile),
             Interviewers = session.SessionInterviews.Where(s => s.Status != SessionInterviewStatus.Cancelled)
                 .Select(s => s.StageEmployee.Employee.FullName).Distinct().ToList(),
             Reschedule = latest is null ? null : new CandidateRescheduleDto(latest.Status.ToString(), latest.ProposedStart, latest.ProposedEnd),

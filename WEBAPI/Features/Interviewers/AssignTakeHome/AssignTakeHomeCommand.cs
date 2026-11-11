@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using WEBAPI.Common.Results;
 using WEBAPI.Models;
 
@@ -8,4 +8,5 @@ public record AssignTakeHomeCommand(
     Guid InterviewSessionId,
     DateTime EndedSubmissionAt,
     string TaskTitle,
-    string Instructions) : IRequest<Result<AssignTakeHomeResponse>>;
+    string Instructions,
+    string FileTakeHome) : IRequest<Result<AssignTakeHomeResponse>>;

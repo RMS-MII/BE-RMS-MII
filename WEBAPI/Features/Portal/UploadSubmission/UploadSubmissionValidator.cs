@@ -14,7 +14,7 @@ public class UploadSubmissionValidator : AbstractValidator<UploadSubmissionComma
 
         RuleFor(x => x.FileSubmission)
             .NotEmpty().WithMessage("Tautan berkas Google Drive wajib diisi.")
-            .MaximumLength(100).WithMessage("Tautan berkas tidak boleh melebihi 100 karakter.")
+            .MaximumLength(200).WithMessage("Tautan berkas tidak boleh melebihi 200 karakter.")
             .Must(BeAValidUrl).WithMessage("Tautan berkas harus berupa URL yang valid (contoh: https://drive.google.com/...).");
     }
 

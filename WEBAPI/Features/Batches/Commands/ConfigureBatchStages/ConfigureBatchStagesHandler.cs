@@ -18,12 +18,19 @@ public sealed class ConfigureBatchStagesHandler(
     public async Task<Result<IReadOnlyCollection<BatchStageDto>>> Handle(
         ConfigureBatchStagesCommand request, CancellationToken ct)
     {
-        var batchExists = await db.RecruitmentBatches
-            .AnyAsync(b => b.Id == request.BatchId, ct);
+        var batch = await db.RecruitmentBatches
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == request.BatchId, ct);
 
-        if (!batchExists)
+        if (batch is null)
             return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
                 Error.NotFound("Batch was not found."));
+
+        var outOfRangeStage = request.Stages.FirstOrDefault(stage =>
+            stage.StartDate < batch.StartDate || stage.EndDate > batch.EndDate);
+        if (outOfRangeStage is not null)
+            return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
+                Error.Validation($"Stage '{outOfRangeStage.StageName}' must start and end within the recruitment batch period."));
 
         var isInUse = await db.BatchStages
             .AnyAsync(s => s.RecruitmentBatchId == request.BatchId &&

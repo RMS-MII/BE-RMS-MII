@@ -18,4 +18,5 @@ public sealed class EmailTemplateDetailDefinition
     public string Label { get; init; } = string.Empty;
     public string Value { get; init; } = string.Empty;
     public bool SkipWhenEmpty { get; init; } = true;
+    public bool IsLink { get; init; }
 }

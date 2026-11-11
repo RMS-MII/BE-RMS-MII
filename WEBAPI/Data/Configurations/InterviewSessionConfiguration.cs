@@ -41,8 +41,11 @@ public class InterviewSessionConfiguration : IEntityTypeConfiguration<InterviewS
         builder.Property(x => x.CreatedBy)
             .IsRequired();
 
-        builder.Property(x => x.FileSubmission)
-            .HasMaxLength(100);
+        builder.Property(x => x.FileTakeHome)
+            .HasMaxLength(200);
+
+        builder.Property(x => x.SubmissionFile)
+            .HasMaxLength(200);
 
         builder.Property(x => x.EndedSubmissionAt)
             .HasColumnType("datetime2");
