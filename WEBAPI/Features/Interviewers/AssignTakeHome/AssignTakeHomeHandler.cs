@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using WEBAPI.Common.Results;
@@ -6,6 +6,7 @@ using WEBAPI.Common.Security;
 using WEBAPI.Data;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
+using WEBAPI.Features.Portal;
 using WEBAPI.Services;
 using WEBAPI.Templates;
 
@@ -66,7 +67,11 @@ public class AssignTakeHomeHandler(
 
         var now = DateTime.UtcNow;
 
-        // 4. Update batas waktu pengumpulan tugas pada sesi
+        if (session.Status != InterviewSessionStatus.AcceptedByCandidate || !CandidateActionPolicy.IsActive(session.ApplicationStage))
+            return Result<AssignTakeHomeResponse>.Failure(
+                Error.BusinessRule("Take-home hanya dapat diberikan setelah jadwal dikonfirmasi kandidat, selama tahap masih aktif."));
+
+        session.FileTakeHome = command.FileTakeHome.Trim();
         session.EndedSubmissionAt = command.EndedSubmissionAt;
         session.UpdatedAt = now;
 
@@ -74,7 +79,7 @@ public class AssignTakeHomeHandler(
         var candidate = session.ApplicationStage.BatchApplication.Candidate;
         var stageName = session.ApplicationStage.BatchStage.StageName;
         var portalUrl = EmailTemplates.GetCandidatePortalUrl(configuration, candidate.Id);
-        var submissionPortalLink = $"{portalUrl}/sessions/{session.Id}/submission";
+        var submissionPortalLink = $"{portalUrl}/assignments?session={session.Id}";
 
         var content = EmailTemplates.TakeHome(
             candidate.FullName,
@@ -82,6 +87,7 @@ public class AssignTakeHomeHandler(
             command.TaskTitle,
             command.EndedSubmissionAt,
             command.Instructions,
+            session.FileTakeHome,
             submissionPortalLink);
 
         await db.SaveChangesAsync(ct);

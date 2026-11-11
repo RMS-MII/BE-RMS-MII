@@ -55,7 +55,7 @@ public static class InterviewSessionMapping
         var stage = session.ApplicationStage?.BatchStage;
         var batch = stage?.RecruitmentBatch;
         var hasTakeHome = session.EndedSubmissionAt.HasValue;
-        var isSubmitted = !string.IsNullOrWhiteSpace(session.FileSubmission);
+        var isSubmitted = !string.IsNullOrWhiteSpace(session.SubmissionFile);
         var isOverdue = hasTakeHome && !isSubmitted && session.EndedSubmissionAt < DateTime.UtcNow;
 
         var status = isSubmitted
@@ -74,7 +74,7 @@ public static class InterviewSessionMapping
             HasTakeHome = hasTakeHome,
             EndedSubmissionAt = session.EndedSubmissionAt,
             IsSubmitted = isSubmitted,
-            FileSubmission = session.FileSubmission,
+            FileSubmission = session.SubmissionFile,
             IsOverdue = isOverdue,
             Status = status
         };

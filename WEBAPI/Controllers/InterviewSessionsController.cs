@@ -95,7 +95,8 @@ public sealed class InterviewSessionsController(ISender sender) : ControllerBase
             id,
             request.EndedSubmissionAt,
             request.TaskTitle,
-            request.Instructions);
+            request.Instructions,
+            request.FileTakeHome);
 
         var result = await sender.Send(command, ct);
 

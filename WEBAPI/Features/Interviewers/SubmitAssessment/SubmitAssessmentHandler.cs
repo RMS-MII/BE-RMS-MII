@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -54,6 +54,10 @@ public class SubmitAssessmentHandler(
             return Result<AssessmentDto>.Failure(
                 Error.BusinessRule("Tidak dapat memberikan penilaian karena sesi wawancara ini telah dibatalkan atau dijadwalkan ulang."));
         }
+
+        if (sessionInterview.InterviewSession.Status != InterviewSessionStatus.AcceptedByCandidate)
+            return Result<AssessmentDto>.Failure(
+                Error.BusinessRule("Penilaian tersedia setelah kandidat mengonfirmasi jadwal wawancara."));
 
         var now = DateTime.UtcNow;
         var assessment = sessionInterview.InterviewAssessment;

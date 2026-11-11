@@ -61,6 +61,7 @@ public sealed class CandidateSessionTaskDto
     public string? MeetingUrl { get; set; }
     public InterviewSessionStatus Status { get; set; }
     public DateTime? EndedSubmissionAt { get; set; }
+    public string? FileTakeHome { get; set; }
     public string? FileSubmission { get; set; }
     public bool IsSubmitted { get; set; }
     public IReadOnlyCollection<string> Interviewers { get; set; } = [];

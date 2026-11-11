@@ -20,7 +20,7 @@ public static class EmailTemplateRenderer
         var greeting = NormalizeGreeting(Replace(definition.Greeting, values).Trim());
         var summary = Replace(definition.Summary, values).Trim();
 
-        var details = new List<(string Label, string Value)>();
+        var details = new List<(string Label, string Value, bool IsLink)>();
         foreach (var detail in definition.Details ?? [])
         {
             var label = Replace(detail.Label, values).Trim();
@@ -32,7 +32,7 @@ public static class EmailTemplateRenderer
             if (detail.SkipWhenEmpty && string.IsNullOrWhiteSpace(value))
                 continue;
 
-            details.Add((label, value));
+            details.Add((label, value, detail.IsLink));
         }
 
         var actionLabel = Replace(definition.ActionLabel, values).Trim();
@@ -78,7 +78,7 @@ public static class EmailTemplateRenderer
     private static string BuildTextBody(
         string greeting,
         string summary,
-        IReadOnlyList<(string Label, string Value)> details,
+        IReadOnlyList<(string Label, string Value, bool IsLink)> details,
         string? actionLabel,
         string? actionUrl,
         string? note,
@@ -117,7 +117,7 @@ public static class EmailTemplateRenderer
         return string.Join("\n", lines);
     }
 
-    private static string BuildDetails(IReadOnlyList<(string Label, string Value)> details)
+    private static string BuildDetails(IReadOnlyList<(string Label, string Value, bool IsLink)> details)
     {
         if (details.Count == 0)
             return string.Empty;
@@ -127,7 +127,7 @@ public static class EmailTemplateRenderer
             details.Select(detail => $"""
                 <tr>
                     <td style="padding:10px 0; border-bottom:1px solid #eef2f7; font-size:14px; color:#6b7280; width:38%; vertical-align:top;">{Encode(detail.Label)}</td>
-                    <td style="padding:10px 0; border-bottom:1px solid #eef2f7; font-size:14px; color:#111827; vertical-align:top;">{EncodeMultiline(detail.Value)}</td>
+                    <td style="padding:10px 0; border-bottom:1px solid #eef2f7; font-size:14px; color:#111827; vertical-align:top;">{RenderDetailValue(detail.Value, detail.IsLink)}</td>
                 </tr>
                 """));
 
@@ -136,6 +136,16 @@ public static class EmailTemplateRenderer
                 <tbody>{rows}</tbody>
             </table>
             """;
+    }
+
+    private static string RenderDetailValue(string value, bool isLink)
+    {
+        if (!isLink || !Uri.TryCreate(value, UriKind.Absolute, out var uri)
+                    || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            return EncodeMultiline(value);
+
+        var encodedUrl = Encode(value);
+        return $"""<a href="{encodedUrl}" target="_blank" rel="noopener noreferrer" style="color:#1d4ed8; word-break:break-all;">{encodedUrl}</a>""";
     }
 
     private static string BuildButton(string? label, string? url)

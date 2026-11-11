@@ -137,6 +137,7 @@ public static class EmailTemplates
         string taskTitle,
         DateTime deadline,
         string instructions,
+        string fileTakeHome,
         string submissionUrl)
     {
         return EmailTemplateRenderer.Render(
@@ -147,6 +148,7 @@ public static class EmailTemplates
                 ("stageName", stageName),
                 ("deadlineText", $"{FormatDateTime(deadline)} WIB"),
                 ("instructions", instructions),
+                ("fileTakeHome", fileTakeHome),
                 ("submissionUrl", submissionUrl)));
     }
 

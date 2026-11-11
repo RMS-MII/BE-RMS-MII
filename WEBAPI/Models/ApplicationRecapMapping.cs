@@ -132,7 +132,7 @@ public static class ApplicationRecapMapping
         Location = session.Location,
         MeetingUrl = session.MeetingUrl,
         Status = session.Status,
-        FileSubmission = session.FileSubmission,
+        FileSubmission = session.SubmissionFile,
         EndedSubmissionAt = session.EndedSubmissionAt,
         Interviewers = session.SessionInterviews
             .OrderBy(sessionInterview => sessionInterview.StageEmployee.Employee.FullName)

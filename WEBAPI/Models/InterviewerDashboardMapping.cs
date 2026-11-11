@@ -1,4 +1,6 @@
 using WEBAPI.Entities;
+using WEBAPI.Entities.Enums;
+using WEBAPI.Features.Portal;
 
 namespace WEBAPI.Models;
 
@@ -7,7 +9,8 @@ public static class InterviewerDashboardMapping
     public static DashboardInterviewSessionDto ToDashboardInterviewSessionDto(this SessionInterview si)
     {
         var session = si.InterviewSession;
-        var candidate = session.ApplicationStage?.BatchApplication?.Candidate;
+        var applicationStage = session.ApplicationStage;
+        var candidate = applicationStage?.BatchApplication?.Candidate;
         var stage = session.ApplicationStage?.BatchStage;
         var batch = stage?.RecruitmentBatch;
         var assessment = si.InterviewAssessment;
@@ -29,9 +32,14 @@ public static class InterviewerDashboardMapping
             CandidateEmail = candidate?.Email ?? string.Empty,
             BatchName = batch?.Name ?? string.Empty,
             StageName = stage?.StageName ?? string.Empty,
-            HasTakeHome = session.EndedSubmissionAt.HasValue || !string.IsNullOrWhiteSpace(session.FileSubmission),
+            CanAssignTakeHome = si.Status != SessionInterviewStatus.Cancelled
+                && session.Status == InterviewSessionStatus.AcceptedByCandidate
+                && applicationStage is not null
+                && CandidateActionPolicy.IsActive(applicationStage),
+            HasTakeHome = session.EndedSubmissionAt.HasValue || !string.IsNullOrWhiteSpace(session.SubmissionFile),
             EndedSubmissionAt = session.EndedSubmissionAt,
-            FileSubmission = session.FileSubmission,
+            FileTakeHome = session.FileTakeHome,
+            FileSubmission = session.SubmissionFile,
             IsLead = si.IsLead,
             PanelInterviewers = session.SessionInterviews
                 .OrderByDescending(panel => panel.IsLead)

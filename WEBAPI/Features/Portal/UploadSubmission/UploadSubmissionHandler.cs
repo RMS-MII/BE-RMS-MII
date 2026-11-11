@@ -65,7 +65,7 @@ public class UploadSubmissionHandler(
             return Result<SubmissionDto>.Failure(Error.BusinessRule("Pengumpulan tugas sudah ditutup."));
 
         // 5. Simpan tautan berkas
-        session.FileSubmission = command.FileSubmission.Trim();
+        session.SubmissionFile = command.FileSubmission.Trim();
         session.UpdatedAt = now;
 
         await db.SaveChangesAsync(ct);

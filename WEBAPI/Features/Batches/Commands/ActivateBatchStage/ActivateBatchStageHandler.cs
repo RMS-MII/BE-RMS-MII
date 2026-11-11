@@ -76,7 +76,7 @@ public sealed class ActivateBatchStageHandler(
             return Result<BatchStageTransitionDto>.Failure(
                 Error.Conflict("A completed stage cannot be activated again."));
 
-        if (targetStage.StageType?.StageCategory == StageCategory.Interview)
+        if (targetStage.StageType.StageCategory == StageCategory.Interview)
         {
             var interviewers = await db.StageEmployees
                 .Where(stageEmployee => stageEmployee.BatchStageId == targetStage.Id)
@@ -158,6 +158,10 @@ public sealed class ActivateBatchStageHandler(
                     application.Status == ApplicationStatus.InProcess &&
                     application.FinalResultStatus is null)
                 .ToList();
+
+            if (eligibleApplications.Count == 0)
+                return Result<BatchStageTransitionDto>.Failure(
+                    Error.BusinessRule("Register at least one eligible candidate before starting the first stage."));
 
             var durationTest = await GetTestDurationAsync(batch.DepartmentId, targetStage, ct);
             var startedAt = targetStage.StartDate > now ? targetStage.StartDate : now;

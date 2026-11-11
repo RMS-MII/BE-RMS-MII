@@ -12,7 +12,8 @@ public class InterviewSession : BaseEntity
     public string? MeetingUrl { get; set; }
     public InterviewSessionStatus Status { get; set; }
     public Guid CreatedBy { get; set; }
-    public string? FileSubmission { get; set; }
+    public string? FileTakeHome { get; set; }
+    public string? SubmissionFile { get; set; }
     public DateTime? EndedSubmissionAt { get; set; }
     public Guid ApplicationStageId { get; set; }
 
