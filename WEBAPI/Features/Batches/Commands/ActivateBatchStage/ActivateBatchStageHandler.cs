@@ -76,7 +76,7 @@ public sealed class ActivateBatchStageHandler(
             return Result<BatchStageTransitionDto>.Failure(
                 Error.Conflict("A completed stage cannot be activated again."));
 
-        if (targetStage.StageType?.StageCategory == StageCategory.Interview)
+        if (targetStage.StageType.StageCategory == StageCategory.Interview)
         {
             var interviewers = await db.StageEmployees
                 .Where(stageEmployee => stageEmployee.BatchStageId == targetStage.Id)
