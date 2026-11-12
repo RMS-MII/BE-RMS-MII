@@ -107,6 +107,14 @@ public enum RescheduleStatus
     Rejected = 3
 }
 
+public enum DiscType
+{
+    Dominance = 1,
+    Influence = 2,
+    Steadiness = 3,
+    Conscientiousness = 4
+}
+
 public enum EmailType
 {
     StageInvitation = 1,

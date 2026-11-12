@@ -24,6 +24,11 @@ public class QuestionConfiguration : IEntityTypeConfiguration<Question>
             .HasConversion<int>()
             .IsRequired();
 
+        // Enum DiscType disimpan sebagai int di database
+        builder.Property(x => x.DiscType)
+            .HasConversion<int>()
+            .IsRequired();
+
         builder.Property(x => x.Weight)
             .HasPrecision(18, 2)
             .IsRequired();

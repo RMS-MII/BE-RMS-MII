@@ -72,6 +72,7 @@ public static class DataSeeder
         await SeedAccountsAsync(context, passwordHasher);
         await SeedStageTypesAsync(context);
         await SeedQuestionBanksAndQuestionsAsync(context);
+        await PsychologyTestSeeder.SeedAsync(context);
 
         if (includeSampleBatch)
         {
@@ -405,17 +406,7 @@ public static class DataSeeder
     {
         if (await context.QuestionBanks.AnyAsync()) return;
 
-        // 1. Bank Soal Psikotes
-        var bankPsikotes = new QuestionBank
-        {
-            Id = QBankPsikotesId,
-            DepartmentId = DeptHrId,
-            StageTypeId = StageTypePsikotesId,
-            CreatedBy = EmpHrManagerId,
-            DurationInMinutes = 20,
-            CreatedAt = DateTime.UtcNow
-        };
-
+        // 1. Bank Soal Psikotes (DISC) dibuat oleh PsychologyTestSeeder
         // 2. Bank Soal Logical Test
         var bankLogical = new QuestionBank
         {
@@ -438,14 +429,11 @@ public static class DataSeeder
             CreatedAt = DateTime.UtcNow
         };
 
-        context.QuestionBanks.AddRange(bankPsikotes, bankLogical, bankTechnical);
+        context.QuestionBanks.AddRange(bankLogical, bankTechnical);
 
         // Tambahkan masing-masing 10 Soal + 4 Opsi Jawaban
         var questions = new List<Question>();
         var options = new List<QuestionOptions>();
-
-        // Psikotes Questions (10)
-        AddPsikotesQuestions(bankPsikotes.Id, questions, options);
 
         // Logical Test Questions (10)
         AddLogicalQuestions(bankLogical.Id, questions, options);
@@ -460,66 +448,6 @@ public static class DataSeeder
     }
 
     #region Question Seeding Helpers
-
-    private static void AddPsikotesQuestions(Guid bankId, List<Question> questions, List<QuestionOptions> options)
-    {
-        var data = new (string QuestionText, string[] Opts, int CorrectIndex)[]
-        {
-            ("Saat menghadapi perubahan mendadak dalam prioritas tugas, bagaimana sikap Anda?",
-                ["Menolak karena mengganggu rencana awal", "Beradaptasi dengan menyusun ulang jadwal prioritas", "Menunggu instruksi lebih lanjut tanpa mengambil inisiatif", "Mengeluh kepada rekan kerja"], 1),
-            ("Ketika rekan satu tim mengalami kendala dan proyek terancam terlambat, apa yang Anda lakukan?",
-                ["Menyelesaikan tugas sendiri saja", "Menyalahkan rekan tersebut ke atasan", "Menawarkan bantuan dan mendiskusikan solusi bersama", "Membiarkan karena itu bukan tanggung jawab saya"], 2),
-            ("Bagaimana cara Anda mengelola stres saat beban kerja meningkat pesat?",
-                ["Mengabaikan deadline dan bersantai", "Membuat skala prioritas dan beristirahat berkala secara teratur", "Bekerja tanpa tidur hingga jatuh sakit", "Menyerahkan tugas ke orang lain"], 1),
-            ("Jika Anda menemukan kesalahan minor pada pekerjaan rekan yang sudah diserahkan ke klien:",
-                ["Mendiamkannya agar tidak timbul masalah", "Menginfokan rekan tersebut secara privat dan membantunya memperbaikinya", "Menertawakannya di depan umum", "Segera melaporkan ke direktur"], 1),
-            ("Sikap yang paling tepat saat menerima umpan balik kritis yang membangun dari atasan adalah:",
-                ["Menerima dengan objektif dan menjadikannya rencana perbaikan diri", "Merasa tersinggung dan membela diri secara agresif", "Mengabaikan masukan tersebut", "Langsung mengajukan resign"], 0),
-            ("Ketika Anda dihadapkan pada dua pilihan penting dengan data yang terbatas, Anda:",
-                ["Menunda keputusan tanpa batas waktu", "Mengumpulkan fakta kunci yang relevan dan mengambil keputusan berbasis analisis risiko", "Memilih secara acak dengan melempar koin", "Meminta orang lain memutuskan agar terhindar dari tanggung jawab"], 1),
-            ("Menurut Anda, kunci utama keberhasilan kolaborasi tim lintas fungsi adalah:",
-                ["Menonjolkan kehebatan individu sendiri", "Komunikasi terbuka, rasa saling percaya, dan tujuan yang selaras", "Bekerja secara terisolasi tanpa interaksi", "Mengikuti hanya apa yang diinginkan pihak yang paling vokal"], 1),
-            ("Jika Anda diberi tugas baru yang belum pernah Anda kerjakan sebelumnya:",
-                ["Menolak tugas karena bukan bidang keahlian", "Mempelajari dasar-dasarnya, bertanya kepada ahli, dan mengerjakannya bertahap", "Mengerjakan asal-asalan tanpa panduan", "Menunggu hingga ada yang mengambil alih"], 1),
-            ("Bagaimana Anda menyikapi perbedaan pendapat yang tajam dalam rapat diskusi tim?",
-                ["Memaksakan argumen sendiri sampai diterima", "Mendengarkan perspektif rekan lain dan mencari titik temu yang solutif", "Meninggalkan ruangan rapat dengan marah", "Diam saja meski tahu rencana tersebut cacat"], 1),
-            ("Apa yang Anda lakukan saat target pribadi Anda selesai lebih awal dari jadwal yang ditentukan?",
-                ["Langsung pulang tanpa koordinasi", "Mengecek kembali kualitas hasil kerja dan menawarkan bantuan ke tim jika dibutuhkan", "Bermain game di meja kerja", "Menyembunyikan bahwa tugas sudah selesai"], 1)
-        };
-
-        for (int i = 0; i < data.Length; i++)
-        {
-            var qId = Guid.NewGuid();
-            questions.Add(new Question
-            {
-                Id = qId,
-                QuestionBankId = bankId,
-                QuestionText = data[i].QuestionText,
-                QuestionType = QuestionType.SingleChoice,
-                Weight = 1.0m,
-                SequenceNumber = i + 1,
-                IsRequired = true,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            var labels = new[] { "A", "B", "C", "D" };
-            for (int j = 0; j < 4; j++)
-            {
-                options.Add(new QuestionOptions
-                {
-                    Id = Guid.NewGuid(),
-                    QuestionId = qId,
-                    OptionLabel = labels[j],
-                    OptionText = data[i].Opts[j],
-                    Score = (j == data[i].CorrectIndex) ? 10.0m : 0.0m,
-                    SequenceNumber = j + 1,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                });
-            }
-        }
-    }
 
     private static void AddLogicalQuestions(Guid bankId, List<Question> questions, List<QuestionOptions> options)
     {

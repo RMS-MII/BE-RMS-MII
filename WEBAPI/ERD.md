@@ -1642,6 +1642,23 @@
 "label": "ApplicationStageId GUID"
 },
 {
+"id": "Ni1uZt9kZrgzDhyM-i3v-68",
+"type": "node",
+"parent": "Ni1uZt9kZrgzDhyM-i3v-21"
+},
+{
+"id": "Ni1uZt9kZrgzDhyM-i3v-69",
+"type": "node",
+"parent": "Ni1uZt9kZrgzDhyM-i3v-68",
+"label": "*"
+},
+{
+"id": "Ni1uZt9kZrgzDhyM-i3v-70",
+"type": "node",
+"parent": "Ni1uZt9kZrgzDhyM-i3v-68",
+"label": "DiscType : int"
+},
+{
 "id": "Ni1uZt9kZrgzDhyM-i3v-25",
 "type": "node",
 "parent": "Ni1uZt9kZrgzDhyM-i3v-21"
@@ -1657,8 +1674,7 @@
 "type": "node",
 "parent": "Ni1uZt9kZrgzDhyM-i3v-25",
 "label": "QuestionText : nvarchar(100)"
-},
-{
+},{
 "id": "Ni1uZt9kZrgzDhyM-i3v-28",
 "type": "node",
 "parent": "Ni1uZt9kZrgzDhyM-i3v-21"

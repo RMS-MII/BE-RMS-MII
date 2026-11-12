@@ -15,6 +15,12 @@ public class CandidateAnswerConfiguration : IEntityTypeConfiguration<CandidateAn
         builder.Property(x => x.ApplicationStageId)
             .IsRequired();
 
+        // Snapshot tipe DISC diambil saat kandidat menjawab, sehingga perhitungan
+        // ringkasan DISC tidak bergantung pada relasi ke tabel Question.
+        builder.Property(x => x.DiscType)
+            .HasConversion<int>()
+            .IsRequired();
+
         builder.Property(x => x.QuestionText)
             .HasColumnType("nvarchar(max)")
             .IsRequired();
