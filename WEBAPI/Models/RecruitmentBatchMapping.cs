@@ -15,6 +15,7 @@ public static class RecruitmentBatchMapping
         Description = batch.Description,
         StartDate = batch.StartDate,
         EndDate = batch.EndDate,
+        ApplicationDeadlineAt = batch.ApplicationDeadlineAt,
         Status = batch.Status,
         CreatedBy = batch.CreatedBy,
         CreatedAt = batch.CreatedAt,

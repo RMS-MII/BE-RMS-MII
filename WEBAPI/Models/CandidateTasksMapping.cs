@@ -11,7 +11,7 @@ public static class CandidateTasksMapping
     public static CandidateApplicationTaskDto ToCandidateApplicationTaskDto(
         this BatchApplication application, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests = null)
     {
-        var usesLifecycle = application.RecruitmentBatch?.BatchStages.Any(stage =>
+        var usesLifecycle = !application.IsStandalone && application.RecruitmentBatch?.BatchStages.Any(stage =>
             stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive) == true;
         var unpublishedDecision = usesLifecycle && application.ApplicationStages.Any(stage =>
             stage.BatchStage?.LifecycleStatus == BatchStageLifecycleStatus.Active &&

@@ -43,7 +43,8 @@ public class ScheduleInterviewSessionHandler(
         }
 
         if (appStage.BatchStage.RecruitmentBatch.Status != BatchStatus.Open ||
-            appStage.BatchStage.LifecycleStatus != BatchStageLifecycleStatus.Active)
+            (!appStage.BatchApplication.IsStandalone &&
+             appStage.BatchStage.LifecycleStatus != BatchStageLifecycleStatus.Active))
         {
             return Result<InterviewSessionDto>.Failure(
                 Error.BusinessRule("Interviews can only be scheduled while the interview stage is active in an open recruitment batch."));

@@ -7,6 +7,7 @@ namespace WEBAPI.Features.Applications.Commands.RegisterCandidates;
 public sealed record RegisterCandidatesCommand : IRequest<Result<IReadOnlyCollection<BatchApplicationDto>>>
 {
     public Guid BatchId { get; init; }
+    public bool IsPublicApplication { get; init; }
     public IReadOnlyList<CreateCandidateDto> Candidates { get; init; } = [];
 }
 

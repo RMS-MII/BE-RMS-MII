@@ -7,6 +7,7 @@ public class ApplicationRecapDto
     public Guid Id { get; set; }
     public Guid CandidateId { get; set; }
     public Guid RecruitmentBatchId { get; set; }
+    public bool IsStandalone { get; set; }
     public string CodeApplication { get; set; } = string.Empty;
     public DateTime AppliedAt { get; set; }
     public FinalResultStatus? FinalResultStatus { get; set; }

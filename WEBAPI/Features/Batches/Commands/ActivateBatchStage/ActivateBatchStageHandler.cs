@@ -39,7 +39,7 @@ public sealed class ActivateBatchStageHandler(
 
         var hasCandidates = await db.BatchApplications
             .AsNoTracking()
-            .AnyAsync(application => application.RecruitmentBatchId == batch.Id, ct);
+            .AnyAsync(application => application.RecruitmentBatchId == batch.Id && !application.IsStandalone, ct);
 
         if (!hasCandidates)
             return Result<BatchStageTransitionDto>.Failure(
@@ -62,7 +62,7 @@ public sealed class ActivateBatchStageHandler(
         {
             await transaction.CommitAsync(ct);
             var existingCount = await db.ApplicationStages
-                .CountAsync(item => item.BatchStageId == targetStage.Id, ct);
+                .CountAsync(item => item.BatchStageId == targetStage.Id && !item.BatchApplication.IsStandalone, ct);
             return Result<BatchStageTransitionDto>.Success(new BatchStageTransitionDto
             {
                 BatchStageId = targetStage.Id,
@@ -123,12 +123,16 @@ public sealed class ActivateBatchStageHandler(
                 Error.Conflict("Another stage is already active for this batch."));
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
+        if (currentStage is null && batch.ApplicationDeadlineAt > now)
+            return Result<BatchStageTransitionDto>.Failure(
+                Error.BusinessRule("Wait until the application deadline before starting the first batch stage."));
+
         if (now > targetStage.EndDate)
             return Result<BatchStageTransitionDto>.Failure(
                 Error.BusinessRule("The stage end date has passed."));
 
         var applications = await db.BatchApplications
-            .Where(application => application.RecruitmentBatchId == request.BatchId)
+            .Where(application => application.RecruitmentBatchId == request.BatchId && !application.IsStandalone)
             .Include(application => application.Candidate)
             .Include(application => application.ApplicationStages)
             .ToListAsync(ct);

@@ -23,7 +23,23 @@ public sealed class RegisterCandidatesValidator : AbstractValidator<RegisterCand
 
         RuleForEach(x => x.Candidates)
             .SetValidator(new RegisterCandidateValidator());
+
+        When(x => x.IsPublicApplication, () =>
+        {
+            RuleForEach(x => x.Candidates).ChildRules(candidate =>
+            {
+                candidate.RuleFor(x => x.Cv).Must(IsOptionalWebUrl)
+                    .WithMessage("Enter a valid HTTP or HTTPS CV link.");
+                candidate.RuleFor(x => x.Portfolio).Must(IsOptionalWebUrl)
+                    .WithMessage("Enter a valid HTTP or HTTPS portfolio link.");
+            });
+        });
     }
+
+    private static bool IsOptionalWebUrl(string? value) =>
+        string.IsNullOrWhiteSpace(value) ||
+        (Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri) &&
+         uri.Scheme is "http" or "https" && uri.Host.Length > 0);
 
     private static bool HaveUniqueEmails(IReadOnlyList<CreateCandidateDto>? candidates)
     {
@@ -31,7 +47,7 @@ public sealed class RegisterCandidatesValidator : AbstractValidator<RegisterCand
             return false;
 
         var emails = candidates
-            .Select(candidate => candidate.Email.Trim())
+            .Select(candidate => candidate?.Email?.Trim() ?? string.Empty)
             .Where(email => email.Length > 0)
             .ToList();
 
@@ -44,7 +60,7 @@ public sealed class RegisterCandidatesValidator : AbstractValidator<RegisterCand
             return false;
 
         var phoneNumbers = candidates
-            .Select(candidate => candidate.PhoneNumber.Trim())
+            .Select(candidate => candidate?.PhoneNumber?.Trim() ?? string.Empty)
             .Where(phoneNumber => phoneNumber.Length > 0)
             .ToList();
 

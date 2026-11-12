@@ -46,7 +46,7 @@ public sealed class CompleteBatchStageHandler(
                 Error.NotFound("Stage was not found in this batch."));
 
         var participants = await db.ApplicationStages
-            .Where(stage => stage.BatchStageId == targetStage.Id)
+            .Where(stage => stage.BatchStageId == targetStage.Id && !stage.BatchApplication.IsStandalone)
             .Include(stage => stage.BatchApplication)
                 .ThenInclude(application => application.Candidate)
             .ToListAsync(ct);
@@ -81,6 +81,7 @@ public sealed class CompleteBatchStageHandler(
         var missingApplications = await db.BatchApplications
             .AnyAsync(application =>
                 application.RecruitmentBatchId == request.BatchId &&
+                !application.IsStandalone &&
                 application.Status == ApplicationStatus.InProcess &&
                 application.FinalResultStatus == null &&
                 !participantIds.Contains(application.Id), ct);
