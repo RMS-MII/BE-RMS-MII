@@ -6,6 +6,7 @@ using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Features.Interviewers.GetInterviewerSessions;
+using WEBAPI.Features.Interviewers.GetInterviewerSessionDetail;
 using WEBAPI.Models;
 
 namespace WEBAPI.Controllers;
@@ -16,6 +17,19 @@ namespace WEBAPI.Controllers;
 [Tags("Interviews")]
 public sealed class InterviewerSessionsController(ISender sender) : ControllerBase
 {
+    /// <summary>
+    /// Mengambil detail sesi, profil kandidat, tugas take-home, dan penilaian milik pewawancara yang ditugaskan.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<InterviewerSessionDetailDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSessionDetail(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetInterviewerSessionDetailQuery(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
     /// <summary>
     /// Mengambil seluruh jadwal sesi wawancara kandidat yang di-assign ke akun pewawancara yang sedang login.
     /// Endpoint ini digunakan untuk melihat detail jadwal dan menentukan aksi konfirmasi hadir (confirm) atau permohonan ganti jadwal (reschedule).
