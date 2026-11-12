@@ -1,3 +1,4 @@
+using System.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
@@ -19,6 +20,7 @@ public sealed class ConfigureBatchStagesHandler(
     public async Task<Result<IReadOnlyCollection<BatchStageDto>>> Handle(
         ConfigureBatchStagesCommand request, CancellationToken ct)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var batch = await db.RecruitmentBatches
             .AsNoTracking()
             .FirstOrDefaultAsync(b => b.Id == request.BatchId, ct);
@@ -36,6 +38,12 @@ public sealed class ConfigureBatchStagesHandler(
         if (outOfRangeStage is not null)
             return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
                 Error.Validation($"Stage '{outOfRangeStage.StageName}' must start and end within the recruitment batch period."));
+
+        var stageEndingTooEarly = request.Stages.FirstOrDefault(stage =>
+            stage.IsActive && stage.EndDate <= batch.ApplicationDeadlineAt);
+        if (stageEndingTooEarly is not null)
+            return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
+                Error.Validation($"Stage '{stageEndingTooEarly.StageName}' must end after the application deadline."));
 
         var isInUse = await db.BatchStages
             .AnyAsync(s => s.RecruitmentBatchId == request.BatchId &&
@@ -77,8 +85,6 @@ public sealed class ConfigureBatchStagesHandler(
 
         try
         {
-            await using var transaction = await db.Database.BeginTransactionAsync(ct);
-
             var existingStages = await db.BatchStages
                 .Where(stage => stage.RecruitmentBatchId == request.BatchId)
                 .ToListAsync(ct);
