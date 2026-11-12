@@ -191,7 +191,8 @@ public sealed class SubmitAnswerHandler(
             }
         }
 
-        stage.TotalScore = Math.Round(totalScore, 2, MidpointRounding.AwayFromZero);
+        var maxRawScore = TestScoreCalculator.CalculateMaxRawScore(questions);
+        stage.TotalScore = TestScoreCalculator.Normalize(totalScore, maxRawScore);
         stage.UpdatedAt = now;
 
         db.CandidateAnswers.AddRange(candidateAnswers);

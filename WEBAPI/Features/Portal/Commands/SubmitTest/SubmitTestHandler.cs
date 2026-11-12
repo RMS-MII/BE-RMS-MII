@@ -189,9 +189,10 @@ public sealed class SubmitTestHandler(
             }
         }
 
-        totalScore = Math.Round(totalScore, 2, MidpointRounding.AwayFromZero);
+        var maxRawScore = TestScoreCalculator.CalculateMaxRawScore(questions);
+        var normalizedTotalScore = TestScoreCalculator.Normalize(totalScore, maxRawScore);
 
-        stage.TotalScore = totalScore;
+        stage.TotalScore = normalizedTotalScore;
         stage.CompletedAt = now;
         stage.UpdatedAt = now;
         stage.IsAttempts = true;
@@ -199,7 +200,7 @@ public sealed class SubmitTestHandler(
 
         // Existing batches without a threshold still require an HR decision.
         stage.Status = stage.BatchStage.PassingScore is decimal passingScore
-            ? totalScore >= passingScore
+            ? normalizedTotalScore >= passingScore
                 ? ApplicationStageStatus.Considered
                 : ApplicationStageStatus.Rejected
             : ApplicationStageStatus.Submitted;

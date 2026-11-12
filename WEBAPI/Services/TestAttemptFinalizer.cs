@@ -18,8 +18,27 @@ public sealed class TestAttemptFinalizer(
             .Where(answer => answer.ApplicationStageId == stage.Id)
             .ToListAsync(cancellationToken);
 
-        var totalScore = answers.Sum(answer => answer.Score);
-        totalScore = Math.Round(totalScore, 2, MidpointRounding.AwayFromZero);
+        var rawScore = answers.Sum(answer => answer.Score);
+
+        // Skor maksimum dihitung dari seluruh soal aktif tes agar skor akhir dapat
+        // dinormalisasi ke skala 0-100, termasuk ketika jawaban hanya tersimpan sebagian.
+        var departmentId = await db.RecruitmentBatches
+            .AsNoTracking()
+            .Where(batch => batch.Id == stage.BatchApplication.RecruitmentBatchId)
+            .Select(batch => batch.DepartmentId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var questions = await db.Questions
+            .AsNoTracking()
+            .Where(question =>
+                question.IsActive &&
+                question.QuestionBank.DepartmentId == departmentId &&
+                question.QuestionBank.StageTypeId == stage.BatchStage.StageTypeId)
+            .Include(question => question.QuestionOptions)
+            .ToListAsync(cancellationToken);
+
+        var maxRawScore = TestScoreCalculator.CalculateMaxRawScore(questions);
+        var totalScore = TestScoreCalculator.Normalize(rawScore, maxRawScore);
 
         var application = stage.BatchApplication;
 
