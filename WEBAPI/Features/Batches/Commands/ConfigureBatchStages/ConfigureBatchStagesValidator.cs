@@ -56,6 +56,7 @@ public sealed class ConfigureBatchStageItemValidator : AbstractValidator<Configu
 
         RuleFor(x => x.PassingScore)
             .GreaterThanOrEqualTo(0)
+            .LessThanOrEqualTo(100)
             .When(x => x.PassingScore.HasValue);
 
         RuleFor(x => x.StartDate)

@@ -12,7 +12,8 @@ namespace WEBAPI.Features.Portal.Commands.SubmitTest;
 
 public sealed class SubmitTestHandler(
     RmsDbContext db,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ITestAttemptFinalizer finalizer)
     : IRequestHandler<SubmitTestCommand, Result<SubmitTestResultDto>>
 {
     public async Task<Result<SubmitTestResultDto>> Handle(
@@ -83,12 +84,15 @@ public sealed class SubmitTestHandler(
         if (TestAttemptPolicy.IsPastDeadline(stage, now))
         {
             stage.Status = ApplicationStageStatus.Expired;
-            stage.TotalScore = null;
             stage.CompletedAt = now;
             stage.UpdatedAt = now;
             application.UpdatedAt = now;
 
             await db.SaveChangesAsync(ct);
+
+            // Batas waktu habis: sesi ditutup dan jawaban yang berhasil tersimpan
+            // tetap dipertahankan untuk dihitung skornya.
+            await finalizer.FinalizeAsync(stage, now, ct);
 
             return Result<SubmitTestResultDto>.Failure(
                 Error.BusinessRule(
@@ -176,6 +180,7 @@ public sealed class SubmitTestHandler(
                 {
                     Id = Guid.CreateVersion7(),
                     ApplicationStageId = stage.Id,
+                    DiscType = question.DiscType,
                     QuestionText = question.QuestionText,
                     QuestionOptionText = option.OptionText,
                     Score = answerScore,
@@ -184,9 +189,10 @@ public sealed class SubmitTestHandler(
             }
         }
 
-        totalScore = Math.Round(totalScore, 2, MidpointRounding.AwayFromZero);
+        var maxRawScore = TestScoreCalculator.CalculateMaxRawScore(questions);
+        var normalizedTotalScore = TestScoreCalculator.Normalize(totalScore, maxRawScore);
 
-        stage.TotalScore = totalScore;
+        stage.TotalScore = normalizedTotalScore;
         stage.CompletedAt = now;
         stage.UpdatedAt = now;
         stage.IsAttempts = true;
@@ -194,7 +200,7 @@ public sealed class SubmitTestHandler(
 
         // Existing batches without a threshold still require an HR decision.
         stage.Status = stage.BatchStage.PassingScore is decimal passingScore
-            ? totalScore >= passingScore
+            ? normalizedTotalScore >= passingScore
                 ? ApplicationStageStatus.Considered
                 : ApplicationStageStatus.Rejected
             : ApplicationStageStatus.Submitted;

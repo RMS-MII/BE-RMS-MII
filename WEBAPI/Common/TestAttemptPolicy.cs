@@ -5,15 +5,11 @@ namespace WEBAPI.Common;
 /// <summary>
 /// Aturan waktu pengerjaan tes: durasi dihitung dari saat kandidat benar-benar
 /// memulai tes (AttemptStartedAt), bukan dari jadwal stage (StartedAt).
+/// Batas waktu dihitung dan divalidasi secara strict di sisi server
+/// berbasis timestamp server (DateTime.UtcNow).
 /// </summary>
 public static class TestAttemptPolicy
 {
-    /// <summary>
-    /// Toleransi jaringan agar submit yang dikirim tepat saat waktu habis masih
-    /// dapat diterima.
-    /// </summary>
-    public static readonly TimeSpan SubmissionGracePeriod = TimeSpan.FromSeconds(60);
-
     public static DateTime GetDeadline(ApplicationStage stage)
     {
         if (stage.DurationTest is { } duration && duration > TimeSpan.Zero)
@@ -25,6 +21,10 @@ public static class TestAttemptPolicy
         return stage.EndAt;
     }
 
+    /// <summary>
+    /// Memeriksa apakah waktu pengerjaan telah melewati batas waktu ketat.
+    /// Submit yang dikirim setelah batas waktu wajib ditolak oleh server.
+    /// </summary>
     public static bool IsPastDeadline(ApplicationStage stage, DateTime now)
-        => now > GetDeadline(stage) + SubmissionGracePeriod;
+        => now > GetDeadline(stage);
 }

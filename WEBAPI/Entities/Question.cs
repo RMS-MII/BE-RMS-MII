@@ -7,6 +7,7 @@ public class Question : BaseEntity
     public Guid QuestionBankId { get; set; }
     public string QuestionText { get; set; } = string.Empty;
     public QuestionType QuestionType { get; set; } = QuestionType.SingleChoice;
+    public DiscType DiscType { get; set; }
     public decimal Weight { get; set; }
     public int SequenceNumber { get; set; }
     public bool IsRequired { get; set; } = true;

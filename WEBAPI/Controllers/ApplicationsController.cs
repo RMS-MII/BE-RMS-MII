@@ -8,6 +8,7 @@ using WEBAPI.Features.Applications.Commands.SetFinalResult;
 using WEBAPI.Features.Applications.Commands.StartApplicationStage;
 using WEBAPI.Features.Applications.Commands.UploadOfferingLetter;
 using WEBAPI.Features.Applications.Queries.GetApplicationRecap;
+using WEBAPI.Features.Applications.Queries.GetTestResult;
 using WEBAPI.Models;
 
 namespace WEBAPI.Controllers;
@@ -32,6 +33,24 @@ public sealed class ApplicationsController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetRecap(Guid id, CancellationToken ct)
     {
         var result = await sender.Send(new GetApplicationRecapQuery(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengambil hasil attempt tes daring kandidat (skor, jawaban per soal, status attempt)
+    /// yang dapat dilihat oleh HR.
+    /// </summary>
+    /// <param name="stageId">ID ApplicationStage (test attempt)</param>
+    /// <param name="ct">Cancellation token</param>
+    [HttpGet("test-results/{stageId:guid}")]
+    [ProducesResponseType<TestAttemptResultDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTestResult([FromRoute] Guid stageId, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetTestResultQuery(stageId), ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 

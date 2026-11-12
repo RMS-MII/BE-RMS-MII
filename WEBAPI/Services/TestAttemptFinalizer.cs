@@ -1,0 +1,64 @@
+using Microsoft.EntityFrameworkCore;
+using WEBAPI.Data;
+using WEBAPI.Entities;
+using WEBAPI.Entities.Enums;
+
+namespace WEBAPI.Services;
+
+public sealed class TestAttemptFinalizer(
+    RmsDbContext db) : ITestAttemptFinalizer
+{
+    public async Task<ApplicationStageStatus> FinalizeAsync(
+        ApplicationStage stage,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var answers = await db.CandidateAnswers
+            .AsNoTracking()
+            .Where(answer => answer.ApplicationStageId == stage.Id)
+            .ToListAsync(cancellationToken);
+
+        var rawScore = answers.Sum(answer => answer.Score);
+
+        // Skor maksimum dihitung dari seluruh soal aktif tes agar skor akhir dapat
+        // dinormalisasi ke skala 0-100, termasuk ketika jawaban hanya tersimpan sebagian.
+        var departmentId = await db.RecruitmentBatches
+            .AsNoTracking()
+            .Where(batch => batch.Id == stage.BatchApplication.RecruitmentBatchId)
+            .Select(batch => batch.DepartmentId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var questions = await db.Questions
+            .AsNoTracking()
+            .Where(question =>
+                question.IsActive &&
+                question.QuestionBank.DepartmentId == departmentId &&
+                question.QuestionBank.StageTypeId == stage.BatchStage.StageTypeId)
+            .Include(question => question.QuestionOptions)
+            .ToListAsync(cancellationToken);
+
+        var maxRawScore = TestScoreCalculator.CalculateMaxRawScore(questions);
+        var totalScore = TestScoreCalculator.Normalize(rawScore, maxRawScore);
+
+        var application = stage.BatchApplication;
+
+        stage.TotalScore = totalScore;
+        stage.CompletedAt = now;
+        stage.UpdatedAt = now;
+        stage.IsAttempts = true;
+        application.UpdatedAt = now;
+
+        stage.Status = stage.BatchStage.PassingScore is decimal passingScore
+            ? totalScore >= passingScore
+                ? ApplicationStageStatus.Considered
+                : ApplicationStageStatus.Rejected
+            : ApplicationStageStatus.Submitted;
+
+        if (stage.Status == ApplicationStageStatus.Rejected)
+            application.Status = ApplicationStatus.Rejected;
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return stage.Status;
+    }
+}
