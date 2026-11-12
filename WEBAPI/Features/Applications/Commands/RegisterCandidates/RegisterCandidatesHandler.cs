@@ -6,6 +6,7 @@ using WEBAPI.Data;
 using WEBAPI.Data.Repositories;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
+using WEBAPI.Features.Portal;
 using WEBAPI.Models;
 using WEBAPI.Services;
 
@@ -23,22 +24,27 @@ public sealed class RegisterCandidatesHandler(
         await using var transaction = await db.Database.BeginTransactionAsync(
             IsolationLevel.Serializable, ct);
 
-        var batch = await db.RecruitmentBatches
-            .AsNoTracking()
+        var now = dateTimeProvider.GetUtcNow().UtcDateTime;
+        var batches = db.RecruitmentBatches.AsNoTracking();
+        if (request.IsPublicApplication)
+            batches = batches.Where(PublicJobAvailability.AcceptsApplications(now));
+
+        var batch = await batches
             .Include(item => item.BatchStages)
             .FirstOrDefaultAsync(b => b.Id == request.BatchId, ct);
 
         if (batch is null)
             return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
-                Error.NotFound("Batch was not found."));
+                Error.NotFound(request.IsPublicApplication
+                    ? "This position is no longer accepting applications."
+                    : "Batch was not found."));
 
         if (batch.Status != BatchStatus.Open)
             return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
                 Error.BusinessRule("Open the recruitment batch before registering candidates."));
 
-        if (batch.BatchStages.Any(stage => stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive))
-            return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
-                Error.BusinessRule("Candidates cannot be added after the batch selection has started."));
+        var isStandalone = batch.BatchStages.Any(stage =>
+            stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive);
 
         var normalizedCandidates = request.Candidates
             .Select(candidate => new NormalizedCandidate(
@@ -71,7 +77,6 @@ public sealed class RegisterCandidatesHandler(
             .GroupBy(candidate => candidate.PhoneNumber, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
-        var now = dateTimeProvider.GetUtcNow().UtcDateTime;
         var newCandidates = new List<Candidate>();
         var resolvedCandidates = new List<ResolvedCandidate>(normalizedCandidates.Count);
 
@@ -79,6 +84,10 @@ public sealed class RegisterCandidatesHandler(
         {
             candidatesByEmail.TryGetValue(item.Email, out var emailMatch);
             candidatesByPhone.TryGetValue(item.PhoneNumber, out var phoneMatch);
+
+            if (request.IsPublicApplication && emailMatch?.Id != phoneMatch?.Id)
+                return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
+                    Error.Conflict("Unable to register with these contact details. Contact recruitment for help."));
 
             if (emailMatch is not null && phoneMatch is not null && emailMatch.Id != phoneMatch.Id)
                 return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
@@ -133,6 +142,10 @@ public sealed class RegisterCandidatesHandler(
 
             if (alreadyRegisteredIds.Count > 0)
             {
+                if (request.IsPublicApplication)
+                    return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
+                        Error.Conflict("An application has already been submitted for this position."));
+
                 var registeredIds = alreadyRegisteredIds.ToHashSet();
                 var names = resolvedCandidates
                     .Where(item => registeredIds.Contains(item.Candidate.Id))
@@ -152,6 +165,7 @@ public sealed class RegisterCandidatesHandler(
                 Id = Guid.CreateVersion7(),
                 CandidateId = item.Candidate.Id,
                 RecruitmentBatchId = batch.Id,
+                IsStandalone = isStandalone,
                 CodeApplication = GenerateCode(now),
                 AppliedAt = now,
                 Status = ApplicationStatus.InProcess,

@@ -39,7 +39,7 @@ public sealed class EvaluateStageHandler(
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("Closed recruitment candidate decisions cannot be changed."));
 
-        var usesBatchStageLifecycle = await db.BatchStages.AnyAsync(batchStage =>
+        var usesBatchStageLifecycle = !application.IsStandalone && await db.BatchStages.AnyAsync(batchStage =>
             batchStage.RecruitmentBatchId == application.RecruitmentBatchId &&
             batchStage.LifecycleStatus != BatchStageLifecycleStatus.Inactive, ct);
 

@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
+using WEBAPI.Features.Applications.Commands.RegisterCandidates;
 using WEBAPI.Features.Portal.Commands.ConfirmSchedule;
 using WEBAPI.Features.Portal.Commands.StartTest;
 using WEBAPI.Features.Portal.Commands.SubmitTest;
 using WEBAPI.Features.Portal.Queries.GetCandidateTasks;
+using WEBAPI.Features.Portal.Queries.GetPublicJobs;
 using WEBAPI.Features.Portal.Queries.GetTest;
 using WEBAPI.Features.Portal.UploadSubmission;
 using WEBAPI.Features.RescheduleRequests.Commands.RequestReschedule;
@@ -20,6 +22,24 @@ namespace WEBAPI.Controllers;
 [Tags("Portal")]
 public sealed class PortalController(ISender sender) : ControllerBase
 {
+    [HttpGet("jobs")]
+    public async Task<ActionResult<IReadOnlyList<PublicJobDto>>> GetJobs(CancellationToken ct) =>
+        Ok(await sender.Send(new GetPublicJobsQuery(), ct));
+
+    [HttpPost("jobs/{batchId:guid}/applications")]
+    public async Task<IActionResult> Apply(
+        Guid batchId, [FromBody] CreateCandidateDto candidate, CancellationToken ct)
+    {
+        var result = await sender.Send(new RegisterCandidatesCommand
+        {
+            BatchId = batchId,
+            Candidates = [candidate],
+            IsPublicApplication = true
+        }, ct);
+
+        return result.IsSuccess ? StatusCode(StatusCodes.Status201Created) : result.ToProblemDetails(this);
+    }
+
     [HttpGet("{candidateId:guid}/tasks")]
     [ProducesResponseType<CandidateTasksDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]

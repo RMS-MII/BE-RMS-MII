@@ -9,6 +9,7 @@ public sealed record UpdateBatchStatusCommand : IRequest<Result<RecruitmentBatch
 {
     public Guid BatchId { get; init; }
     public BatchStatus Status { get; init; }
+    public DateTimeOffset? ApplicationDeadlineAt { get; init; }
 }
 
 public sealed record UpdateBatchStatusRequest
@@ -17,4 +18,5 @@ public sealed record UpdateBatchStatusRequest
     /// Status tujuan: Open untuk mengaktifkan batch Draft, atau Closed untuk menutup batch Open.
     /// </summary>
     public BatchStatus Status { get; init; }
+    public DateTimeOffset? ApplicationDeadlineAt { get; init; }
 }

@@ -26,6 +26,7 @@ public static class ApplicationRecapMapping
             Id = application.Id,
             CandidateId = application.CandidateId,
             RecruitmentBatchId = application.RecruitmentBatchId,
+            IsStandalone = application.IsStandalone,
             CodeApplication = application.CodeApplication,
             AppliedAt = application.AppliedAt,
             FinalResultStatus = application.FinalResultStatus,

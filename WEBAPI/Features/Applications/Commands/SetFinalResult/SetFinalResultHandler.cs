@@ -47,7 +47,7 @@ public sealed class SetFinalResultHandler(
             stage.RecruitmentBatchId == application.RecruitmentBatchId &&
             stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive, ct);
 
-        if (usesBatchStageLifecycle)
+        if (usesBatchStageLifecycle && !application.IsStandalone)
             return Result<BatchApplicationDto>.Failure(
                 Error.BusinessRule(
                     "Final results are published when the final batch stage is completed."));

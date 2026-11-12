@@ -13,6 +13,7 @@ public class BatchApplication : BaseEntity
     public string FileOfferingLetter { get; set; } = string.Empty;
     public Guid CandidateId { get; set; }
     public Guid RecruitmentBatchId { get; set; }
+    public bool IsStandalone { get; set; }
 
     public Candidate Candidate { get; set; } = null!;
     public RecruitmentBatch RecruitmentBatch { get; set; } = null!;

@@ -64,7 +64,7 @@ public sealed class StartApplicationStageHandler(
         var usesBatchStageLifecycle = batchStages.Any(stage =>
             stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive);
 
-        if (usesBatchStageLifecycle)
+        if (usesBatchStageLifecycle && !application.IsStandalone)
         {
             var activeBatchStage = batchStages.SingleOrDefault(stage =>
                 stage.LifecycleStatus == BatchStageLifecycleStatus.Active);
@@ -144,7 +144,7 @@ public sealed class StartApplicationStageHandler(
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
-        if (now > nextStage.EndDate)
+        if (!application.IsStandalone && now > nextStage.EndDate)
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("The stage has already ended."));
 
@@ -158,6 +158,8 @@ public sealed class StartApplicationStageHandler(
             nextStage,
             now,
             durationTest);
+        if (application.IsStandalone)
+            applicationStage.EndAt = now + (nextStage.EndDate - nextStage.StartDate);
 
         db.ApplicationStages.Add(applicationStage);
 

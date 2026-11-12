@@ -133,7 +133,8 @@ public sealed class BatchesController(ISender sender) : ControllerBase
         var result = await sender.Send(new UpdateBatchStatusCommand
         {
             BatchId = id,
-            Status = request.Status
+            Status = request.Status,
+            ApplicationDeadlineAt = request.ApplicationDeadlineAt
         }, ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
