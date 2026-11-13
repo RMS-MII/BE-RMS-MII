@@ -66,23 +66,6 @@ public class AssignInterviewersHandler(
 
             if (existingAssignment is not null)
             {
-                // Jika sudah ada sebelumnya (misal Declined lalu ditugaskan kembali, atau masih Pending)
-                if (existingAssignment.Status == StageEmployeeStatus.Declined)
-                {
-                    existingAssignment.Status = StageEmployeeStatus.Pending;
-                    existingAssignment.Note = null;
-                    existingAssignment.UpdatedAt = DateTime.UtcNow;
-
-                    emailsToSend.Add((
-                        employee.Email,
-                        EmailTemplates.InterviewerAssignment(
-                            employee.FullName,
-                            stage.StageName,
-                            stage.RecruitmentBatch.Name,
-                            isReassignment: true,
-                            frontendUrl)));
-                }
-
                 existingAssignment.Employee = employee;
                 assignedDtos.Add(existingAssignment.ToAssignedInterviewerDto());
             }
