@@ -23,5 +23,10 @@ public interface IEmailService
         EmailType type,
         CancellationToken cancellationToken = default);
 
+    Task SendPasswordResetEmailAsync(
+        string recipientEmail,
+        EmailContent content,
+        CancellationToken cancellationToken = default);
+
     void QueueBulkEmail(IReadOnlyCollection<BulkEmailMessage> messages, EmailType type);
 }
