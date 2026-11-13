@@ -292,6 +292,15 @@ public static class EmailTemplates
                 ("declineReason", string.IsNullOrWhiteSpace(note) ? "-" : note)));
     }
 
+    public static EmailContent PasswordReset(string recipientName, string resetUrl)
+    {
+        return EmailTemplateRenderer.Render(
+            "PasswordReset",
+            Values(
+                ("recipientName", recipientName),
+                ("resetUrl", resetUrl)));
+    }
+
     private static IReadOnlyDictionary<string, string?> Values(
         params (string Key, string? Value)[] values)
     {

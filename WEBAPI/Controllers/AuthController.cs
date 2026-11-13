@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
 using WEBAPI.Features.Auth.Commands;
+using WEBAPI.Features.Auth.Commands.ChangePassword;
+using WEBAPI.Features.Auth.Commands.ForgotPassword;
 using WEBAPI.Features.Auth.Commands.Login;
+using WEBAPI.Features.Auth.Commands.ResetPassword;
 using WEBAPI.Features.Auth.Queries.GetCurrentUser;
 using WEBAPI.Models;
 
@@ -41,6 +44,28 @@ public sealed class AuthController(ISender sender) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command, CancellationToken ct)
+    {
+        var result = await sender.Send(command, ct);
+        return result.IsSuccess ? NoContent() : result.ToProblemDetails(this);
+    }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command, CancellationToken ct)
+    {
+        var result = await sender.Send(command, ct);
+        return result.IsSuccess ? Ok(new
+        {
+            message = "If the email registered, a reset link will be sent."
+        }) : result.ToProblemDetails(this);
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command, CancellationToken ct)
     {
         var result = await sender.Send(command, ct);
         return result.IsSuccess ? NoContent() : result.ToProblemDetails(this);

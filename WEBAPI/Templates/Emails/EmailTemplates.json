@@ -200,6 +200,16 @@
     "note": "Silakan tinjau surat penawaran dan berikan respons sesuai instruksi.",
     "closing": "Terima kasih,\nTim Rekrutmen"
   },
+  "PasswordReset": {
+    "subject": "Reset Password Akun RMS",
+    "title": "Reset Password",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "Kami menerima permintaan untuk mengatur ulang password akun RMS Anda.",
+    "actionLabel": "Atur Ulang Password",
+    "actionUrl": "{{resetUrl}}",
+    "note": "Tautan ini berlaku selama 30 menit dan hanya dapat digunakan sekali. Jika Anda tidak meminta reset password, abaikan email ini.",
+    "closing": "Salam,\nTim RMS"
+  },
   "InterviewerDeclined": {
     "subject": "Penolakan Penugasan Pewawancara - {{interviewerName}}",
     "title": "Penolakan Penugasan Pewawancara",

@@ -1,7 +1,7 @@
 using MediatR;
 using WEBAPI.Common.Results;
 
-namespace WEBAPI.Features.Auth.Commands;
+namespace WEBAPI.Features.Auth.Commands.ChangePassword;
 
 public sealed record ChangePasswordCommand : IRequest<Result>
 {

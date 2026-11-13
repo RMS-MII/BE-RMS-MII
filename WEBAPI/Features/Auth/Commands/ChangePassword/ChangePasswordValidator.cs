@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 
-namespace WEBAPI.Features.Auth.Commands;
+namespace WEBAPI.Features.Auth.Commands.ChangePassword;
 
 public sealed class ChangePasswordValidator : AbstractValidator<ChangePasswordCommand>
 {
@@ -10,6 +10,7 @@ public sealed class ChangePasswordValidator : AbstractValidator<ChangePasswordCo
             .NotEmpty();
 
         RuleFor(x => x.NewPassword)
+            .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .MinimumLength(8)
             .MaximumLength(128)

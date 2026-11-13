@@ -7,7 +7,7 @@ using WEBAPI.Data;
 using WEBAPI.Entities;
 using WEBAPI.Services;
 
-namespace WEBAPI.Features.Auth.Commands;
+namespace WEBAPI.Features.Auth.Commands.ChangePassword;
 
 public class ChangePasswordHandler(
     RmsDbContext db,
