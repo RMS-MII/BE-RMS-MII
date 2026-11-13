@@ -9,7 +9,7 @@ public sealed class ResetPasswordValidator : AbstractValidator<ResetPasswordComm
     {
         RuleFor(r => r.Token)
             .NotEmpty()
-            .Matches("^[0-9A-Fa-f]{64}$]$");
+            .Matches("^[0-9A-Fa-f]{64}$");
 
         RuleFor(x => x.NewPassword)
             .Cascade(CascadeMode.Stop)
