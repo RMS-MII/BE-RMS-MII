@@ -1,6 +1,7 @@
 using WEBAPI.Features.Batches;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
+using WEBAPI.Services;
 
 namespace WEBAPI.Models;
 
@@ -77,6 +78,10 @@ public static class ApplicationRecapMapping
             NextStageId = batchStage.NextStageId,
             Status = status,
             TotalScore = applicationStage?.TotalScore,
+            DiscSummaries = applicationStage is null ||
+                            batchStage.StageType?.StageCategory != StageCategory.Test
+                ? []
+                : DiscSummaryCalculator.Summarize(applicationStage.CandidateAnswers),
             StartedAt = applicationStage?.StartedAt,
             EndAt = applicationStage?.EndAt,
             CompletedAt = applicationStage?.CompletedAt,

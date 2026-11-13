@@ -54,6 +54,7 @@ public class ApplicationStageRecapDto
 
     public ApplicationStageStatus? Status { get; set; }
     public decimal? TotalScore { get; set; }
+    public IReadOnlyCollection<DiscSummaryDto> DiscSummaries { get; set; } = [];
     public DateTime? StartedAt { get; set; }
     public DateTime? EndAt { get; set; }
     public DateTime? CompletedAt { get; set; }

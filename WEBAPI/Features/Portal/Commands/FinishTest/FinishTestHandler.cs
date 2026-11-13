@@ -99,7 +99,10 @@ public sealed class FinishTestHandler(
 
         var status = await finalizer.FinalizeAsync(stage, now, ct);
 
-        var discSummaries = await BuildDiscSummariesAsync(stage.Id, ct);
+        var answers = await db.CandidateAnswers
+            .AsNoTracking()
+            .Where(answer => answer.ApplicationStageId == stage.Id)
+            .ToListAsync(ct);
 
         return Result<FinishTestResultDto>.Success(new FinishTestResultDto
         {
@@ -109,49 +112,8 @@ public sealed class FinishTestHandler(
             Status = status,
             CompletedAt = stage.CompletedAt,
             TotalScore = stage.TotalScore,
-            DiscSummaries = discSummaries,
+            DiscSummaries = DiscSummaryCalculator.Summarize(answers),
             ServerTimeUtc = now
         });
-    }
-
-    /// <summary>
-    /// Menghitung ringkasan DISC dari tabel jawaban kandidat (<see cref="CandidateAnswer"/>).
-    /// Untuk setiap sifat D/I/S/C dihitung jumlah jawaban "Most", jumlah jawaban "Least",
-    /// dan selisihnya. Soal bertipe binary: pilihan A = Most (skor &gt; 0), pilihan B = Least (skor = 0).
-    /// </summary>
-    private async Task<IReadOnlyCollection<DiscSummaryDto>> BuildDiscSummariesAsync(
-        Guid stageId, CancellationToken ct)
-    {
-        var answers = await db.CandidateAnswers
-            .Where(answer => answer.ApplicationStageId == stageId)
-            .ToListAsync(ct);
-
-        var summaries = new List<DiscSummaryDto>();
-
-        foreach (var trait in new[]
-        {
-            DiscType.Dominance,
-            DiscType.Influence,
-            DiscType.Steadiness,
-            DiscType.Conscientiousness
-        })
-        {
-            var traitAnswers = answers
-                .Where(answer => answer.DiscType == trait)
-                .ToList();
-
-            var totalMost = traitAnswers.Count(answer => answer.Score > 0);
-            var totalLeast = traitAnswers.Count(answer => answer.Score == 0);
-
-            summaries.Add(new DiscSummaryDto
-            {
-                Trait = trait,
-                TotalMost = totalMost,
-                TotalLeast = totalLeast,
-                Difference = totalMost - totalLeast
-            });
-        }
-
-        return summaries;
     }
 }

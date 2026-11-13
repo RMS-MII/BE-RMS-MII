@@ -2,9 +2,9 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Data;
-using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
+using WEBAPI.Services;
 
 namespace WEBAPI.Features.Applications.Queries.GetTestResult;
 
@@ -74,43 +74,8 @@ public sealed class GetTestResultHandler(RmsDbContext db)
             DurationTest = stage.DurationTest,
             IsAttempts = stage.IsAttempts,
             IsTimedOut = isTimedOut,
-            DiscSummaries = BuildDiscSummaries(stage.CandidateAnswers),
+            DiscSummaries = DiscSummaryCalculator.Summarize(stage.CandidateAnswers),
             Answers = answers
         });
-    }
-
-    /// <summary>
-    /// Mengagregasi jawaban kandidat menjadi ringkasan per sifat DISC (D/I/S/C).
-    /// </summary>
-    private static IReadOnlyCollection<DiscSummaryDto> BuildDiscSummaries(
-        IEnumerable<CandidateAnswer> candidateAnswers)
-    {
-        var answered = candidateAnswers.ToList();
-
-        return new[]
-            {
-                DiscType.Dominance,
-                DiscType.Influence,
-                DiscType.Steadiness,
-                DiscType.Conscientiousness
-            }
-            .Select(trait =>
-            {
-                var traitAnswers = answered
-                    .Where(answer => answer.DiscType == trait)
-                    .ToList();
-
-                var totalMost = traitAnswers.Count(answer => answer.Score > 0);
-                var totalLeast = traitAnswers.Count(answer => answer.Score == 0);
-
-                return new DiscSummaryDto
-                {
-                    Trait = trait,
-                    TotalMost = totalMost,
-                    TotalLeast = totalLeast,
-                    Difference = totalMost - totalLeast
-                };
-            })
-            .ToList();
     }
 }
