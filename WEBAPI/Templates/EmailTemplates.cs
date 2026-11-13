@@ -292,6 +292,15 @@ public static class EmailTemplates
                 ("declineReason", string.IsNullOrWhiteSpace(note) ? "-" : note)));
     }
 
+    public static EmailContent PasswordReset(string recipientName, string resetUrl)
+    {
+        return EmailTemplateRenderer.Render(
+            "PasswordReset",
+            Values(
+                ("recipientName", recipientName),
+                ("resetUrl", resetUrl)));
+    }
+
     public static EmailContent InterviewAssessment(
         string hrName, string interviewerName, string candidateName, string batchName,
         string stageName, bool isUpdate, string applicationUrl) =>

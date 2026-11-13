@@ -92,6 +92,15 @@ public enum InterviewSessionStatus
     AcceptedByCandidate = 5
 }
 
+public enum InterviewerTaskType
+{
+    PendingInvitation = 1,
+    SessionConfirmation = 2,
+    PendingAssessment = 3,
+    TakeHomeReview = 4,
+    UpcomingSession = 5
+}
+
 public enum Recommendation
 {
     StronglyRecommend = 1,
@@ -272,6 +281,16 @@ public static class EnumHelper
         InterviewSessionStatus.AcceptedByInterviewer => "Dikonfirmasi Pewawancara",
         InterviewSessionStatus.AcceptedByCandidate => "Dikonfirmasi Kandidat",
         _ => status.ToString()
+    };
+
+    public static string ToDisplayName(this InterviewerTaskType type) => type switch
+    {
+        InterviewerTaskType.PendingInvitation => "Menunggu Respons Undangan",
+        InterviewerTaskType.SessionConfirmation => "Konfirmasi Jadwal Wawancara",
+        InterviewerTaskType.PendingAssessment => "Penilaian Belum Diisi",
+        InterviewerTaskType.TakeHomeReview => "Tinjau Take-Home",
+        InterviewerTaskType.UpcomingSession => "Sesi Mendatang",
+        _ => type.ToString()
     };
 
     public static string ToDisplayName(this Recommendation rec) => rec switch

@@ -133,6 +133,14 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         return results;
     }
 
+    public Task SendPasswordResetEmailAsync(
+        string recipientEmail,
+        EmailContent content,
+        CancellationToken cancellationToken = default)
+    {
+        return SendMessageAsync(recipientEmail.Trim(), content, cancellationToken);
+    }
+
     public void QueueBulkEmail(IReadOnlyCollection<BulkEmailMessage> messages, EmailType type)
     {
         var queuedAt = DateTime.UtcNow;
