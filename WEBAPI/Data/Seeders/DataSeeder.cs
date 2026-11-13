@@ -93,6 +93,8 @@ public static class DataSeeder
     {
         Log.Information("Resetting database to seed checkpoint...");
 
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
         // 1. Bersihkan seluruh tabel transaksional dari entitas anak (child) ke entitas induk (parent)
         await context.CandidateAnswers.ExecuteDeleteAsync();
         await context.EmailLogs.ExecuteDeleteAsync();
@@ -111,6 +113,7 @@ public static class DataSeeder
 
         // 2. Pastikan master data terisi (dan hanya buat sample batch jika diaktifkan)
         await SeedAsync(context, passwordHasher, includeSampleBatch);
+        await transaction.CommitAsync();
 
         Log.Information("Database checkpoint restored successfully. IncludeSampleBatch={IncludeSampleBatch}", includeSampleBatch);
     }

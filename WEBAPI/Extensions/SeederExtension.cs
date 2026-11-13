@@ -12,20 +12,22 @@ public static class SeederExtension
     {
         using var scope = app.Services.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<RmsDbContext>>();
+        var resetOnStartup = app.Configuration.GetValue<bool>("Seed:ResetToCheckpointOnStartup", false);
+        var isResetRequested = resetOnStartup || (args != null && (args.Contains("--seed-reset") || args.Contains("--reset-checkpoint")));
 
         try
         {
             var db = scope.ServiceProvider.GetRequiredService<RmsDbContext>();
             if (!await db.Database.CanConnectAsync())
             {
+                if (isResetRequested)
+                    throw new InvalidOperationException("Database tidak dapat dihubungi untuk reset checkpoint.");
+
                 logger.LogWarning("Database tidak dapat dihubungi; seeder dilewati");
                 return;
             }
 
             var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<Account>>();
-            var resetOnStartup = app.Configuration.GetValue<bool>("Seed:ResetToCheckpointOnStartup", false);
-            var isResetRequested = resetOnStartup || (args != null && (args.Contains("--seed-reset") || args.Contains("--reset-checkpoint")));
-
             if (isResetRequested)
             {
                 logger.LogInformation("Perintah reset checkpoint seeder aktif. Me-reset database ke checkpoint seeder...");
@@ -46,6 +48,9 @@ public static class SeederExtension
         }
         catch (Exception ex)
         {
+            if (isResetRequested)
+                throw;
+
             logger.LogError(ex, "Seeder atau warmup gagal dijalankan");
         }
     }
