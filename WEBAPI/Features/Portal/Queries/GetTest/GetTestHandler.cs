@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using WEBAPI.Common;
 using WEBAPI.Common.Results;
 using WEBAPI.Data;
 using WEBAPI.Entities;
@@ -71,10 +72,6 @@ public sealed class GetTestHandler(
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
 
-        // Jika kandidat belum benar-benar memulai tes, stage hanya boleh dibuka
-        // di dalam window jadwal. Setelah AttemptStartedAt tercatat, tes tetap
-        // boleh dibuka meskipun EndAt sudah lewat agar kandidat dapat
-        // melanjutkan dan mengumpulkan jawaban sesuai durasi tes.
         if (stage.AttemptStartedAt is null)
         {
             if (now < stage.StartedAt)
@@ -95,6 +92,10 @@ public sealed class GetTestHandler(
                     Error.BusinessRule(
                         "The test deadline has passed. The stage has been marked as expired."));
             }
+        }
+        else if (TestAttemptPolicy.IsPastDeadline(stage, now))
+        {
+            return Result<CandidateTestDto>.Failure(Error.BusinessRule("This test has expired."));
         }
 
         var questions = await db.Questions

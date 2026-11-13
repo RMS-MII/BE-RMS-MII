@@ -131,6 +131,9 @@ public sealed class ActivateBatchStageHandler(
             return Result<BatchStageTransitionDto>.Failure(
                 Error.BusinessRule("The stage end date has passed."));
 
+        var isTestStage = targetStage.StageType.StageCategory == StageCategory.Test;
+        var startedAt = isTestStage || targetStage.StartDate <= now ? now : targetStage.StartDate;
+
         var applications = await db.BatchApplications
             .Where(application => application.RecruitmentBatchId == request.BatchId && !application.IsStandalone)
             .Include(application => application.Candidate)
@@ -168,7 +171,6 @@ public sealed class ActivateBatchStageHandler(
                     Error.BusinessRule("Register at least one eligible candidate before starting the first stage."));
 
             var durationTest = await GetTestDurationAsync(batch.DepartmentId, targetStage, ct);
-            var startedAt = targetStage.StartDate > now ? targetStage.StartDate : now;
 
             foreach (var application in eligibleApplications)
             {
@@ -248,7 +250,6 @@ public sealed class ActivateBatchStageHandler(
                 .ToList();
 
             var durationTest = await GetTestDurationAsync(batch.DepartmentId, targetStage, ct);
-            var startedAt = targetStage.StartDate > now ? targetStage.StartDate : now;
 
             foreach (var application in passingApplications)
             {
@@ -270,6 +271,19 @@ public sealed class ActivateBatchStageHandler(
             currentStage.UpdatedAt = now;
         }
 
+        if (isTestStage)
+        {
+            foreach (var (_, stage) in startedApplications)
+            {
+                if (stage.Status == ApplicationStageStatus.InProgress &&
+                    stage.AttemptStartedAt is null && !stage.IsAttempts && stage.StartedAt > now)
+                {
+                    stage.StartedAt = now;
+                    stage.UpdatedAt = now;
+                }
+            }
+        }
+
         if (currentStage is not null)
         {
             var passedMessages = startedApplications
@@ -282,13 +296,11 @@ public sealed class ActivateBatchStageHandler(
                         targetStage.StageName,
                         batch.Name,
                         EmailTemplates.GetCandidatePortalUrl(configuration, item.Application.CandidateId),
-                        targetStage.StageType.StageCategory == StageCategory.Test
-                            ? item.Stage.EndAt
-                            : null)))
+                        isTestStage ? item.Stage.EndAt : null)))
                 .ToList();
             emailService.QueueBulkEmail(passedMessages, EmailType.StageResult);
         }
-        else if (targetStage.StageType.StageCategory == StageCategory.Test)
+        else if (isTestStage)
         {
             var invitations = startedApplications
                 .Where(item => !string.IsNullOrWhiteSpace(item.Application.Candidate.Email))
@@ -322,6 +334,9 @@ public sealed class ActivateBatchStageHandler(
             // Persist the old stage as Completed before activating the next one.
             if (currentStage is not null)
                 await db.SaveChangesAsync(ct);
+
+            if (isTestStage && targetStage.StartDate > startedAt)
+                targetStage.StartDate = startedAt;
 
             targetStage.LifecycleStatus = BatchStageLifecycleStatus.Active;
             targetStage.UpdatedAt = now;

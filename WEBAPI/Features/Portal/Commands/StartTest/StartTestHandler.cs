@@ -65,6 +65,9 @@ public sealed class StartTestHandler(
         // double-click), kembalikan waktu mulai yang sama.
         if (stage.AttemptStartedAt is not null)
         {
+            if (TestAttemptPolicy.IsPastDeadline(stage, now))
+                return Result<StartTestResultDto>.Failure(Error.BusinessRule("This test has expired."));
+
             return Result<StartTestResultDto>.Success(new StartTestResultDto
             {
                 ApplicationStageId = stage.Id,

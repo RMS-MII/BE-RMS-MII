@@ -5,20 +5,18 @@ namespace WEBAPI.Common;
 /// <summary>
 /// Aturan waktu pengerjaan tes: durasi dihitung dari saat kandidat benar-benar
 /// memulai tes (AttemptStartedAt), bukan dari jadwal stage (StartedAt).
-/// Batas waktu dihitung dan divalidasi secara strict di sisi server
-/// berbasis timestamp server (DateTime.UtcNow).
+/// Batas akhir tahap (EndAt) tetap berlaku selama pengerjaan.
 /// </summary>
 public static class TestAttemptPolicy
 {
     public static DateTime GetDeadline(ApplicationStage stage)
     {
-        if (stage.DurationTest is { } duration && duration > TimeSpan.Zero)
-        {
-            return (stage.AttemptStartedAt ?? stage.StartedAt) + duration;
-        }
+        if (stage.AttemptStartedAt is not { } startedAt ||
+            stage.DurationTest is not { } duration || duration <= TimeSpan.Zero)
+            return stage.EndAt;
 
-        // Tanpa durasi khusus, gunakan batas akhir akses sebagai pengaman.
-        return stage.EndAt;
+        var attemptDeadline = startedAt + duration;
+        return attemptDeadline < stage.EndAt ? attemptDeadline : stage.EndAt;
     }
 
     /// <summary>
