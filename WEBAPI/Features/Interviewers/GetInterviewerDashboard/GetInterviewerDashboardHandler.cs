@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
 using WEBAPI.Data;
+using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 
@@ -34,7 +35,8 @@ public class GetInterviewerDashboardHandler(
                 .ThenInclude(bs => bs.StageType)
             .Where(se => se.EmployeeId == currentEmployeeId.Value
                       && se.Status == StageEmployeeStatus.Pending
-                      && se.IsActive)
+                      && se.IsActive
+                      && se.BatchStage.RecruitmentBatch.Status != BatchStatus.Closed)
             .OrderByDescending(se => se.CreatedAt)
             .ToListAsync(ct);
 
@@ -87,28 +89,121 @@ public class GetInterviewerDashboardHandler(
             .Take(10)
             .ToList();
 
-        // 5. Hitung metrik penilaian
-        var pendingAssessmentsCount = mySessionInterviews.Count(si =>
-            si.InterviewAssessment is null
-            && si.Status != SessionInterviewStatus.Cancelled
-            && si.InterviewSession.Status != InterviewSessionStatus.Rescheduled);
+        // 5. Susun daftar task aktif yang bisa langsung dikerjakan pewawancara
+        var activeTasks = BuildActiveTasks(pendingInvitations, mySessionInterviews, now);
+
+        // 6. Hitung metrik penilaian
+        var takeHomeReviewsCount = activeTasks.Count(task => task.TaskType == InterviewerTaskType.TakeHomeReview);
+        var pendingAssessmentsCount = activeTasks.Count(task => task.TaskType == InterviewerTaskType.PendingAssessment);
+        var sessionsToConfirmCount = activeTasks.Count(task => task.TaskType == InterviewerTaskType.SessionConfirmation);
 
         var completedAssessmentsCount = mySessionInterviews.Count(si => si.InterviewAssessment is not null);
 
         var dashboard = new InterviewerDashboardDto
         {
+            ServerTimeUtc = now,
             Summary = new InterviewerDashboardSummaryDto
             {
                 PendingInvitationsCount = pendingInvitations.Count,
+                SessionsToConfirmCount = sessionsToConfirmCount,
                 UpcomingSessionsCount = upcomingSessions.Count,
                 PendingAssessmentsCount = pendingAssessmentsCount,
-                CompletedAssessmentsCount = completedAssessmentsCount
+                TakeHomeReviewsCount = takeHomeReviewsCount,
+                CompletedAssessmentsCount = completedAssessmentsCount,
+                ActiveTasksCount = activeTasks.Count,
+                OverdueTasksCount = activeTasks.Count(task => task.IsOverdue)
             },
+            ActiveTasks = activeTasks,
             UpcomingSessions = upcomingSessions.Select(si => si.ToDashboardInterviewSessionDto()).ToList(),
             RecentSessions = recentSessions.Select(si => si.ToDashboardInterviewSessionDto()).ToList(),
             PendingInvitations = pendingInvitations.ToInterviewerInvitationDtoList()
         };
 
         return Result<InterviewerDashboardDto>.Success(dashboard);
+    }
+
+    private static List<InterviewerActiveTaskDto> BuildActiveTasks(
+        IReadOnlyCollection<StageEmployee> pendingInvitations,
+        IReadOnlyCollection<SessionInterview> sessionInterviews,
+        DateTime now)
+    {
+        var tasks = new List<InterviewerActiveTaskDto>();
+
+        tasks.AddRange(pendingInvitations.Select(stageEmployee => stageEmployee.ToPendingInvitationTask(now)));
+
+        foreach (var sessionInterview in sessionInterviews)
+        {
+            var session = sessionInterview.InterviewSession;
+
+            if (sessionInterview.Status == SessionInterviewStatus.Cancelled
+                || session.Status == InterviewSessionStatus.Rescheduled
+                || sessionInterview.StageEmployee?.Status == StageEmployeeStatus.Declined
+                || session.ApplicationStage?.BatchStage?.RecruitmentBatch?.Status == BatchStatus.Closed)
+            {
+                continue;
+            }
+
+            var hasEnded = session.ScheduledEnd < now;
+            var hasSubmission = !string.IsNullOrWhiteSpace(session.SubmissionFile);
+            var assessmentMissing = sessionInterview.InterviewAssessment is null;
+            var acceptedByCandidate = session.Status == InterviewSessionStatus.AcceptedByCandidate;
+
+            if (session.Status == InterviewSessionStatus.PendingConfirmation)
+            {
+                if (sessionInterview.IsLead)
+                {
+                    tasks.Add(sessionInterview.ToSessionConfirmationTask(now));
+                }
+                else if (!hasEnded)
+                {
+                    tasks.Add(sessionInterview.ToUpcomingSessionTask(now));
+                }
+
+                continue;
+            }
+
+            if (acceptedByCandidate && assessmentMissing && hasSubmission)
+            {
+                tasks.Add(sessionInterview.ToTakeHomeReviewTask(now));
+                continue;
+            }
+
+            if (acceptedByCandidate && assessmentMissing && hasEnded)
+            {
+                tasks.Add(sessionInterview.ToPendingAssessmentTask(now));
+                continue;
+            }
+
+            if (!hasEnded)
+            {
+                tasks.Add(sessionInterview.ToUpcomingSessionTask(now));
+            }
+        }
+
+        var orderedTasks = tasks
+            .OrderByDescending(task => task.IsOverdue)
+            .ThenByDescending(task => task.IsActionable)
+            .ThenBy(task => task.DueAt ?? DateTime.MaxValue)
+            .ThenBy(task => task.ScheduledStart ?? DateTime.MaxValue)
+            .ThenBy(task => task.TaskType)
+            .ToList();
+
+        // Batasi task informasi agar payload dashboard tetap ringkas.
+        // Seluruh sesi mendatang tetap tersedia di UpcomingSessions.
+        const int maxInformationalTasks = 5;
+        var limitedTasks = new List<InterviewerActiveTaskDto>(orderedTasks.Count);
+        var informationalCount = 0;
+        foreach (var task in orderedTasks)
+        {
+            if (!task.IsActionable)
+            {
+                if (informationalCount >= maxInformationalTasks) continue;
+                informationalCount++;
+            }
+
+            limitedTasks.Add(task);
+        }
+
+        return limitedTasks;
     }
 }

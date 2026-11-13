@@ -5,9 +5,13 @@ namespace WEBAPI.Models;
 public class InterviewerDashboardSummaryDto
 {
     public int PendingInvitationsCount { get; set; }
+    public int SessionsToConfirmCount { get; set; }
     public int UpcomingSessionsCount { get; set; }
     public int PendingAssessmentsCount { get; set; }
+    public int TakeHomeReviewsCount { get; set; }
     public int CompletedAssessmentsCount { get; set; }
+    public int ActiveTasksCount { get; set; }
+    public int OverdueTasksCount { get; set; }
 }
 
 public class DashboardInterviewSessionDto
@@ -54,7 +58,9 @@ public class DashboardPanelInterviewerDto
 
 public class InterviewerDashboardDto
 {
+    public DateTime ServerTimeUtc { get; set; }
     public InterviewerDashboardSummaryDto Summary { get; set; } = new();
+    public List<InterviewerActiveTaskDto> ActiveTasks { get; set; } = [];
     public List<DashboardInterviewSessionDto> UpcomingSessions { get; set; } = [];
     public List<DashboardInterviewSessionDto> RecentSessions { get; set; } = [];
     public List<InterviewerInvitationDto> PendingInvitations { get; set; } = [];
