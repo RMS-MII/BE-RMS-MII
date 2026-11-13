@@ -212,5 +212,31 @@
       { "label": "Alasan Penolakan", "value": "{{declineReason}}" }
     ],
     "closing": "Salam,\nTim Rekrutmen"
+  },
+  "InterviewAssessment": {
+    "subject": "Penilaian Wawancara Kandidat",
+    "title": "Penilaian Wawancara Kandidat",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "{{interviewerName}} telah {{action}} penilaian wawancara untuk {{candidateName}}.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" }
+    ],
+    "actionLabel": "Tinjau Penilaian",
+    "actionUrl": "{{applicationUrl}}",
+    "closing": "Salam,\nTim Rekrutmen"
+  },
+  "TakeHomeSubmission": {
+    "subject": "Pengumpulan Tugas Take-home",
+    "title": "Pengumpulan Tugas Take-home",
+    "greeting": "Halo {{recipientName}},",
+    "summary": "{{candidateName}} telah {{action}} tautan pengumpulan tugas take-home.",
+    "details": [
+      { "label": "Batch", "value": "{{batchName}}" },
+      { "label": "Tahap", "value": "{{stageName}}" }
+    ],
+    "actionLabel": "Tinjau Pengumpulan",
+    "actionUrl": "{{interviewUrl}}",
+    "closing": "Salam,\nTim Rekrutmen"
   }
 }

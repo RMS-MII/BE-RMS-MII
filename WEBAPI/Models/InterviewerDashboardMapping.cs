@@ -33,6 +33,8 @@ public static class InterviewerDashboardMapping
             BatchName = batch?.Name ?? string.Empty,
             StageName = stage?.StageName ?? string.Empty,
             CanAssignTakeHome = si.Status != SessionInterviewStatus.Cancelled
+                && si.Status != SessionInterviewStatus.Completed
+                && assessment is null
                 && session.Status == InterviewSessionStatus.AcceptedByCandidate
                 && applicationStage is not null
                 && CandidateActionPolicy.IsActive(applicationStage),

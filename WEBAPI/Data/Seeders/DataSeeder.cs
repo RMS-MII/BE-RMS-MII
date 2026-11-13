@@ -93,29 +93,39 @@ public static class DataSeeder
     {
         Log.Information("Resetting database to seed checkpoint...");
 
-        await using var transaction = await context.Database.BeginTransactionAsync();
+        var previousTimeout = context.Database.GetCommandTimeout();
+        context.Database.SetCommandTimeout(Math.Max(previousTimeout ?? 0, 90));
 
-        // 1. Bersihkan seluruh tabel transaksional dari entitas anak (child) ke entitas induk (parent)
-        await context.CandidateAnswers.ExecuteDeleteAsync();
-        await context.EmailLogs.ExecuteDeleteAsync();
-        await context.InterviewAssessments.ExecuteDeleteAsync();
-        await context.RescheduleRequests.ExecuteDeleteAsync();
-        await context.SessionInterviews.ExecuteDeleteAsync();
-        await context.InterviewSessions.ExecuteDeleteAsync();
-        await context.StageEmployees.ExecuteDeleteAsync();
-        await context.ApplicationStages.ExecuteDeleteAsync();
-        await context.BatchApplications.ExecuteDeleteAsync();
+        try
+        {
+            await using var transaction = await context.Database.BeginTransactionAsync();
 
-        // Putus relasi self-referencing NextStageId sebelum menghapus BatchStages
-        await context.BatchStages.ExecuteUpdateAsync(s => s.SetProperty(x => x.NextStageId, (Guid?)null));
-        await context.BatchStages.ExecuteDeleteAsync();
-        await context.RecruitmentBatches.ExecuteDeleteAsync();
+            // 1. Bersihkan seluruh tabel transaksional dari entitas anak (child) ke entitas induk (parent)
+            await context.CandidateAnswers.ExecuteDeleteAsync();
+            await context.EmailLogs.ExecuteDeleteAsync();
+            await context.InterviewAssessments.ExecuteDeleteAsync();
+            await context.RescheduleRequests.ExecuteDeleteAsync();
+            await context.SessionInterviews.ExecuteDeleteAsync();
+            await context.InterviewSessions.ExecuteDeleteAsync();
+            await context.StageEmployees.ExecuteDeleteAsync();
+            await context.ApplicationStages.ExecuteDeleteAsync();
+            await context.BatchApplications.ExecuteDeleteAsync();
 
-        // 2. Pastikan master data terisi (dan hanya buat sample batch jika diaktifkan)
-        await SeedAsync(context, passwordHasher, includeSampleBatch);
-        await transaction.CommitAsync();
+            // Putus relasi self-referencing NextStageId sebelum menghapus BatchStages
+            await context.BatchStages.ExecuteUpdateAsync(s => s.SetProperty(x => x.NextStageId, (Guid?)null));
+            await context.BatchStages.ExecuteDeleteAsync();
+            await context.RecruitmentBatches.ExecuteDeleteAsync();
 
-        Log.Information("Database checkpoint restored successfully. IncludeSampleBatch={IncludeSampleBatch}", includeSampleBatch);
+            // 2. Pastikan master data terisi (dan hanya buat sample batch jika diaktifkan)
+            await SeedAsync(context, passwordHasher, includeSampleBatch);
+            await transaction.CommitAsync();
+
+            Log.Information("Database checkpoint restored successfully. IncludeSampleBatch={IncludeSampleBatch}", includeSampleBatch);
+        }
+        finally
+        {
+            context.Database.SetCommandTimeout(previousTimeout);
+        }
     }
     private static async Task SeedDepartmentsAsync(RmsDbContext context)
     {

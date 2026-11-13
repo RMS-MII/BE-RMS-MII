@@ -6,12 +6,16 @@ using WEBAPI.Data;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
+using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Interviewers.SubmitAssessment;
 
 public class SubmitAssessmentHandler(
     RmsDbContext db,
-    ICurrentUser currentUser) : IRequestHandler<SubmitAssessmentCommand, Result<AssessmentDto>>
+    ICurrentUser currentUser,
+    IEmailService emailService,
+    IConfiguration configuration) : IRequestHandler<SubmitAssessmentCommand, Result<AssessmentDto>>
 {
     public async Task<Result<AssessmentDto>> Handle(
         SubmitAssessmentCommand command,
@@ -69,6 +73,7 @@ public class SubmitAssessmentHandler(
 
         var now = DateTime.UtcNow;
         var assessment = sessionInterview.InterviewAssessment;
+        var isUpdate = assessment is not null;
 
         // 4. Buat atau update penilaian wawancara (Aturan Bisnis #10)
         if (assessment is null)
@@ -95,6 +100,22 @@ public class SubmitAssessmentHandler(
         // 5. Tandai status pelaksanaan wawancara oleh pewawancara ini sebagai Completed
         sessionInterview.Status = SessionInterviewStatus.Completed;
         sessionInterview.UpdatedAt = now;
+
+        var stage = sessionInterview.InterviewSession.ApplicationStage;
+        var application = stage.BatchApplication;
+        var batch = stage.BatchStage.RecruitmentBatch;
+        var hr = await db.Employees.AsNoTracking().FirstOrDefaultAsync(employee =>
+            employee.Id == batch.CreatedBy, ct);
+
+        if (hr is not null && !string.IsNullOrWhiteSpace(hr.Email))
+        {
+            var applicationUrl = $"{EmailTemplates.GetFrontendUrl(configuration)}/recruitments/{batch.Id}/applications/{application.Id}";
+            var content = EmailTemplates.InterviewAssessment(
+                hr.FullName, sessionInterview.StageEmployee.Employee.FullName,
+                application.Candidate.FullName, batch.Name, stage.BatchStage.StageName,
+                isUpdate, applicationUrl);
+            emailService.QueueBulkEmail([new BulkEmailMessage(hr.Email, content)], EmailType.InterviewAssessment);
+        }
 
         await db.SaveChangesAsync(ct);
 

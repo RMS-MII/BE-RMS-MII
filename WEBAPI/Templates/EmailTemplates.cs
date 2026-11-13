@@ -292,6 +292,29 @@ public static class EmailTemplates
                 ("declineReason", string.IsNullOrWhiteSpace(note) ? "-" : note)));
     }
 
+    public static EmailContent InterviewAssessment(
+        string hrName, string interviewerName, string candidateName, string batchName,
+        string stageName, bool isUpdate, string applicationUrl) =>
+        EmailTemplateRenderer.Render("InterviewAssessment", Values(
+            ("recipientName", hrName),
+            ("interviewerName", interviewerName),
+            ("candidateName", candidateName),
+            ("batchName", batchName),
+            ("stageName", stageName),
+            ("action", isUpdate ? "memperbarui" : "mengirim"),
+            ("applicationUrl", applicationUrl)));
+
+    public static EmailContent TakeHomeSubmission(
+        string interviewerName, string candidateName, string batchName, string stageName,
+        bool isUpdate, string interviewUrl) =>
+        EmailTemplateRenderer.Render("TakeHomeSubmission", Values(
+            ("recipientName", interviewerName),
+            ("candidateName", candidateName),
+            ("batchName", batchName),
+            ("stageName", stageName),
+            ("action", isUpdate ? "memperbarui" : "mengirim"),
+            ("interviewUrl", interviewUrl)));
+
     private static IReadOnlyDictionary<string, string?> Values(
         params (string Key, string? Value)[] values)
     {

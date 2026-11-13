@@ -5,12 +5,15 @@ using WEBAPI.Data;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 using WEBAPI.Services;
+using WEBAPI.Templates;
 
 namespace WEBAPI.Features.Portal.UploadSubmission;
 
 public class UploadSubmissionHandler(
     RmsDbContext db,
-    IDateTimeProvider dateTimeProvider) : IRequestHandler<UploadSubmissionCommand, Result<SubmissionDto>>
+    IDateTimeProvider dateTimeProvider,
+    IEmailService emailService,
+    IConfiguration configuration) : IRequestHandler<UploadSubmissionCommand, Result<SubmissionDto>>
 {
     public async Task<Result<SubmissionDto>> Handle(
         UploadSubmissionCommand command,
@@ -65,8 +68,36 @@ public class UploadSubmissionHandler(
             return Result<SubmissionDto>.Failure(Error.BusinessRule("Pengumpulan tugas sudah ditutup."));
 
         // 5. Simpan tautan berkas
-        session.SubmissionFile = command.FileSubmission.Trim();
+        var submissionFile = command.FileSubmission.Trim();
+        if (string.Equals(session.SubmissionFile, submissionFile, StringComparison.Ordinal))
+            return Result<SubmissionDto>.Success(session.ToSubmissionDto());
+
+        var isUpdate = !string.IsNullOrWhiteSpace(session.SubmissionFile);
+        session.SubmissionFile = submissionFile;
         session.UpdatedAt = now;
+
+        var application = session.ApplicationStage!.BatchApplication;
+        var stage = session.ApplicationStage.BatchStage;
+        var frontendUrl = EmailTemplates.GetFrontendUrl(configuration);
+        var panel = await db.SessionInterviews.AsNoTracking()
+            .Where(interviewer => interviewer.InterviewSessionId == session.Id &&
+                interviewer.Status != SessionInterviewStatus.Cancelled)
+            .Select(interviewer => new
+            {
+                interviewer.Id,
+                interviewer.StageEmployee.Employee.FullName,
+                interviewer.StageEmployee.Employee.Email
+            })
+            .ToListAsync(ct);
+
+        var notifications = panel
+            .Where(interviewer => !string.IsNullOrWhiteSpace(interviewer.Email))
+            .DistinctBy(interviewer => interviewer.Email.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(interviewer => new BulkEmailMessage(interviewer.Email, EmailTemplates.TakeHomeSubmission(
+                interviewer.FullName, application.Candidate.FullName, stage.RecruitmentBatch.Name,
+                stage.StageName, isUpdate, $"{frontendUrl}/interviews/schedules/{interviewer.Id}")))
+            .ToList();
+        emailService.QueueBulkEmail(notifications, EmailType.TakeHomeSubmission);
 
         await db.SaveChangesAsync(ct);
 

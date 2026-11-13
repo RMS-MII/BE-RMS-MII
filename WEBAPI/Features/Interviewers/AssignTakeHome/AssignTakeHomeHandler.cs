@@ -32,6 +32,7 @@ public class AssignTakeHomeHandler(
 
         // 1. Ambil InterviewSession beserta relasi ApplicationStage, Candidate, SessionInterviews
         var session = await db.InterviewSessions
+            .AsNoTracking()
             .AsSplitQuery()
             .Include(s => s.ApplicationStage)
                 .ThenInclude(ast => ast.BatchStage)
@@ -50,10 +51,10 @@ public class AssignTakeHomeHandler(
         }
 
         // 2. Validasi pewawancara ditugaskan pada sesi ini
-        var isAssigned = session.SessionInterviews.Any(si =>
+        var assignment = session.SessionInterviews.FirstOrDefault(si =>
             si.StageEmployee.EmployeeId == currentEmployeeId.Value && si.Status != SessionInterviewStatus.Cancelled);
 
-        if (!isAssigned)
+        if (assignment is null)
         {
             return Result<AssignTakeHomeResponse>.Failure(
                 Error.Forbidden("Anda tidak memiliki hak akses untuk memberikan tugas take-home pada sesi wawancara ini."));
@@ -72,7 +73,24 @@ public class AssignTakeHomeHandler(
             return Result<AssignTakeHomeResponse>.Failure(
                 Error.BusinessRule("Take-home hanya dapat diberikan setelah jadwal dikonfirmasi kandidat, selama tahap masih aktif."));
 
-        session.FileTakeHome = command.FileTakeHome.Trim();
+        var fileTakeHome = command.FileTakeHome.Trim();
+        var updated = await db.InterviewSessions
+            .Where(item => item.Id == session.Id && item.Status == InterviewSessionStatus.AcceptedByCandidate)
+            .Where(item => item.SessionInterviews.Any(interviewer =>
+                interviewer.Id == assignment.Id &&
+                interviewer.Status != SessionInterviewStatus.Cancelled &&
+                interviewer.Status != SessionInterviewStatus.Completed &&
+                interviewer.InterviewAssessment == null))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.FileTakeHome, fileTakeHome)
+                .SetProperty(item => item.EndedSubmissionAt, command.EndedSubmissionAt)
+                .SetProperty(item => item.UpdatedAt, now), ct);
+
+        if (updated == 0)
+            return Result<AssignTakeHomeResponse>.Failure(
+                Error.BusinessRule("Take-home tidak dapat diubah setelah penilaian dikirim atau sesi berubah."));
+
+        session.FileTakeHome = fileTakeHome;
         session.EndedSubmissionAt = command.EndedSubmissionAt;
         session.UpdatedAt = now;
 
@@ -90,8 +108,6 @@ public class AssignTakeHomeHandler(
             command.Instructions,
             session.FileTakeHome,
             submissionPortalLink);
-
-        await db.SaveChangesAsync(ct);
 
         var emailSent = false;
 
