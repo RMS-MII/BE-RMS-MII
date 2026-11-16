@@ -6,10 +6,7 @@ using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
 using WEBAPI.Features.Applications.Commands.RegisterCandidates;
 using WEBAPI.Features.Portal.Commands.ConfirmSchedule;
-using WEBAPI.Features.Portal.Commands.FinishTest;
 using WEBAPI.Features.Portal.Commands.StartTest;
-using WEBAPI.Features.Portal.Commands.SubmitAnswer;
-using WEBAPI.Features.Portal.Commands.SubmitTest;
 using WEBAPI.Features.Portal.Queries.GetCandidateTasks;
 using WEBAPI.Features.Portal.Queries.GetPublicJobs;
 using WEBAPI.Features.Portal.Queries.GetTest;
@@ -93,92 +90,11 @@ public sealed class PortalController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new StartTestCommand(candidateId, id), ct);
 
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
-    }
+        if (result.IsFailure)
+            return result.ToProblemDetails(this);
 
-    /// <summary>
-    /// Mengirimkan seluruh jawaban tes daring kandidat untuk dihitung skornya.
-    /// </summary>
-    /// <param name="candidateId">ID unik kandidat</param>
-    /// <param name="id">ID Tahapan seleksi (ApplicationStageId)</param>
-    /// <param name="request">Daftar jawaban per butir soal</param>
-    /// <param name="ct">Cancellation token</param>
-    [HttpPost("{candidateId:guid}/stages/{id:guid}/test/submit")]
-    [ProducesResponseType<SubmitTestResultDto>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> SubmitTest(
-        [FromRoute] Guid candidateId,
-        [FromRoute] Guid id,
-        [FromBody] SubmitTestRequest request,
-        CancellationToken ct)
-    {
-        var command = new SubmitTestCommand
-        {
-            CandidateId = candidateId,
-            StageId = id,
-            Answers = request.Answers
-        };
-
-        var result = await sender.Send(command, ct);
-
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
-    }
-
-    /// <summary>
-    /// Mengirimkan jawaban tes daring kandidat per butir soal. Server menolak
-    /// request jika kandidat sudah melewati batas waktu pengerjaan yang ditetapkan
-    /// pada QuestionBank (berdasarkan timestamp server).
-    /// </summary>
-    /// <param name="candidateId">ID unik kandidat</param>
-    /// <param name="id">ID Tahapan seleksi (ApplicationStageId)</param>
-    /// <param name="request">Daftar jawaban per butir soal</param>
-    /// <param name="ct">Cancellation token</param>
-    [HttpPost("{candidateId:guid}/stages/{id:guid}/test/answers")]
-    [ProducesResponseType<SubmitAnswerResultDto>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> SubmitAnswer(
-        [FromRoute] Guid candidateId,
-        [FromRoute] Guid id,
-        [FromBody] SubmitAnswerRequest request,
-        CancellationToken ct)
-    {
-        var command = new SubmitAnswerCommand
-        {
-            CandidateId = candidateId,
-            StageId = id,
-            Answers = request.Answers
-        };
-
-        var result = await sender.Send(command, ct);
-
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
-    }
-
-    /// <summary>
-    /// Menutup sesi attempt tes dan memicu perhitungan skor dari jawaban yang telah
-    /// dikirim kandidat (dipicu tombol "Selesai" atau penutupan otomatis saat batas
-    /// waktu habis).
-    /// </summary>
-    /// <param name="candidateId">ID unik kandidat</param>
-    /// <param name="id">ID Tahapan seleksi (ApplicationStageId)</param>
-    /// <param name="ct">Cancellation token</param>
-    [HttpPost("{candidateId:guid}/stages/{id:guid}/test/finish")]
-    [ProducesResponseType<FinishTestResultDto>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> FinishTest(
-        [FromRoute] Guid candidateId,
-        [FromRoute] Guid id,
-        CancellationToken ct)
-    {
-        var result = await sender.Send(new FinishTestCommand(candidateId, id), ct);
-
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+        await ExamSession.SignInAsync(HttpContext, candidateId, result.Value!.ApplicationStageId, result.Value.Deadline);
+        return Ok(result.Value);
     }
 
     [HttpPost("{candidateId:guid}/sessions/{id:guid}/confirm")]

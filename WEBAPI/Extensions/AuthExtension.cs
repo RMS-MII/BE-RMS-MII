@@ -70,6 +70,25 @@ public static class AuthExtension
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return Task.CompletedTask;
                 };
+            })
+            .AddCookie(ExamSession.Scheme, options =>
+            {
+                options.Cookie.Name = ExamSession.CookieName;
+                options.Cookie.Path = ExamSession.CookiePath;
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.SlidingExpiration = false;
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                };
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                };
             });
 
         services.AddAuthorizationBuilder()
@@ -79,6 +98,13 @@ public static class AuthExtension
                 .RequireClaim(ClaimTypes.Email)
                 .RequireAssertion(context => context.Resource is HttpContext http &&
                     CandidateSession.OwnsRoute(context.User, http) &&
+                    CandidateSession.AllowsRequest(http)))
+            .AddPolicy(ExamSession.Policy, policy => policy
+                .AddAuthenticationSchemes(ExamSession.Scheme)
+                .RequireAuthenticatedUser()
+                .RequireClaim(ClaimTypes.NameIdentifier)
+                .RequireAssertion(context => context.Resource is HttpContext http &&
+                    ExamSession.OwnsRoute(context.User, http) &&
                     CandidateSession.AllowsRequest(http)))
             .AddPolicy(Policies.HrOnly, policy => policy.RequireAssertion(ctx =>
                 ctx.User.IsInRole(RmsRoles.Hr) ||
