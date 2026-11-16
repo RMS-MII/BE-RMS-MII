@@ -1,3 +1,4 @@
+using System.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common;
@@ -195,8 +196,15 @@ public sealed class SubmitAnswerHandler(
         stage.TotalScore = TestScoreCalculator.Normalize(totalScore, maxRawScore);
         stage.UpdatedAt = now;
 
+        // The client may retry after answers were saved but before finish succeeds.
+        // Replace the complete answer set atomically so a retry cannot double the score.
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await db.CandidateAnswers
+            .Where(answer => answer.ApplicationStageId == stage.Id)
+            .ExecuteDeleteAsync(ct);
         db.CandidateAnswers.AddRange(candidateAnswers);
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         return Result<SubmitAnswerResultDto>.Success(new SubmitAnswerResultDto
         {
