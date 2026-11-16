@@ -30,6 +30,7 @@ public static class BatchApplicationMapping
             CandidateId = application.CandidateId,
             RecruitmentBatchId = application.RecruitmentBatchId,
             IsStandalone = application.IsStandalone,
+            ExpectedSalary = application.ExpectedSalary,
             CodeApplication = application.CodeApplication,
             AppliedAt = application.AppliedAt,
             FinalResultStatus = application.FinalResultStatus,

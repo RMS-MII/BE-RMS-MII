@@ -9,6 +9,7 @@ public class BatchApplicationConfiguration : IEntityTypeConfiguration<BatchAppli
     public void Configure(EntityTypeBuilder<BatchApplication> builder)
     {
         builder.HasKey(b => b.Id);
+        builder.Property(b => b.ExpectedSalary).HasColumnType("money");
         builder.Property(b => b.IsStandalone).HasDefaultValue(false);
         builder.Property(b => b.CodeApplication)
             .HasMaxLength(50)

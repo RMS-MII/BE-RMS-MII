@@ -141,6 +141,12 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         return SendMessageAsync(recipientEmail.Trim(), content, cancellationToken);
     }
 
+    public Task SendVerificationEmailAsync(
+        string recipientEmail,
+        EmailContent content,
+        CancellationToken cancellationToken = default)
+        => SendMessageAsync(recipientEmail.Trim(), content, cancellationToken);
+
     public void QueueBulkEmail(IReadOnlyCollection<BulkEmailMessage> messages, EmailType type)
     {
         var queuedAt = DateTime.UtcNow;

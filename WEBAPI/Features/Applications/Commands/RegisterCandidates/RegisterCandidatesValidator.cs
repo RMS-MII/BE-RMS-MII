@@ -110,7 +110,7 @@ public sealed class RegisterCandidateValidator : AbstractValidator<CreateCandida
             .MaximumLength(200);
 
         RuleFor(x => x.ExpectedSalary)
-            .GreaterThanOrEqualTo(0);
+            .InclusiveBetween(0m, 922337203685477.5807m);
 
         RuleFor(x => x.Gpa)
             .InclusiveBetween(0m, 4m);

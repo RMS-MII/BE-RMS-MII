@@ -7,6 +7,7 @@ using WEBAPI.Data.Repositories;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Features.Portal;
+using WEBAPI.Features.Portal.PublicApplications;
 using WEBAPI.Models;
 using WEBAPI.Services;
 
@@ -15,7 +16,8 @@ namespace WEBAPI.Features.Applications.Commands.RegisterCandidates;
 public sealed class RegisterCandidatesHandler(
     RmsDbContext db,
     IDateTimeProvider dateTimeProvider,
-    ILogger<RegisterCandidatesHandler> logger)
+    ILogger<RegisterCandidatesHandler> logger,
+    PublicApplicationCodes codes)
     : IRequestHandler<RegisterCandidatesCommand, Result<IReadOnlyCollection<BatchApplicationDto>>>
 {
     public async Task<Result<IReadOnlyCollection<BatchApplicationDto>>> Handle(
@@ -25,6 +27,14 @@ public sealed class RegisterCandidatesHandler(
             IsolationLevel.Serializable, ct);
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
+        if (request.IsPublicApplication && (request.Candidates.Count != 1 ||
+            !await codes.TryConsumeAsync(request, now, ct)))
+        {
+            await transaction.CommitAsync(ct);
+            return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
+                Error.Validation("Enter a valid verification code or request a new one."));
+        }
+
         var batches = db.RecruitmentBatches.AsNoTracking();
         if (request.IsPublicApplication)
             batches = batches.Where(PublicJobAvailability.AcceptsApplications(now));
@@ -63,18 +73,30 @@ public sealed class RegisterCandidatesHandler(
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var existingCandidates = await db.Candidates
-            .AsNoTracking()
-            .Where(candidate => emails.Contains(candidate.Email) ||
-                                phoneNumbers.Contains(candidate.PhoneNumber))
-            .ToListAsync(ct);
+        var candidatesQuery = db.Candidates.AsNoTracking();
+        if (request.IsPublicApplication)
+        {
+            var phone = NormalizePhone(phoneNumbers.Single());
+            var localPhone = phone.StartsWith("628", StringComparison.Ordinal) ? "0" + phone[2..] : phone;
+            candidatesQuery = candidatesQuery.Where(candidate =>
+                emails.Contains(candidate.Email) ||
+                new[] { phone, localPhone }.Contains(candidate.PhoneNumber
+                    .Replace("+", "").Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "")));
+        }
+        else
+        {
+            candidatesQuery = candidatesQuery.Where(candidate =>
+                emails.Contains(candidate.Email) || phoneNumbers.Contains(candidate.PhoneNumber));
+        }
 
+        var existingCandidates = await candidatesQuery.ToListAsync(ct);
         var candidatesByEmail = existingCandidates
             .GroupBy(candidate => candidate.Email, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
         var candidatesByPhone = existingCandidates
-            .GroupBy(candidate => candidate.PhoneNumber, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(candidate => request.IsPublicApplication ? NormalizePhone(candidate.PhoneNumber) : candidate.PhoneNumber,
+                StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
         var newCandidates = new List<Candidate>();
@@ -83,13 +105,20 @@ public sealed class RegisterCandidatesHandler(
         foreach (var item in normalizedCandidates)
         {
             candidatesByEmail.TryGetValue(item.Email, out var emailMatch);
-            candidatesByPhone.TryGetValue(item.PhoneNumber, out var phoneMatch);
+            var phoneKey = request.IsPublicApplication ? NormalizePhone(item.PhoneNumber) : item.PhoneNumber;
+            candidatesByPhone.TryGetValue(phoneKey, out var phoneMatch);
 
-            if (request.IsPublicApplication && emailMatch?.Id != phoneMatch?.Id)
-                return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
-                    Error.Conflict("Unable to register with these contact details. Contact recruitment for help."));
-
-            if (emailMatch is not null && phoneMatch is not null && emailMatch.Id != phoneMatch.Id)
+            if (request.IsPublicApplication)
+            {
+                // OTP identifies the email owner even when a legacy profile shares its formatted phone number.
+                var contactConflict = emailMatch is null
+                    ? phoneMatch is not null
+                    : NormalizePhone(emailMatch.PhoneNumber) != phoneKey;
+                if (contactConflict)
+                    return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
+                        Error.Conflict("Unable to register with these contact details. Use the phone number on your candidate profile or contact recruitment for help."));
+            }
+            else if (emailMatch is not null && phoneMatch is not null && emailMatch.Id != phoneMatch.Id)
                 return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
                     Error.Conflict(
                         $"Email {item.Email} and phone number {item.PhoneNumber} belong to different candidates."));
@@ -98,7 +127,7 @@ public sealed class RegisterCandidatesHandler(
 
             if (candidate is null)
             {
-                candidate = item.Candidate.ToEntity();
+                candidate = (item.Candidate with { ExpectedSalary = 0 }).ToEntity();
                 candidate.Id = Guid.CreateVersion7();
                 candidate.CreatedAt = now;
 
@@ -107,10 +136,10 @@ public sealed class RegisterCandidatesHandler(
                 // Keep the lookup up to date so a repeated identity in the same request resolves
                 // to the same in-memory candidate instead of creating a duplicate row.
                 candidatesByEmail[item.Email] = candidate;
-                candidatesByPhone[item.PhoneNumber] = candidate;
+                candidatesByPhone[phoneKey] = candidate;
             }
 
-            resolvedCandidates.Add(new ResolvedCandidate(candidate));
+            resolvedCandidates.Add(new ResolvedCandidate(candidate, item.Candidate.ExpectedSalary));
         }
 
         var duplicateCandidate = resolvedCandidates
@@ -166,6 +195,7 @@ public sealed class RegisterCandidatesHandler(
                 CandidateId = item.Candidate.Id,
                 RecruitmentBatchId = batch.Id,
                 IsStandalone = isStandalone,
+                ExpectedSalary = item.ExpectedSalary > 0 ? item.ExpectedSalary : null,
                 CodeApplication = GenerateCode(now),
                 AppliedAt = now,
                 Status = ApplicationStatus.InProcess,
@@ -201,6 +231,12 @@ public sealed class RegisterCandidatesHandler(
         return Result<IReadOnlyCollection<BatchApplicationDto>>.Success(result);
     }
 
+    private static string NormalizePhone(string phone)
+    {
+        var digits = phone.Replace("+", "").Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "");
+        return digits.StartsWith("08", StringComparison.Ordinal) ? "62" + digits[1..] : digits;
+    }
+
     private static string GenerateCode(DateTime now)
     {
         var suffix = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
@@ -212,5 +248,5 @@ public sealed class RegisterCandidatesHandler(
         string Email,
         string PhoneNumber);
 
-    private sealed record ResolvedCandidate(Candidate Candidate);
+    private sealed record ResolvedCandidate(Candidate Candidate, decimal ExpectedSalary);
 }

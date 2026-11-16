@@ -6,6 +6,7 @@ using WEBAPI.Common.ExceptionHandlers;
 using WEBAPI.Data;
 using WEBAPI.Data.Repositories;
 using WEBAPI.Services;
+using WEBAPI.Features.Portal.PublicApplications;
 
 namespace WEBAPI.Extensions;
 
@@ -19,6 +20,7 @@ public static class ServiceCollectionExtension
         
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<EmailService>();
+        services.AddScoped<PublicApplicationCodes>();
         services.AddScoped<IEmailService>(provider => provider.GetRequiredService<EmailService>());
         services.AddScoped<IEmailRetryProcessor>(provider => provider.GetRequiredService<EmailService>());
         services.AddHostedService<EmailRetryBackgroundService>();

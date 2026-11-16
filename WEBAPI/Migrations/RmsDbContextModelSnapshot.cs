@@ -152,6 +152,9 @@ namespace WEBAPI.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("ExpectedSalary")
+                        .HasColumnType("money");
+
                     b.Property<string>("FileOfferingLetter")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -218,6 +221,9 @@ namespace WEBAPI.Migrations
                     b.Property<decimal?>("PassingScore")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<long?>("PlannedDurationTicks")
+                        .HasColumnType("bigint");
 
                     b.Property<Guid>("RecruitmentBatchId")
                         .HasColumnType("uniqueidentifier");
@@ -641,6 +647,49 @@ namespace WEBAPI.Migrations
                         .IsUnique();
 
                     b.ToTable("PasswordResetToken", (string)null);
+                });
+
+            modelBuilder.Entity("WEBAPI.Entities.PublicApplicationVerification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("Email", "CreatedAt");
+
+                    b.ToTable("PublicApplicationVerification", (string)null);
                 });
 
             modelBuilder.Entity("WEBAPI.Entities.Question", b =>
@@ -1218,6 +1267,15 @@ namespace WEBAPI.Migrations
                     b.HasOne("WEBAPI.Entities.Account", null)
                         .WithMany()
                         .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("WEBAPI.Entities.PublicApplicationVerification", b =>
+                {
+                    b.HasOne("WEBAPI.Entities.RecruitmentBatch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

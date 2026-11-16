@@ -132,7 +132,7 @@ public sealed class ActivateBatchStageHandler(
                 Error.BusinessRule("The stage end date has passed."));
 
         var isTestStage = targetStage.StageType.StageCategory == StageCategory.Test;
-        var startedAt = isTestStage || targetStage.StartDate <= now ? now : targetStage.StartDate;
+        var startedAt = now;
 
         var applications = await db.BatchApplications
             .Where(application => application.RecruitmentBatchId == request.BatchId && !application.IsStandalone)
@@ -267,20 +267,31 @@ public sealed class ActivateBatchStageHandler(
                 candidatesStarted++;
             }
 
+            currentStage.PlannedDurationTicks ??= (currentStage.EndDate - currentStage.StartDate).Ticks;
+            if (currentStage.StartDate > now)
+                currentStage.StartDate = now;
+            if (currentStage.EndDate > now)
+                currentStage.EndDate = now;
+
+            foreach (var item in currentParticipants.Where(item => item.Stage.EndAt > now))
+            {
+                if (item.Stage.StartedAt > now)
+                    item.Stage.StartedAt = now;
+                item.Stage.EndAt = now;
+                item.Stage.UpdatedAt = now;
+            }
+
             currentStage.LifecycleStatus = BatchStageLifecycleStatus.Completed;
             currentStage.UpdatedAt = now;
         }
 
-        if (isTestStage)
+        foreach (var (_, stage) in startedApplications)
         {
-            foreach (var (_, stage) in startedApplications)
+            if (stage.Status == ApplicationStageStatus.InProgress &&
+                stage.AttemptStartedAt is null && !stage.IsAttempts && stage.StartedAt > now)
             {
-                if (stage.Status == ApplicationStageStatus.InProgress &&
-                    stage.AttemptStartedAt is null && !stage.IsAttempts && stage.StartedAt > now)
-                {
-                    stage.StartedAt = now;
-                    stage.UpdatedAt = now;
-                }
+                stage.StartedAt = now;
+                stage.UpdatedAt = now;
             }
         }
 
@@ -335,8 +346,11 @@ public sealed class ActivateBatchStageHandler(
             if (currentStage is not null)
                 await db.SaveChangesAsync(ct);
 
-            if (isTestStage && targetStage.StartDate > startedAt)
+            if (targetStage.StartDate != startedAt)
+            {
+                targetStage.PlannedDurationTicks ??= (targetStage.EndDate - targetStage.StartDate).Ticks;
                 targetStage.StartDate = startedAt;
+            }
 
             targetStage.LifecycleStatus = BatchStageLifecycleStatus.Active;
             targetStage.UpdatedAt = now;

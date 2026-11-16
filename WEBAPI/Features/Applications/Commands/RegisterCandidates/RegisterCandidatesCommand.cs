@@ -8,6 +8,8 @@ public sealed record RegisterCandidatesCommand : IRequest<Result<IReadOnlyCollec
 {
     public Guid BatchId { get; init; }
     public bool IsPublicApplication { get; init; }
+    public Guid VerificationId { get; init; }
+    public string? VerificationCode { get; init; }
     public IReadOnlyList<CreateCandidateDto> Candidates { get; init; } = [];
 }
 
