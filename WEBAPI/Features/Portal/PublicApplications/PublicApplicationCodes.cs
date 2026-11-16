@@ -9,6 +9,7 @@ using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
 using WEBAPI.Data;
 using WEBAPI.Entities;
+using WEBAPI.Entities.Enums;
 using WEBAPI.Services;
 using WEBAPI.Templates;
 
