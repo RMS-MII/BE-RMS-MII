@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -49,9 +50,36 @@ public static class AuthExtension
                     RoleClaimType = ClaimTypes.Role,
                     ClockSkew = TimeSpan.FromMinutes(1)
                 };
+            })
+            .AddCookie(CandidateSession.Scheme, options =>
+            {
+                options.Cookie.Name = "rms_candidate";
+                options.Cookie.Path = "/api/portal";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.ExpireTimeSpan = TimeSpan.FromHours(8);
+                options.SlidingExpiration = false;
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                };
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                };
             });
 
         services.AddAuthorizationBuilder()
+            .AddPolicy(CandidateSession.Policy, policy => policy
+                .AddAuthenticationSchemes(CandidateSession.Scheme)
+                .RequireAuthenticatedUser()
+                .RequireClaim(ClaimTypes.Email)
+                .RequireAssertion(context => context.Resource is HttpContext http &&
+                    CandidateSession.OwnsRoute(context.User, http) &&
+                    CandidateSession.AllowsRequest(http)))
             .AddPolicy(Policies.HrOnly, policy => policy.RequireAssertion(ctx =>
                 ctx.User.IsInRole(RmsRoles.Hr) ||
                 ctx.User.HasClaim(HrisClaimTypes.Role, RmsRoles.Hr) ||

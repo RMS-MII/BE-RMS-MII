@@ -12,31 +12,28 @@ public sealed class RegisterCandidatesValidator : AbstractValidator<RegisterCand
         RuleFor(x => x.BatchId)
             .NotEmpty();
 
-        RuleFor(x => x.Candidates)
-            .NotEmpty()
-            .Must(candidates => candidates is { Count: <= MaxCandidates })
-            .WithMessage($"A batch can register at most {MaxCandidates} candidates per request.")
-            .Must(HaveUniqueEmails)
-            .WithMessage("Candidate emails must be unique within the request.")
-            .Must(HaveUniquePhoneNumbers)
-            .WithMessage("Candidate phone numbers must be unique within the request.");
+        When(x => !x.IsPublicApplication, () =>
+        {
+            RuleFor(x => x.Candidates)
+                .NotEmpty()
+                .Must(candidates => candidates is { Count: <= MaxCandidates })
+                .WithMessage($"A batch can register at most {MaxCandidates} candidates per request.")
+                .Must(HaveUniqueEmails)
+                .WithMessage("Candidate emails must be unique within the request.")
+                .Must(HaveUniquePhoneNumbers)
+                .WithMessage("Candidate phone numbers must be unique within the request.");
 
-        RuleForEach(x => x.Candidates)
-            .SetValidator(new RegisterCandidateValidator());
+            RuleForEach(x => x.Candidates).SetValidator(new RegisterCandidateValidator());
+        });
 
         When(x => x.IsPublicApplication, () =>
         {
-            RuleForEach(x => x.Candidates).ChildRules(candidate =>
-            {
-                candidate.RuleFor(x => x.Cv).Must(IsOptionalWebUrl)
-                    .WithMessage("Enter a valid HTTP or HTTPS CV link.");
-                candidate.RuleFor(x => x.Portfolio).Must(IsOptionalWebUrl)
-                    .WithMessage("Enter a valid HTTP or HTTPS portfolio link.");
-            });
+            RuleFor(x => x.Candidates).Empty();
+            RuleFor(x => x.ExpectedSalary).InclusiveBetween(0m, 922337203685477.5807m);
         });
     }
 
-    private static bool IsOptionalWebUrl(string? value) =>
+    internal static bool IsOptionalWebUrl(string? value) =>
         string.IsNullOrWhiteSpace(value) ||
         (Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri) &&
          uri.Scheme is "http" or "https" && uri.Host.Length > 0);
@@ -110,7 +107,7 @@ public sealed class RegisterCandidateValidator : AbstractValidator<CreateCandida
             .MaximumLength(200);
 
         RuleFor(x => x.ExpectedSalary)
-            .GreaterThanOrEqualTo(0);
+            .InclusiveBetween(0m, 922337203685477.5807m);
 
         RuleFor(x => x.Gpa)
             .InclusiveBetween(0m, 4m);

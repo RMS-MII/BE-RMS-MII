@@ -114,6 +114,7 @@ public static class DataSeeder
             // Putus relasi self-referencing NextStageId sebelum menghapus BatchStages
             await context.BatchStages.ExecuteUpdateAsync(s => s.SetProperty(x => x.NextStageId, (Guid?)null));
             await context.BatchStages.ExecuteDeleteAsync();
+            await context.PublicApplicationVerifications.Where(code => code.BatchId != null).ExecuteDeleteAsync();
             await context.RecruitmentBatches.ExecuteDeleteAsync();
 
             // 2. Pastikan master data terisi (dan hanya buat sample batch jika diaktifkan)

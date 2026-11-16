@@ -157,7 +157,8 @@ public sealed class StartApplicationStageHandler(
             now,
             durationTest);
         if (application.IsStandalone)
-            applicationStage.EndAt = now + (nextStage.EndDate - nextStage.StartDate);
+            applicationStage.EndAt = now.AddTicks(nextStage.PlannedDurationTicks ??
+                (nextStage.EndDate - nextStage.StartDate).Ticks);
 
         db.ApplicationStages.Add(applicationStage);
 

@@ -63,12 +63,9 @@ public sealed class RegisterCandidatesHandler(
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var existingCandidates = await db.Candidates
-            .AsNoTracking()
-            .Where(candidate => emails.Contains(candidate.Email) ||
-                                phoneNumbers.Contains(candidate.PhoneNumber))
+        var existingCandidates = await db.Candidates.AsNoTracking()
+            .Where(candidate => emails.Contains(candidate.Email) || phoneNumbers.Contains(candidate.PhoneNumber))
             .ToListAsync(ct);
-
         var candidatesByEmail = existingCandidates
             .GroupBy(candidate => candidate.Email, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
@@ -85,10 +82,6 @@ public sealed class RegisterCandidatesHandler(
             candidatesByEmail.TryGetValue(item.Email, out var emailMatch);
             candidatesByPhone.TryGetValue(item.PhoneNumber, out var phoneMatch);
 
-            if (request.IsPublicApplication && emailMatch?.Id != phoneMatch?.Id)
-                return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
-                    Error.Conflict("Unable to register with these contact details. Contact recruitment for help."));
-
             if (emailMatch is not null && phoneMatch is not null && emailMatch.Id != phoneMatch.Id)
                 return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
                     Error.Conflict(
@@ -98,7 +91,7 @@ public sealed class RegisterCandidatesHandler(
 
             if (candidate is null)
             {
-                candidate = item.Candidate.ToEntity();
+                candidate = (item.Candidate with { ExpectedSalary = 0 }).ToEntity();
                 candidate.Id = Guid.CreateVersion7();
                 candidate.CreatedAt = now;
 
@@ -110,7 +103,16 @@ public sealed class RegisterCandidatesHandler(
                 candidatesByPhone[item.PhoneNumber] = candidate;
             }
 
-            resolvedCandidates.Add(new ResolvedCandidate(candidate));
+            resolvedCandidates.Add(new ResolvedCandidate(candidate, item.Candidate.ExpectedSalary));
+        }
+
+        if (request.PublicCandidateId is { } publicCandidateId)
+        {
+            var candidate = await db.Candidates.AsNoTracking().SingleOrDefaultAsync(item => item.Id == publicCandidateId, ct);
+            if (candidate is null)
+                return Result<IReadOnlyCollection<BatchApplicationDto>>.Failure(
+                    Error.BusinessRule("Complete your profile before applying."));
+            resolvedCandidates.Add(new ResolvedCandidate(candidate, request.ExpectedSalary ?? 0));
         }
 
         var duplicateCandidate = resolvedCandidates
@@ -166,6 +168,7 @@ public sealed class RegisterCandidatesHandler(
                 CandidateId = item.Candidate.Id,
                 RecruitmentBatchId = batch.Id,
                 IsStandalone = isStandalone,
+                ExpectedSalary = item.ExpectedSalary > 0 ? item.ExpectedSalary : null,
                 CodeApplication = GenerateCode(now),
                 AppliedAt = now,
                 Status = ApplicationStatus.InProcess,
@@ -181,6 +184,8 @@ public sealed class RegisterCandidatesHandler(
 
         try
         {
+            await db.Candidates.Where(candidate => existingCandidateIds.Contains(candidate.Id) && !candidate.IsInTalentPool)
+                .ExecuteUpdateAsync(update => update.SetProperty(candidate => candidate.IsInTalentPool, true), ct);
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
         }
@@ -212,5 +217,5 @@ public sealed class RegisterCandidatesHandler(
         string Email,
         string PhoneNumber);
 
-    private sealed record ResolvedCandidate(Candidate Candidate);
+    private sealed record ResolvedCandidate(Candidate Candidate, decimal ExpectedSalary);
 }

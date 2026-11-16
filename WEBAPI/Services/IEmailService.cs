@@ -23,6 +23,11 @@ public interface IEmailService
         EmailType type,
         CancellationToken cancellationToken = default);
 
+    Task SendVerificationEmailAsync(
+        string recipientEmail,
+        EmailContent content,
+        CancellationToken cancellationToken = default);
+
     Task SendPasswordResetEmailAsync(
         string recipientEmail,
         EmailContent content,

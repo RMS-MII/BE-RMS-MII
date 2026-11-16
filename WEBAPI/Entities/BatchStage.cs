@@ -11,6 +11,7 @@ public class BatchStage : BaseEntity
     public decimal? PassingScore { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public long? PlannedDurationTicks { get; set; }
 
     // Navigation properties
     public BatchStage? NextStage { get; set; }

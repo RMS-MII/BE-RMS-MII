@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Json.Serialization;
 using WEBAPI.Extensions;
 using Serilog;
@@ -33,6 +35,19 @@ try
         });
     });
 
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        options.AddPolicy("PublicApplicationCodes", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 30,
+                    Window = TimeSpan.FromMinutes(10)
+                }));
+    });
+
     builder.Services.AddRmsServices(builder.Configuration);
     builder.Services.AddRmsAuthentication(builder.Configuration);
     builder.Services.AddRmsOpenApi();
@@ -56,6 +71,7 @@ try
         app.UseHttpsRedirection();
     }
     app.UseCors();
+    app.UseRateLimiter();
     app.UseAuthentication();
     app.Use(async (context, next) =>
     {

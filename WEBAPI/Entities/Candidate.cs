@@ -4,6 +4,7 @@ namespace WEBAPI.Entities;
 
 public class Candidate : BaseEntity
 {
+    public bool IsInTalentPool { get; set; } = true;
     public string FullName { get; set; } = string.Empty;
     public Gender Gender { get; set; }
     public string Email { get; set; } = string.Empty;

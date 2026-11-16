@@ -18,6 +18,7 @@ public class RmsDbContext(DbContextOptions<RmsDbContext> options) : DbContext(op
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<PublicApplicationVerification> PublicApplicationVerifications => Set<PublicApplicationVerification>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
