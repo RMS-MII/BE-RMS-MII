@@ -14,6 +14,7 @@ public sealed class GetCandidatesHandler(RmsDbContext db)
     {
         var query = db.Candidates
             .AsNoTracking()
+            .Where(candidate => candidate.IsInTalentPool)
             .Include(c => c.BatchApplications)
                 .ThenInclude(ba => ba.RecruitmentBatch)
             .AsQueryable();

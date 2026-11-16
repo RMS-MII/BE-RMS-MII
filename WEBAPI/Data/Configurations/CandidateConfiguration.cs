@@ -11,6 +11,7 @@ public class CandidateConfiguration : IEntityTypeConfiguration<Candidate>
         builder.ToTable("Candidates");
 
         builder.HasKey(c => c.Id);
+        builder.Property(c => c.IsInTalentPool).HasDefaultValue(true).HasSentinel(true);
 
         builder.Property(c => c.FullName)
             .HasMaxLength(100)

@@ -3,10 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WEBAPI.Common.Results;
+using WEBAPI.Common.Security;
 using WEBAPI.Features.Applications.Commands.RegisterCandidates;
 using WEBAPI.Features.Portal.Commands.ConfirmSchedule;
-using WEBAPI.Features.Portal.PublicApplications;
-using Microsoft.AspNetCore.RateLimiting;
 using WEBAPI.Features.Portal.Commands.FinishTest;
 using WEBAPI.Features.Portal.Commands.StartTest;
 using WEBAPI.Features.Portal.Commands.SubmitAnswer;
@@ -22,38 +21,27 @@ namespace WEBAPI.Controllers;
 
 [ApiController]
 [Route("api/portal")]
-[AllowAnonymous]
+[Authorize(Policy = CandidateSession.Policy)]
 [Tags("Portal")]
 public sealed class PortalController(ISender sender) : ControllerBase
 {
     [HttpGet("jobs")]
+    [AllowAnonymous]
     public async Task<ActionResult<IReadOnlyList<PublicJobDto>>> GetJobs(CancellationToken ct) =>
         Ok(await sender.Send(new GetPublicJobsQuery(), ct));
 
-    [HttpPost("jobs/{batchId:guid}/application-verifications")]
-    [EnableRateLimiting("PublicApplicationCodes")]
-    public async Task<IActionResult> RequestApplicationVerification(
-        Guid batchId, [FromBody] CreateCandidateDto candidate,
-        [FromServices] PublicApplicationCodes codes, CancellationToken ct)
-    {
-        var result = await codes.IssueAsync(batchId, candidate, ct);
-        return result.IsSuccess
-            ? Accepted(new { verificationId = result.Value })
-            : result.ToProblemDetails(this);
-    }
-
     [HttpPost("jobs/{batchId:guid}/applications")]
-    [EnableRateLimiting("PublicApplicationCodes")]
     public async Task<IActionResult> Apply(
-        Guid batchId, [FromBody] VerifyPublicApplicationRequest application, CancellationToken ct)
+        Guid batchId, [FromBody] CandidateApplicationRequest application, CancellationToken ct)
     {
+        if (User.CandidateId() is not { } candidateId)
+            return Problem(statusCode: StatusCodes.Status422UnprocessableEntity, detail: "Complete your profile before applying.");
+
         var result = await sender.Send(new RegisterCandidatesCommand
         {
             BatchId = batchId,
-            Candidates = [application.Candidate],
-            VerificationId = application.VerificationId,
-            VerificationCode = application.Code,
-            IsPublicApplication = true
+            PublicCandidateId = candidateId,
+            ExpectedSalary = application.ExpectedSalary
         }, ct);
 
         return result.IsSuccess ? StatusCode(StatusCodes.Status201Created) : result.ToProblemDetails(this);
@@ -257,3 +245,5 @@ public sealed class PortalController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 }
+
+public sealed record CandidateApplicationRequest(decimal? ExpectedSalary);

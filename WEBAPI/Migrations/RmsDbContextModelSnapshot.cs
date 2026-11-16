@@ -308,6 +308,11 @@ namespace WEBAPI.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsInTalentPool")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -655,7 +660,7 @@ namespace WEBAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("BatchId")
+                    b.Property<Guid?>("BatchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CodeHash")
@@ -675,6 +680,9 @@ namespace WEBAPI.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("FailedAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Purpose")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -1276,8 +1284,7 @@ namespace WEBAPI.Migrations
                     b.HasOne("WEBAPI.Entities.RecruitmentBatch", null)
                         .WithMany()
                         .HasForeignKey("BatchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("WEBAPI.Entities.Question", b =>

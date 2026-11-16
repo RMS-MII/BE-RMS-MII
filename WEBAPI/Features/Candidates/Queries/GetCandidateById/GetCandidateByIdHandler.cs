@@ -16,7 +16,7 @@ public sealed class GetCandidateByIdHandler(RmsDbContext db)
             .AsNoTracking()
             .Include(c => c.BatchApplications)
                 .ThenInclude(ba => ba.RecruitmentBatch)
-            .FirstOrDefaultAsync(c => c.Id == request.Id, ct);
+            .FirstOrDefaultAsync(c => c.Id == request.Id && c.IsInTalentPool, ct);
 
         if (candidate is null)
         {

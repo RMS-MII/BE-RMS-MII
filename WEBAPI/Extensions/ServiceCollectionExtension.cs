@@ -21,6 +21,7 @@ public static class ServiceCollectionExtension
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<EmailService>();
         services.AddScoped<PublicApplicationCodes>();
+        services.AddScoped<CandidateProfiles>();
         services.AddScoped<IEmailService>(provider => provider.GetRequiredService<EmailService>());
         services.AddScoped<IEmailRetryProcessor>(provider => provider.GetRequiredService<EmailService>());
         services.AddHostedService<EmailRetryBackgroundService>();
