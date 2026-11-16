@@ -36,7 +36,7 @@ public static class CandidateTasksMapping
                 ? null
                 : application.FileOfferingLetter,
             AppliedAt = application.AppliedAt,
-            Pipeline = orderedStages.Where(s => s.IsActive)
+            Pipeline = orderedStages
                 .Select(s => new CandidatePipelineDto(s.Id, s.StageName, s.NextStageId)).ToList(),
             Stages = application.ApplicationStages
                 .OrderBy(stage => positions.GetValueOrDefault(stage.BatchStageId, int.MaxValue))

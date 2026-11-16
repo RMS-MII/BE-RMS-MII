@@ -52,16 +52,14 @@ public sealed class SetFinalResultHandler(
                 Error.BusinessRule(
                     "Final results are published when the final batch stage is completed."));
 
-        var activeStages = await db.BatchStages
+        var configuredStages = await db.BatchStages
             .AsNoTracking()
-            .Where(stage =>
-                stage.RecruitmentBatchId == application.RecruitmentBatchId &&
-                stage.IsActive)
+            .Where(stage => stage.RecruitmentBatchId == application.RecruitmentBatchId)
             .ToListAsync(ct);
 
-        if (activeStages.Count == 0)
+        if (configuredStages.Count == 0)
             return Result<BatchApplicationDto>.Failure(
-                Error.BusinessRule("No active stages are configured for this batch."));
+                Error.BusinessRule("No stages are configured for this batch."));
 
         var applicationStagesByBatchStage = application.ApplicationStages
             .GroupBy(stage => stage.BatchStageId)
@@ -69,7 +67,7 @@ public sealed class SetFinalResultHandler(
 
         var activeApplicationStages = new List<ApplicationStage>();
 
-        foreach (var activeStage in activeStages)
+        foreach (var activeStage in configuredStages)
         {
             if (!applicationStagesByBatchStage.TryGetValue(activeStage.Id, out var applicationStage))
                 return Result<BatchApplicationDto>.Failure(

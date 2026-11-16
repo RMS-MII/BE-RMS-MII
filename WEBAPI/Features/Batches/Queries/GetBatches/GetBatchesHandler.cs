@@ -40,7 +40,7 @@ public sealed class GetBatchesHandler(RmsDbContext db)
         var batchStages = await db.BatchStages
             .AsNoTracking()
             .Where(stage => batchIds.Contains(stage.RecruitmentBatchId))
-            .Select(stage => new { stage.RecruitmentBatchId, stage.StageName, stage.IsActive, stage.LifecycleStatus })
+            .Select(stage => new { stage.RecruitmentBatchId, stage.StageName, stage.LifecycleStatus })
             .ToListAsync(ct);
         var stagesByBatch = batchStages
             .GroupBy(stage => stage.RecruitmentBatchId)
@@ -60,9 +60,8 @@ public sealed class GetBatchesHandler(RmsDbContext db)
             var stages = stagesByBatch.GetValueOrDefault(item.Id) ?? [];
             item.CurrentStageName = stages.FirstOrDefault(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Active)?.StageName;
             item.ActiveCandidateCount = activeCandidateCounts.GetValueOrDefault(item.Id);
-            var configuredStages = stages.Where(stage => stage.IsActive).ToList();
-            item.CanClose = item.Status == BatchStatus.Open && configuredStages.Count > 0 &&
-                configuredStages.All(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Completed);
+            item.CanClose = item.Status == BatchStatus.Open && stages.Count > 0 &&
+                stages.All(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Completed);
         }
 
         var result = new PagedResult<RecruitmentBatchDto>(

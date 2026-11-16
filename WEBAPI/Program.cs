@@ -23,7 +23,13 @@ try
         {
             policy.AllowAnyHeader();
             policy.AllowAnyMethod();
-            policy.AllowAnyOrigin();
+            var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+            if (builder.Environment.IsDevelopment())
+                origins = [..origins,
+                    "http://localhost:5173", "http://localhost:5174", "http://localhost:5175",
+                    "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:5175"];
+            policy.WithOrigins(origins.Distinct(StringComparer.OrdinalIgnoreCase).ToArray())
+                .AllowCredentials();
         });
     });
 

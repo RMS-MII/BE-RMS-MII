@@ -13,7 +13,8 @@ public class ChangePasswordHandler(
     RmsDbContext db,
     ICurrentUser currentUser,
     IPasswordHasher<Account> passwordHasher,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    RefreshSessionService refreshSessions)
     : IRequestHandler<ChangePasswordCommand, Result>
 {
     public async Task<Result> Handle(ChangePasswordCommand request, CancellationToken ct)
@@ -47,7 +48,10 @@ public class ChangePasswordHandler(
 
         account.UpdatedAt = dateTimeProvider.GetUtcNow().UtcDateTime;
 
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.SaveChangesAsync(ct);
+        await refreshSessions.RevokeAllForAccountAsync(accountId, ct);
+        await transaction.CommitAsync(ct);
         return Result.Success();
 
     }

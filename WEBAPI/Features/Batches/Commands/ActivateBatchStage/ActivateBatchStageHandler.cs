@@ -97,10 +97,10 @@ public sealed class ActivateBatchStageHandler(
             return Result<BatchStageTransitionDto>.Failure(
                 Error.BusinessRule("The configured stage sequence is invalid. Reconfigure the batch stages."));
 
-        var configuredStages = orderedStages.Where(stage => stage.IsActive).ToList();
+        var configuredStages = orderedStages;
         if (configuredStages.Count == 0)
             return Result<BatchStageTransitionDto>.Failure(
-                Error.BusinessRule("Configure at least one active stage before activating the batch."));
+                Error.BusinessRule("Configure at least one stage before activating the batch."));
 
         var currentStage = stages.SingleOrDefault(
             stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Active);

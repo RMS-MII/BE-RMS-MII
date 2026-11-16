@@ -50,11 +50,9 @@ public sealed class StartApplicationStageHandler(
             return Result<ApplicationStageDto>.Failure(
                 Error.BusinessRule("The configured stage sequence is invalid. Reconfigure the batch stages."));
 
-        var activeStages = orderedStages.Where(stage => stage.IsActive).ToList();
-
-        if (activeStages.Count == 0)
+        if (orderedStages.Count == 0)
             return Result<ApplicationStageDto>.Failure(
-                Error.BusinessRule("No active stages are configured for this batch."));
+                Error.BusinessRule("No stages are configured for this batch."));
 
         var applicationStages = await db.ApplicationStages
             .AsNoTracking()
@@ -89,20 +87,20 @@ public sealed class StartApplicationStageHandler(
                 activeApplicationStage.ToDto(activeBatchStage));
         }
 
-        var activeStageIndexes = activeStages
+        var stageIndexes = orderedStages
             .Select((stage, index) => new { stage.Id, Index = index })
             .ToDictionary(item => item.Id, item => item.Index);
 
         var lastStartedStage = applicationStages
-            .Where(stage => activeStageIndexes.ContainsKey(stage.BatchStageId))
-            .OrderBy(stage => activeStageIndexes[stage.BatchStageId])
+            .Where(stage => stageIndexes.ContainsKey(stage.BatchStageId))
+            .OrderBy(stage => stageIndexes[stage.BatchStageId])
             .LastOrDefault();
 
         BatchStage nextStage;
 
         if (lastStartedStage is null)
         {
-            nextStage = activeStages[0];
+            nextStage = orderedStages[0];
         }
         else
         {
@@ -128,14 +126,14 @@ public sealed class StartApplicationStageHandler(
                 return Result<ApplicationStageDto>.Failure(
                     Error.BusinessRule("The last stage is not part of this batch."));
 
-            var nextActiveStage = progression.GetNextActiveStage(lastBatchStage, stagesById);
+            var nextConfiguredStage = progression.GetNextStage(lastBatchStage, stagesById);
 
-            if (nextActiveStage is null)
+            if (nextConfiguredStage is null)
                 return Result<ApplicationStageDto>.Failure(
                     Error.BusinessRule(
                         "All active stages have been completed. Set the final result instead."));
 
-            nextStage = nextActiveStage;
+            nextStage = nextConfiguredStage;
         }
 
         if (nextStage.StageType is null)

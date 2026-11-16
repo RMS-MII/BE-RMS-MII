@@ -70,7 +70,7 @@ public sealed class CompleteBatchStageHandler(
             return Result<BatchStageTransitionDto>.Failure(
                 Error.BusinessRule("The configured stage sequence is invalid. Reconfigure the batch stages."));
 
-        var configuredStages = orderedStages.Where(stage => stage.IsActive).ToList();
+        var configuredStages = orderedStages;
         if (configuredStages.Count == 0 || configuredStages[^1].Id != targetStage.Id)
             return Result<BatchStageTransitionDto>.Failure(
                 Error.BusinessRule("Only the final configured stage can be completed."));

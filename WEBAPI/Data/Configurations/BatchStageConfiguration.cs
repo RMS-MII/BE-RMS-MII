@@ -24,9 +24,6 @@ public class BatchStageConfiguration : IEntityTypeConfiguration<BatchStage>
             .IsUnique()
             .HasFilter("[LifecycleStatus] = 1");
 
-        builder.Property(x => x.IsActive)
-            .HasDefaultValue(true);
-
         builder.Property(x => x.LifecycleStatus)
             .HasConversion<int>()
             .HasDefaultValue(WEBAPI.Entities.Enums.BatchStageLifecycleStatus.Inactive)

@@ -17,9 +17,7 @@ appsettings.Production.json
 appsettings.Development.json
 publish/
 
-## Migrations
-Migrations/
-WEBAPI/Migrations/*
+## EF migrations are versioned so deployments can update the schema.
 
 ## Docs
 Docs/

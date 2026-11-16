@@ -9,6 +9,6 @@ public static class PublicJobAvailability
     public static Expression<Func<RecruitmentBatch, bool>> AcceptsApplications(DateTime now) =>
         batch => batch.Status == BatchStatus.Open && batch.EndDate >= now &&
             (batch.ApplicationDeadlineAt == null || now < batch.ApplicationDeadlineAt) &&
-            batch.BatchStages.Any(stage => stage.IsActive) &&
+            batch.BatchStages.Any() &&
             !batch.BatchStages.Any(stage => stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive);
 }

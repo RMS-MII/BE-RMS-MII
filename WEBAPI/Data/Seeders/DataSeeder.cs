@@ -630,7 +630,6 @@ public static class DataSeeder
                 RecruitmentBatchId = SampleBatchId,
                 StageTypeId = interviewHrStageTypeId,
                 StageName = "Wawancara HR & User",
-                IsActive = true,
                 StartDate = now.AddDays(-2),
                 EndDate = now.AddDays(15),
                 CreatedAt = now
