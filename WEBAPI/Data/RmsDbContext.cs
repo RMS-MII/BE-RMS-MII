@@ -19,6 +19,7 @@ public class RmsDbContext(DbContextOptions<RmsDbContext> options) : DbContext(op
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     // Question Domain Entities
     public DbSet<QuestionBank> QuestionBanks => Set<QuestionBank>();

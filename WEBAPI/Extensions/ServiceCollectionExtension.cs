@@ -23,6 +23,7 @@ public static class ServiceCollectionExtension
         services.AddScoped<IEmailRetryProcessor>(provider => provider.GetRequiredService<EmailService>());
         services.AddHostedService<EmailRetryBackgroundService>();
         services.AddScoped<ApplicationStageProgressionService>();
+        services.AddScoped<RefreshSessionService>();
         services.AddScoped<ITestAttemptFinalizer, TestAttemptFinalizer>();
         services.AddHostedService<TestAttemptTimeoutBackgroundService>();
         services.AddSingleton(TimeProvider.System);

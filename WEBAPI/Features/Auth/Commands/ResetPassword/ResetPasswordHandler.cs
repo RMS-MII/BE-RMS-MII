@@ -13,7 +13,8 @@ namespace WEBAPI.Features.Auth.Commands.ResetPassword;
 public class ResetPasswordHandler(
     RmsDbContext db,
     IPasswordHasher<Account> passwordHasher,
-    IDateTimeProvider dateTimeProvider) : IRequestHandler<ResetPasswordCommand, Result>
+    IDateTimeProvider dateTimeProvider,
+    RefreshSessionService refreshSessions) : IRequestHandler<ResetPasswordCommand, Result>
 {
     public async Task<Result> Handle(ResetPasswordCommand request, CancellationToken ct)
     {
@@ -58,6 +59,7 @@ public class ResetPasswordHandler(
         account.UpdatedAt = now;
 
         await db.SaveChangesAsync(ct);
+        await refreshSessions.RevokeAllForAccountAsync(account.Id, ct);
         await transaction.CommitAsync(ct);
         
         return Result.Success();

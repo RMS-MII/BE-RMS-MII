@@ -15,6 +15,7 @@ public static class AuthExtension
     {
         var section = configuration.GetSection(JwtSettings.SectionName);
         services.Configure<JwtSettings>(section);
+        services.Configure<RefreshSessionOptions>(configuration.GetSection(RefreshSessionOptions.SectionName));
 
         var settings = section.Get<JwtSettings>()
             ?? throw new InvalidOperationException("Konfigurasi 'Jwt' tidak ditemukan.");
