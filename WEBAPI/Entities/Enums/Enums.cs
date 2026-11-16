@@ -147,6 +147,12 @@ public enum EmailDeliveryStatus
     Sending = 4
 }
 
+public enum CandidateCodePurpose
+{
+    Application = 0,
+    Login = 1
+}
+
 #endregion
 
 /// <summary>

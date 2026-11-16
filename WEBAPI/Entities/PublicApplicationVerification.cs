@@ -1,10 +1,6 @@
-namespace WEBAPI.Entities;
+using WEBAPI.Entities.Enums;
 
-public enum CandidateCodePurpose
-{
-    Application = 0,
-    Login = 1
-}
+namespace WEBAPI.Entities;
 
 public sealed class PublicApplicationVerification : BaseEntity
 {
