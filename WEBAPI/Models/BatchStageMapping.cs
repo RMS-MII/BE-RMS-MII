@@ -24,7 +24,6 @@ public static class BatchStageMapping
         StageTypeName = stage.StageType?.Name,
         StageCategory = stage.StageType?.StageCategory,
         StageName = stage.StageName,
-        IsActive = stage.IsActive,
         LifecycleStatus = stage.LifecycleStatus,
         PassingScore = stage.PassingScore,
         StartDate = stage.StartDate,
@@ -42,7 +41,6 @@ public static class BatchStageMapping
         RecruitmentBatchId = dto.RecruitmentBatchId,
         StageTypeId = dto.StageTypeId,
         StageName = dto.StageName.Trim(),
-        IsActive = dto.IsActive,
         PassingScore = dto.PassingScore,
         StartDate = dto.StartDate,
         EndDate = dto.EndDate,
@@ -53,7 +51,6 @@ public static class BatchStageMapping
     {
         stage.StageTypeId = dto.StageTypeId;
         stage.StageName = dto.StageName.Trim();
-        stage.IsActive = dto.IsActive;
         stage.PassingScore = dto.PassingScore;
         stage.StartDate = dto.StartDate;
         stage.EndDate = dto.EndDate;

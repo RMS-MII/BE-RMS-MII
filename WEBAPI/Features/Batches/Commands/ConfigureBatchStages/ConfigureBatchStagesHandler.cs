@@ -40,7 +40,7 @@ public sealed class ConfigureBatchStagesHandler(
                 Error.Validation($"Stage '{outOfRangeStage.StageName}' must start and end within the recruitment batch period."));
 
         var stageEndingTooEarly = request.Stages.FirstOrDefault(stage =>
-            stage.IsActive && stage.EndDate <= batch.ApplicationDeadlineAt);
+            stage.EndDate <= batch.ApplicationDeadlineAt);
         if (stageEndingTooEarly is not null)
             return Result<IReadOnlyCollection<BatchStageDto>>.Failure(
                 Error.Validation($"Stage '{stageEndingTooEarly.StageName}' must end after the application deadline."));
@@ -109,7 +109,6 @@ public sealed class ConfigureBatchStagesHandler(
                     StageTypeId = item.StageTypeId,
                     StageType = stageTypes[item.StageTypeId],
                     StageName = item.StageName?.Trim() ?? string.Empty,
-                    IsActive = item.IsActive,
                     LifecycleStatus = WEBAPI.Entities.Enums.BatchStageLifecycleStatus.Inactive,
                     PassingScore = item.PassingScore,
                     StartDate = item.StartDate,

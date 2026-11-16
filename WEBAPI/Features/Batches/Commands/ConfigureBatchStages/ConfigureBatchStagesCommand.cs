@@ -35,11 +35,6 @@ public sealed record ConfigureBatchStageItem
     public string StageName { get; init; } = string.Empty;
 
     /// <summary>
-    /// Apakah tahapan ini aktif.
-    /// </summary>
-    public bool IsActive { get; init; } = true;
-
-    /// <summary>
     /// Nilai batas kelulusan (passing score) opsional.
     /// </summary>
     /// <example>75.0</example>

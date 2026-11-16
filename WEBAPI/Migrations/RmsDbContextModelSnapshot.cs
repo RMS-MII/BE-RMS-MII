@@ -207,11 +207,6 @@ namespace WEBAPI.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
                     b.Property<int>("LifecycleStatus")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")

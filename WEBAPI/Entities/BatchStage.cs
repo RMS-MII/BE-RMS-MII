@@ -6,7 +6,6 @@ public class BatchStage : BaseEntity
     public Guid RecruitmentBatchId { get; set; }
     public Guid StageTypeId { get; set; }
     public string StageName { get; set; } = string.Empty;
-    public bool IsActive { get; set; } = true;
     public WEBAPI.Entities.Enums.BatchStageLifecycleStatus LifecycleStatus { get; set; } =
         WEBAPI.Entities.Enums.BatchStageLifecycleStatus.Inactive;
     public decimal? PassingScore { get; set; }

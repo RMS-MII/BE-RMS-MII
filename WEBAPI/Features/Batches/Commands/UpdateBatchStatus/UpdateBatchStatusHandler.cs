@@ -29,9 +29,9 @@ public sealed class UpdateBatchStatusHandler(RmsDbContext db, IDateTimeProvider 
                 $"Cannot change recruitment batch status from {batch.Status} to {request.Status}. " +
                 "Allowed transitions are Draft to Open and Open to Closed."));
 
-        if (request.Status == BatchStatus.Open && !batch.BatchStages.Any(stage => stage.IsActive))
+        if (request.Status == BatchStatus.Open && !batch.BatchStages.Any())
             return Result<RecruitmentBatchDto>.Failure(Error.BusinessRule(
-                "Configure at least one enabled selection stage before opening this recruitment batch."));
+                "Configure at least one selection stage before opening this recruitment batch."));
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
         var deadline = request.ApplicationDeadlineAt?.UtcDateTime;
@@ -53,17 +53,17 @@ public sealed class UpdateBatchStatusHandler(RmsDbContext db, IDateTimeProvider 
                     "The application deadline must be in the future and on or before the batch end."));
 
             var stageEndingTooEarly = batch.BatchStages.FirstOrDefault(stage =>
-                stage.IsActive && stage.EndDate <= deadline);
+                stage.EndDate <= deadline);
             if (stageEndingTooEarly is not null)
                 return Result<RecruitmentBatchDto>.Failure(Error.Validation(
                     $"The application deadline must be before '{stageEndingTooEarly.StageName}' ends."));
         }
 
         if (request.Status == BatchStatus.Closed &&
-            (!batch.BatchStages.Any(stage => stage.IsActive) ||
-             batch.BatchStages.Any(stage => stage.IsActive && stage.LifecycleStatus != BatchStageLifecycleStatus.Completed)))
+            (!batch.BatchStages.Any() ||
+             batch.BatchStages.Any(stage => stage.LifecycleStatus != BatchStageLifecycleStatus.Completed)))
             return Result<RecruitmentBatchDto>.Failure(Error.BusinessRule(
-                "Complete all active selection stages before closing this recruitment batch."));
+                "Complete all selection stages before closing this recruitment batch."));
 
         if (request.Status == BatchStatus.Closed && await db.BatchApplications.AnyAsync(application =>
                 application.RecruitmentBatchId == batch.Id && application.IsStandalone &&
@@ -76,14 +76,14 @@ public sealed class UpdateBatchStatusHandler(RmsDbContext db, IDateTimeProvider 
             // Recheck the current status and stage requirement in the update itself.
             var updated = await db.RecruitmentBatches
                 .Where(b => b.Id == request.BatchId && b.Status == batch.Status)
-                .Where(b => request.Status != BatchStatus.Open || b.BatchStages.Any(stage => stage.IsActive))
+                .Where(b => request.Status != BatchStatus.Open || b.BatchStages.Any())
                 .Where(b => !setsDeadline ||
                     (b.ApplicationDeadlineAt == batch.ApplicationDeadlineAt && deadline <= b.EndDate &&
-                     !b.BatchStages.Any(stage => stage.IsActive && stage.EndDate <= deadline) &&
+                     !b.BatchStages.Any(stage => stage.EndDate <= deadline) &&
                      !b.BatchStages.Any(stage => stage.LifecycleStatus != BatchStageLifecycleStatus.Inactive)))
                 .Where(b => request.Status != BatchStatus.Closed ||
-                    (b.BatchStages.Any(stage => stage.IsActive) &&
-                     !b.BatchStages.Any(stage => stage.IsActive && stage.LifecycleStatus != BatchStageLifecycleStatus.Completed) &&
+                    (b.BatchStages.Any() &&
+                     !b.BatchStages.Any(stage => stage.LifecycleStatus != BatchStageLifecycleStatus.Completed) &&
                      !b.BatchApplications.Any(application => application.IsStandalone &&
                          application.Status == ApplicationStatus.InProcess)))
                 .ExecuteUpdateAsync(setters => setters

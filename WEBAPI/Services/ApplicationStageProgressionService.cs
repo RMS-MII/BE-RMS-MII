@@ -21,24 +21,13 @@ public sealed class ApplicationStageProgressionService(
             .ToListAsync(ct);
     }
 
-    public BatchStage? GetNextActiveStage(
+    public BatchStage? GetNextStage(
         BatchStage currentStage,
         IReadOnlyDictionary<Guid, BatchStage> stagesById)
     {
-        var nextStageId = currentStage.NextStageId;
-
-        while (nextStageId.HasValue)
-        {
-            if (!stagesById.TryGetValue(nextStageId.Value, out var nextStage))
-                return null;
-
-            if (nextStage.IsActive)
-                return nextStage;
-
-            nextStageId = nextStage.NextStageId;
-        }
-
-        return null;
+        return currentStage.NextStageId is { } nextStageId &&
+            stagesById.TryGetValue(nextStageId, out var nextStage)
+            ? nextStage : null;
     }
 
     public async Task<TimeSpan?> GetDurationTestAsync(
