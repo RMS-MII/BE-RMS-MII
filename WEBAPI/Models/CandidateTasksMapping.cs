@@ -105,6 +105,8 @@ public static class CandidateTasksMapping
         var changes = requests?.Where(r => r.InterviewSessionId == session.Id).ToList() ?? [];
         var latest = changes.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
         var pending = changes.Any(r => r.Status == RescheduleStatus.Pending);
+        var submissionLocked = session.SessionInterviews.Any(interviewer =>
+            interviewer.Status == SessionInterviewStatus.Completed || interviewer.InterviewAssessment is not null);
 
         return new CandidateSessionTaskDto
         {
@@ -120,11 +122,12 @@ public static class CandidateTasksMapping
             FileTakeHome = session.FileTakeHome,
             FileSubmission = session.SubmissionFile,
             IsSubmitted = !string.IsNullOrWhiteSpace(session.SubmissionFile),
+            IsSubmissionLocked = submissionLocked,
             Interviewers = session.SessionInterviews.Where(s => s.Status != SessionInterviewStatus.Cancelled)
                 .Select(s => s.StageEmployee.Employee.FullName).Distinct().ToList(),
             Reschedule = latest is null ? null : new CandidateRescheduleDto(latest.Status.ToString(), latest.ProposedStart, latest.ProposedEnd),
             CanConfirm = CandidateActionPolicy.CanConfirm(session, now) && !pending,
-            CanUploadSubmission = CandidateActionPolicy.CanSubmit(session, now),
+            CanUploadSubmission = !submissionLocked && CandidateActionPolicy.CanSubmit(session, now),
             CanRequestReschedule = CandidateActionPolicy.CanReschedule(session, now, pending)
         };
     }

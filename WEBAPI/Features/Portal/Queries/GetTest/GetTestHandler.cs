@@ -98,22 +98,32 @@ public sealed class GetTestHandler(
             return Result<CandidateTestDto>.Failure(Error.BusinessRule("This test has expired."));
         }
 
-        var questions = await db.Questions
+        var questions = db.Questions
             .AsNoTracking()
             .Where(question =>
                 question.IsActive &&
                 question.QuestionBank.DepartmentId == application.RecruitmentBatch.DepartmentId &&
-                question.QuestionBank.StageTypeId == stage.BatchStage.StageTypeId)
+                question.QuestionBank.StageTypeId == stage.BatchStage.StageTypeId);
+
+        if (!request.IncludeQuestions || stage.AttemptStartedAt is null)
+        {
+            var count = await questions.CountAsync(ct);
+            return count == 0
+                ? Result<CandidateTestDto>.Failure(Error.BusinessRule("No active questions are configured for this test."))
+                : Result<CandidateTestDto>.Success(stage.ToCandidateTestDto([], now, count));
+        }
+
+        var items = await questions
             .Include(question => question.QuestionOptions.Where(option => option.IsActive))
             .OrderBy(question => question.SequenceNumber)
             .ThenBy(question => question.Id)
             .ToListAsync(ct);
 
-        if (questions.Count == 0)
+        if (items.Count == 0)
             return Result<CandidateTestDto>.Failure(
                 Error.BusinessRule("No active questions are configured for this test."));
 
         return Result<CandidateTestDto>.Success(
-            stage.ToCandidateTestDto(questions, now));
+            stage.ToCandidateTestDto(items, now));
     }
 }

@@ -1,3 +1,4 @@
+using System.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
@@ -20,6 +21,7 @@ public class UploadSubmissionHandler(
         CancellationToken ct)
     {
         var session = await db.InterviewSessions
+            .AsNoTracking()
             .Include(s => s.ApplicationStage)
                 .ThenInclude(ast => ast.BatchStage)
                     .ThenInclude(bs => bs.RecruitmentBatch)
@@ -73,6 +75,20 @@ public class UploadSubmissionHandler(
             return Result<SubmissionDto>.Success(session.ToSubmissionDto());
 
         var isUpdate = !string.IsNullOrWhiteSpace(session.SubmissionFile);
+        // Keep the assessment check and email queue in the same transaction as the link update.
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        var updated = await db.InterviewSessions
+            .Where(item => item.Id == session.Id && item.SubmissionFile == session.SubmissionFile &&
+                item.Status == session.Status && item.EndedSubmissionAt == session.EndedSubmissionAt)
+            .Where(item => !item.SessionInterviews.Any(interviewer =>
+                interviewer.Status == SessionInterviewStatus.Completed || interviewer.InterviewAssessment != null))
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(item => item.SubmissionFile, submissionFile)
+                .SetProperty(item => item.UpdatedAt, now), ct);
+        if (updated == 0)
+            return Result<SubmissionDto>.Failure(Error.BusinessRule(
+                "Tautan pengumpulan tidak dapat diubah setelah penilaian dikirim atau pengumpulan berubah."));
+
         session.SubmissionFile = submissionFile;
         session.UpdatedAt = now;
 
@@ -100,6 +116,7 @@ public class UploadSubmissionHandler(
         emailService.QueueBulkEmail(notifications, EmailType.TakeHomeSubmission);
 
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         return Result<SubmissionDto>.Success(session.ToSubmissionDto());
     }

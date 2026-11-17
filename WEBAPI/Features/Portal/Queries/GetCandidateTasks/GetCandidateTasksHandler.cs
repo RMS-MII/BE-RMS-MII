@@ -45,6 +45,10 @@ public sealed class GetCandidateTasksHandler(
                     .ThenInclude(session => session.SessionInterviews)
                         .ThenInclude(interviewer => interviewer.StageEmployee)
                             .ThenInclude(assignment => assignment.Employee)
+            .Include(application => application.ApplicationStages)
+                .ThenInclude(stage => stage.InterviewSessions)
+                    .ThenInclude(session => session.SessionInterviews)
+                        .ThenInclude(interviewer => interviewer.InterviewAssessment)
             .OrderByDescending(application => application.AppliedAt)
             .ToListAsync(ct);
 

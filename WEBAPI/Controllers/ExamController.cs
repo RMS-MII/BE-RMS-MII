@@ -26,7 +26,7 @@ public sealed class ExamController(ISender sender) : ControllerBase
         [FromRoute] Guid stageId,
         CancellationToken ct)
     {
-        var result = await sender.Send(new GetTestQuery(candidateId, stageId), ct);
+        var result = await sender.Send(new GetTestQuery(candidateId, stageId, IncludeQuestions: true), ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
@@ -44,7 +44,8 @@ public sealed class ExamController(ISender sender) : ControllerBase
         {
             CandidateId = candidateId,
             StageId = stageId,
-            Answers = request.Answers
+            Answers = request.Answers,
+            IsDraft = request.IsDraft
         };
 
         var result = await sender.Send(command, ct);

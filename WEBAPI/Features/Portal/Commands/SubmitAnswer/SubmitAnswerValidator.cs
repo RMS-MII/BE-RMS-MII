@@ -14,8 +14,14 @@ public sealed class SubmitAnswerValidator : AbstractValidator<SubmitAnswerComman
             .NotEmpty();
 
         RuleFor(x => x.Answers)
+            .NotNull();
+
+        RuleFor(x => x.Answers)
             .NotEmpty()
             .WithMessage("At least one answer is required.")
+            .When(x => !x.IsDraft);
+
+        RuleFor(x => x.Answers)
             .Must(HaveUniqueQuestionIds)
             .WithMessage("Each question may be answered only once.")
             .When(x => x.Answers is not null);

@@ -9,6 +9,7 @@ public sealed record SubmitAnswerCommand : IRequest<Result<SubmitAnswerResultDto
 {
     public Guid CandidateId { get; init; }
     public Guid StageId { get; init; }
+    public bool IsDraft { get; init; }
     public IReadOnlyList<SubmitTestAnswerItem> Answers { get; init; } = [];
 }
 
@@ -18,6 +19,8 @@ public sealed record SubmitAnswerCommand : IRequest<Result<SubmitAnswerResultDto
 /// </summary>
 public sealed record SubmitAnswerRequest
 {
+    public bool IsDraft { get; init; }
+
     /// <summary>
     /// Daftar jawaban untuk setiap butir soal ujian.
     /// </summary>

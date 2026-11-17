@@ -13,6 +13,17 @@ public sealed class TestAttemptFinalizer(
         DateTime now,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var updated = await db.ApplicationStages
+            .Where(item => item.Id == stage.Id && !item.IsAttempts && item.AttemptStartedAt != null &&
+                (item.Status == ApplicationStageStatus.InProgress || item.Status == ApplicationStageStatus.Expired))
+            .ExecuteUpdateAsync(update => update.SetProperty(item => item.UpdatedAt, now), cancellationToken);
+        if (updated == 0)
+        {
+            await db.Entry(stage).ReloadAsync(cancellationToken);
+            return stage.Status;
+        }
+
         var answers = await db.CandidateAnswers
             .AsNoTracking()
             .Where(answer => answer.ApplicationStageId == stage.Id)
@@ -58,6 +69,7 @@ public sealed class TestAttemptFinalizer(
             application.Status = ApplicationStatus.Rejected;
 
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return stage.Status;
     }

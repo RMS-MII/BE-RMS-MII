@@ -41,7 +41,8 @@ public static class ExamSession
             new AuthenticationProperties
             {
                 IsPersistent = true,
-                ExpiresUtc = new DateTimeOffset(DateTime.SpecifyKind(deadlineUtc, DateTimeKind.Utc))
+                // Keep the receipt accessible briefly while answer writes still enforce the deadline.
+                ExpiresUtc = new DateTimeOffset(DateTime.SpecifyKind(deadlineUtc, DateTimeKind.Utc)).AddMinutes(2)
             });
 
     public static Task SignOutAsync(HttpContext context) => context.SignOutAsync(Scheme);
