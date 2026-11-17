@@ -331,7 +331,7 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
         public string Host { get; init; } = "localhost";
         public int Port { get; init; } = 2525;
         public SecureSocketOptions Security { get; init; } = SecureSocketOptions.None;
-        public string SenderName { get; init; } = "RMS";
+        public string SenderName { get; init; } = "Rekrutin";
         public string SenderEmail { get; init; } = "no-reply@rms.local";
         public string UserName { get; init; } = string.Empty;
         public string Password { get; init; } = string.Empty;
@@ -352,7 +352,7 @@ public class EmailService(RmsDbContext dbContext, IConfiguration configuration) 
                 Security = ParseSecurity(configuration["MailSettings:Security"]),
                 SenderName = configuration["MailSettings:SenderName"]?.Trim() is { Length: > 0 } senderName
                     ? senderName
-                    : "RMS",
+                    : "Rekrutin",
                 SenderEmail = configuration["MailSettings:SenderEmail"]?.Trim() is { Length: > 0 } senderEmail
                     ? senderEmail
                     : "no-reply@rms.local",

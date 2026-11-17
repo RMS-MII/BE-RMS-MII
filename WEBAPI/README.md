@@ -1,4 +1,10 @@
-# RMS Web API
+# Rekrutin API
+
+Untuk Development, default database adalah SQL Server Windows Authentication di
+`localhost/RmsDB`. Pakai `appsettings.Development.json` lokal untuk instance
+yang berbeda. Atur `Jwt:Key` melalui User Secrets. Folder `Migrations` ikut
+dalam Git. Jalankan `dotnet ef database update` dari folder `WEBAPI` setelah pull
+yang menambahkan migrasi.
 
 ## Seeder Data Performa
 
@@ -101,9 +107,9 @@ dipakai ulang. Hapus manual jika sudah tidak diperlukan.
 - Marker yang digunakan: batch `PERF-*`, kandidat `perf.cand.*`, pegawai
   `perf.emp.*`, subjek email `PERF`, dan path file berawalan `perf/`.
 
-> **Penting:** `Seed:ResetToCheckpointOnStartup` bernilai `true` di
-> `appsettings.Development.json`. Saat menguji performa, set ke `false` agar
-> setiap restart tidak menghapus data yang baru saja dibuat.
+> Reset checkpoint dan performance seeder nonaktif pada konfigurasi bersama.
+> Aktifkan lewat argumen saat dibutuhkan. Biarkan reset startup bernilai
+> `false` jika ingin mempertahankan data saat restart.
 
 ```json
 "Seed": {

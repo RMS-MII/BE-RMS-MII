@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
 using WEBAPI.Data;
+using WEBAPI.Data.Repositories;
 using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
@@ -34,13 +35,13 @@ public class RequestRescheduleHandler(
                     .ThenInclude(se => se.Employee)
             .FirstOrDefaultAsync(s => s.Id == command.InterviewSessionId, ct);
 
-        if (session is null)
+        if (session?.ApplicationStage is not { } stage)
         {
             return Result<RescheduleRequestDto>.Failure(
                 Error.NotFound($"Sesi wawancara dengan ID '{command.InterviewSessionId}' tidak ditemukan."));
         }
 
-        if (session.ApplicationStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
+        if (stage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
             return Result<RescheduleRequestDto>.Failure(
                 Error.BusinessRule("A closed recruitment batch cannot be edited."));
 
@@ -57,7 +58,7 @@ public class RequestRescheduleHandler(
         // 2. Identifikasi pemohon (Kandidat via portal vs Pewawancara/HR via internal token)
         if (command.CandidateId.HasValue)
         {
-            var candidate = session.ApplicationStage?.BatchApplication?.Candidate;
+            var candidate = stage.BatchApplication?.Candidate;
             if (candidate is null || candidate.Id != command.CandidateId.Value)
             {
                 return Result<RescheduleRequestDto>.Failure(
@@ -81,6 +82,7 @@ public class RequestRescheduleHandler(
             var isHr = currentUser.IsInRole(RmsRoles.Hr);
             var isSessionLead = session.SessionInterviews.Any(si =>
                 si.StageEmployee.EmployeeId == currentUser.EmployeeId &&
+                si.Status != SessionInterviewStatus.Cancelled &&
                 si.IsLead);
 
             if (!isHr && !isSessionLead)
@@ -100,6 +102,13 @@ public class RequestRescheduleHandler(
             requesterName = employee.FullName;
         }
 
+        var now = dateTimeProvider.GetUtcNow().UtcDateTime;
+        if (!WEBAPI.Features.Portal.CandidateActionPolicy.IsActive(stage) ||
+            session.ScheduledStart <= now ||
+            session.SessionInterviews.Any(interviewer => interviewer.Status == SessionInterviewStatus.Completed))
+            return Result<RescheduleRequestDto>.Failure(
+                Error.BusinessRule("Reschedule hanya dapat diajukan sebelum interview dimulai dan selama tahap masih aktif."));
+
         // 3. Cegah duplikasi permohonan pending pada sesi yang sama
         var hasPendingRequest = await db.RescheduleRequests.AnyAsync(
             r => r.InterviewSessionId == command.InterviewSessionId && r.Status == RescheduleStatus.Pending, ct);
@@ -111,21 +120,29 @@ public class RequestRescheduleHandler(
         }
 
         // 4. Simpan permohonan baru
-        var now = dateTimeProvider.GetUtcNow().UtcDateTime;
         var rescheduleRequest = new RescheduleRequest
         {
             Id = Guid.CreateVersion7(),
             InterviewSessionId = session.Id,
             RequesterEmail = requesterEmail,
-            ProposedStart = command.ProposedStart,
-            ProposedEnd = command.ProposedEnd,
+            RequestedByCandidate = command.CandidateId.HasValue,
+            ProposedStart = command.ProposedStartUtc,
+            ProposedEnd = command.ProposedEndUtc,
             Reason = command.Reason.Trim(),
             Status = RescheduleStatus.Pending,
             CreatedAt = now
         };
 
         db.RescheduleRequests.Add(rescheduleRequest);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        {
+            return Result<RescheduleRequestDto>.Failure(
+                Error.Conflict("Masih terdapat permohonan reschedule yang berstatus Pending untuk sesi wawancara ini."));
+        }
 
         // 5. Kirim email notifikasi permohonan reschedule
         await SendRescheduleRequestNotificationAsync(rescheduleRequest, session, requesterName, ct);

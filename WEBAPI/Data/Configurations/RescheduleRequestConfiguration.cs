@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using WEBAPI.Entities;
+using WEBAPI.Entities.Enums;
 
 namespace WEBAPI.Data.Configurations;
 
@@ -51,5 +52,8 @@ public class RescheduleRequestConfiguration : IEntityTypeConfiguration<Reschedul
 
         builder.HasIndex(x => x.InterviewSessionId);
         builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => new { x.InterviewSessionId, x.Status })
+            .IsUnique()
+            .HasFilter($"[Status] = {(int)RescheduleStatus.Pending}");
     }
 }

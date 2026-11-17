@@ -106,6 +106,8 @@ public sealed class CompleteBatchStageHandler(
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;
         foreach (var participant in participants)
         {
+            participant.EndAt = now;
+            participant.UpdatedAt = now;
             var application = participant.BatchApplication;
             application.UpdatedAt = now;
 
@@ -127,6 +129,7 @@ public sealed class CompleteBatchStageHandler(
         }
 
         targetStage.LifecycleStatus = BatchStageLifecycleStatus.Completed;
+        targetStage.EndDate = now;
         targetStage.UpdatedAt = now;
 
         var acceptances = participants

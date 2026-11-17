@@ -1320,7 +1320,8 @@ public static class PerformanceDataSeeder
                 continue;
             }
 
-            var requesterEmail = random.Next(100) < 70
+            var requestedByCandidate = random.Next(100) < 70;
+            var requesterEmail = requestedByCandidate
                 ? candidate.Email
                 : perfEmployees[random.Next(perfEmployees.Count)].Email;
 
@@ -1338,6 +1339,7 @@ public static class PerformanceDataSeeder
                 Id = Guid.CreateVersion7(),
                 InterviewSessionId = session.Id,
                 RequesterEmail = requesterEmail,
+                RequestedByCandidate = requestedByCandidate,
                 ProposedStart = proposedStart,
                 ProposedEnd = proposedStart.AddMinutes(45),
                 Reason = RescheduleReasons[random.Next(RescheduleReasons.Length)],

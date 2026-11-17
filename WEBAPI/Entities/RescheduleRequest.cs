@@ -6,6 +6,7 @@ public class RescheduleRequest : BaseEntity
 {
     public Guid InterviewSessionId { get; set; }
     public string RequesterEmail { get; set; } = string.Empty;
+    public bool RequestedByCandidate { get; set; }
     public DateTime ProposedStart { get; set; }
     public DateTime ProposedEnd { get; set; }
     public string Reason { get; set; } = string.Empty;
