@@ -14,6 +14,14 @@ public static class SeederExtension
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<RmsDbContext>>();
         var resetOnStartup = app.Configuration.GetValue<bool>("Seed:ResetToCheckpointOnStartup", false);
         var isResetRequested = resetOnStartup || (args != null && (args.Contains("--seed-reset") || args.Contains("--reset-checkpoint")));
+        var includeSampleBatch = app.Configuration.GetValue<bool>("Seed:IncludeSampleBatch", false);
+
+        var performanceOptions = app.Configuration
+            .GetSection(PerformanceSeedOptions.SectionName)
+            .Get<PerformanceSeedOptions>() ?? new PerformanceSeedOptions();
+        performanceOptions.Enabled = performanceOptions.Enabled
+            || (args?.Contains("--seed-performance") == true);
+        performanceOptions.Normalize();
 
         try
         {
@@ -31,16 +39,32 @@ public static class SeederExtension
             if (isResetRequested)
             {
                 logger.LogInformation("Perintah reset checkpoint seeder aktif. Me-reset database ke checkpoint seeder...");
-                await DataSeeder.ResetToCheckpointAsync(db, passwordHasher);
+                await DataSeeder.ResetToCheckpointAsync(
+                    db, passwordHasher, includeSampleBatch, performanceOptions.ClearOnCheckpointReset);
             }
             else
             {
-                await DataSeeder.SeedAsync(db, passwordHasher);
+                await DataSeeder.SeedAsync(db, passwordHasher, includeSampleBatch);
             }
 
             if (args?.Contains("--seed-sample-applications") == true)
             {
                 await SampleBatchApplicationsSeeder.SeedAsync(db);
+            }
+
+            if (performanceOptions.Enabled)
+            {
+                logger.LogInformation(
+                    "[PerfSeed] Menjalankan seeder performa: kandidat={Candidates}, batch={Batches}, " +
+                    "lamaran/kandidat={ApplicationsPerCandidate}, email={EmailLogs}, bulkCopy={UseSqlBulkCopy}.",
+                    performanceOptions.Candidates,
+                    performanceOptions.Batches,
+                    performanceOptions.ApplicationsPerCandidate,
+                    performanceOptions.EmailLogs,
+                    performanceOptions.UseSqlBulkCopy);
+
+                await PerformanceDataSeeder.SeedAsync(
+                    db, passwordHasher, performanceOptions, logger);
             }
 
             // Warm up EF Core model, database connection pool, and crypto providers to eliminate first-request latency

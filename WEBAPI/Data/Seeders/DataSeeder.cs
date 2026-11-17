@@ -89,7 +89,8 @@ public static class DataSeeder
     public static async Task ResetToCheckpointAsync(
         RmsDbContext context,
         IPasswordHasher<Account> passwordHasher,
-        bool includeSampleBatch = false)
+        bool includeSampleBatch = false,
+        bool clearPerformanceData = true)
     {
         Log.Information("Resetting database to seed checkpoint...");
 
@@ -117,7 +118,11 @@ public static class DataSeeder
             await context.PublicApplicationVerifications.Where(code => code.BatchId != null).ExecuteDeleteAsync();
             await context.RecruitmentBatches.ExecuteDeleteAsync();
 
-            // 2. Pastikan master data terisi (dan hanya buat sample batch jika diaktifkan)
+            // 2. Bersihkan sisa data perf (kandidat/email bertanda perf) agar tidak tertinggal di checkpoint.
+            if (clearPerformanceData)
+                await PerformanceDataSeeder.ClearAsync(context);
+
+            // 3. Pastikan master data terisi (dan hanya buat sample batch jika diaktifkan)
             await SeedAsync(context, passwordHasher, includeSampleBatch);
             await transaction.CommitAsync();
 
