@@ -64,6 +64,7 @@ public sealed class CandidateSessionTaskDto
     public string? FileTakeHome { get; set; }
     public string? FileSubmission { get; set; }
     public bool IsSubmitted { get; set; }
+    public bool IsSubmissionLocked { get; set; }
     public IReadOnlyCollection<string> Interviewers { get; set; } = [];
     public CandidateRescheduleDto? Reschedule { get; set; }
     public bool CanConfirm { get; set; }

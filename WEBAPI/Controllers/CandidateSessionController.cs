@@ -73,9 +73,14 @@ public sealed class CandidateSessionController(RmsDbContext db, PublicApplicatio
     }
 
     [HttpPost("logout")]
+    [AllowAnonymous]
     public async Task<IActionResult> Logout()
     {
+        if (!CandidateSession.AllowsRequest(HttpContext))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
         await HttpContext.SignOutAsync(CandidateSession.Scheme);
+        await ExamSession.SignOutAsync(HttpContext);
         return NoContent();
     }
 }
