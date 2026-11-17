@@ -129,6 +129,9 @@ namespace WEBAPI.Migrations
                     b.HasIndex("BatchApplicationId", "BatchStageId")
                         .IsUnique();
 
+                    b.HasIndex("Status", "AttemptStartedAt")
+                        .HasFilter("[IsAttempts] = 0 AND [AttemptStartedAt] IS NOT NULL");
+
                     b.ToTable("ApplicationStages");
                 });
 
@@ -460,6 +463,8 @@ namespace WEBAPI.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AttemptedAt");
+
+                    b.HasIndex("Status", "AttemptedAt");
 
                     b.ToTable("EmailLog", (string)null);
                 });

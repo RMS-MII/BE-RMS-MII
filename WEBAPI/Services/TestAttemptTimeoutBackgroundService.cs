@@ -40,6 +40,7 @@ public sealed class TestAttemptTimeoutBackgroundService(
                     .Include(applicationStage => applicationStage.BatchApplication)
                     .Where(applicationStage =>
                         applicationStage.Status == ApplicationStageStatus.InProgress &&
+                        !applicationStage.IsAttempts &&
                         applicationStage.AttemptStartedAt != null)
                     .ToListAsync(stoppingToken);
 
