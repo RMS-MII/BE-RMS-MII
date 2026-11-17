@@ -175,11 +175,10 @@ public static class PerformanceDataSeeder
                 group => group.Key,
                 group => (IReadOnlyList<BatchStage>)group.OrderBy(stage => stage.StartDate).ToList());
 
-        var psikotesStageTypeId = orderedStageTypes
-            .FirstOrDefault(stageType => string.Equals(stageType.Name, "Psikotes", StringComparison.OrdinalIgnoreCase))
-            ?.Id ?? DataSeeder.StageTypePsikotesId;
-
-        var discQuestions = await LoadDiscQuestionsAsync(context, psikotesStageTypeId, logger, ct);
+        var testStageTypes = orderedStageTypes
+            .Where(stageType => stageType.StageCategory == StageCategory.Test)
+            .ToList();
+        var questionsByStageTypeId = await LoadTestQuestionsAsync(context, testStageTypes, logger, ct);
 
         phase.Restart();
         var eligibleBatches = batches
@@ -197,12 +196,12 @@ public static class PerformanceDataSeeder
             random,
             now);
 
-        // Jawaban dibuat lebih dulu karena TotalScore stage DISC dihitung dari snapshot jawaban.
+        // Jawaban dibuat lebih dulu karena TotalScore stage tes dihitung dari snapshot jawaban.
         var answers = CreateCandidateAnswers(
             applicationResult.ApplicationStages,
             stageById,
-            psikotesStageTypeId,
-            discQuestions,
+            stageTypeById,
+            questionsByStageTypeId,
             options.CandidateAnswerRatio,
             random);
 
@@ -810,7 +809,6 @@ public static class PerformanceDataSeeder
 
                 DateTime? attemptStartedAt = null;
                 DateTime? completedAt = null;
-                decimal? totalScore = null;
                 TimeSpan? durationTest = null;
                 var isAttempts = false;
 
@@ -820,10 +818,6 @@ public static class PerformanceDataSeeder
                     durationTest = TimeSpan.FromMinutes(durationMinutes);
                     completedAt = attemptStartedAt.Value.AddMinutes(random.Next(5, durationMinutes + 1));
                     isAttempts = true;
-                    var passingScore = batchStage.PassingScore ?? 60m;
-                    totalScore = stageStatus == ApplicationStageStatus.Rejected
-                        ? Math.Max(0m, passingScore - 1m - random.Next(0, 20))
-                        : Math.Min(100m, passingScore + 1m + random.Next(0, 20));
                 }
                 else if (isTest)
                 {
@@ -843,7 +837,7 @@ public static class PerformanceDataSeeder
                 {
                     Id = Guid.CreateVersion7(),
                     Status = stageStatus,
-                    TotalScore = totalScore,
+                    TotalScore = null,
                     StartedAt = batchStage.StartDate,
                     EndAt = batchStage.EndDate,
                     AttemptStartedAt = attemptStartedAt,
@@ -939,77 +933,93 @@ public static class PerformanceDataSeeder
         return earliest.AddDays((latest - earliest).TotalDays * random.NextDouble());
     }
 
-    private static async Task<List<DiscQuestionTemplate>> LoadDiscQuestionsAsync(
+    private static async Task<Dictionary<Guid, List<TestQuestionTemplate>>> LoadTestQuestionsAsync(
         RmsDbContext context,
-        Guid psikotesStageTypeId,
+        IReadOnlyList<StageType> stageTypes,
         ILogger logger,
         CancellationToken ct)
     {
-        var bank = await context.QuestionBanks
+        var result = new Dictionary<Guid, List<TestQuestionTemplate>>();
+        if (stageTypes.Count == 0)
+            return result;
+
+        var stageTypeIds = stageTypes.Select(stageType => stageType.Id).ToList();
+        var banks = await context.QuestionBanks
             .AsNoTracking()
             .Include(questionBank => questionBank.Questions)
                 .ThenInclude(question => question.QuestionOptions)
-            .FirstOrDefaultAsync(questionBank =>
-                questionBank.StageTypeId == psikotesStageTypeId
-                && questionBank.Questions.Any(), ct);
+            .Where(questionBank =>
+                stageTypeIds.Contains(questionBank.StageTypeId)
+                && questionBank.Questions.Any())
+            .ToListAsync(ct);
 
-        if (bank is null)
+        foreach (var stageType in stageTypes)
         {
-            logger.LogWarning(
-                "[PerfSeed] Bank soal psikotes tidak ditemukan; jawaban kandidat dilewati.");
-            return [];
+            var bank = banks
+                .FirstOrDefault(candidate => candidate.StageTypeId == stageType.Id);
+
+            if (bank is null)
+            {
+                logger.LogWarning(
+                    "[PerfSeed] Bank soal untuk stage type {StageType} tidak ditemukan; jawaban kandidat dilewati.",
+                    stageType.Name);
+                result[stageType.Id] = [];
+                continue;
+            }
+
+            result[stageType.Id] = bank.Questions
+                .Where(question => question.IsActive)
+                .OrderBy(question => question.SequenceNumber)
+                .Select(question => new TestQuestionTemplate(
+                    question.QuestionText,
+                    question.DiscType,
+                    question.QuestionOptions
+                        .Where(option => option.IsActive)
+                        .OrderBy(option => option.SequenceNumber)
+                        .ToList()))
+                .Where(template => template.Options.Count > 0)
+                .ToList();
         }
 
-        return bank.Questions
-            .Where(question => question.IsActive && question.DiscType != default)
-            .OrderBy(question => question.SequenceNumber)
-            .Select(question => new DiscQuestionTemplate(
-                question.QuestionText,
-                question.DiscType,
-                question.QuestionOptions
-                    .Where(option => option.IsActive)
-                    .OrderBy(option => option.SequenceNumber)
-                    .ToList()))
-            .Where(template => template.Options.Count > 0)
-            .ToList();
+        return result;
     }
 
     private static List<CandidateAnswer> CreateCandidateAnswers(
         IReadOnlyList<ApplicationStage> applicationStages,
         IReadOnlyDictionary<Guid, BatchStage> stageById,
-        Guid psikotesStageTypeId,
-        IReadOnlyList<DiscQuestionTemplate> questions,
+        IReadOnlyDictionary<Guid, StageType> stageTypeById,
+        IReadOnlyDictionary<Guid, List<TestQuestionTemplate>> questionsByStageTypeId,
         double answerRatio,
         Random random)
     {
         var answers = new List<CandidateAnswer>();
-        if (questions.Count == 0)
-            return answers;
 
         foreach (var stage in applicationStages)
         {
             if (!stageById.TryGetValue(stage.BatchStageId, out var batchStage)
-                || batchStage.StageTypeId != psikotesStageTypeId)
+                || !stageTypeById.TryGetValue(batchStage.StageTypeId, out var stageType)
+                || stageType.StageCategory != StageCategory.Test)
             {
                 continue;
             }
 
-            if (stage.Status is not (ApplicationStageStatus.Submitted
-                or ApplicationStageStatus.Considered
-                or ApplicationStageStatus.Prioritized
-                or ApplicationStageStatus.Rejected))
+            if (stage.CompletedAt is null)
+                continue;
+
+            if (!questionsByStageTypeId.TryGetValue(batchStage.StageTypeId, out var questions)
+                || questions.Count == 0)
             {
                 continue;
             }
 
-            if (stage.CompletedAt is null || random.NextDouble() >= answerRatio)
+            if (random.NextDouble() >= answerRatio)
                 continue;
 
             var maximumScore = questions.Sum(question => question.Options.Max(option => option.Score));
             if (maximumScore <= 0)
                 continue;
 
-            var stageAnswers = new List<(CandidateAnswer Answer, DiscQuestionTemplate Question)>(questions.Count);
+            var stageAnswers = new List<(CandidateAnswer Answer, TestQuestionTemplate Question)>(questions.Count);
 
             for (var index = 0; index < questions.Count; index++)
             {
@@ -1030,15 +1040,15 @@ public static class PerformanceDataSeeder
                 stageAnswers.Add((answer, question));
             }
 
-            AdjustDiscAnswers(stageAnswers, maximumScore, stage.Status, batchStage.PassingScore);
-            stage.TotalScore = CalculateDiscNormalizedScore(stageAnswers, maximumScore);
+            AdjustTestAnswers(stageAnswers, maximumScore, stage.Status, batchStage.PassingScore);
+            stage.TotalScore = CalculateTestNormalizedScore(stageAnswers, maximumScore);
         }
 
         return answers;
     }
 
-    private static void AdjustDiscAnswers(
-        IReadOnlyList<(CandidateAnswer Answer, DiscQuestionTemplate Question)> stageAnswers,
+    private static void AdjustTestAnswers(
+        IReadOnlyList<(CandidateAnswer Answer, TestQuestionTemplate Question)> stageAnswers,
         decimal maximumScore,
         ApplicationStageStatus stageStatus,
         decimal? passingScore)
@@ -1047,6 +1057,13 @@ public static class PerformanceDataSeeder
             return;
 
         var isRejected = stageStatus == ApplicationStageStatus.Rejected;
+        var shouldAdjust = isRejected
+            || stageStatus is ApplicationStageStatus.Submitted
+                or ApplicationStageStatus.Considered
+                or ApplicationStageStatus.Prioritized;
+        if (!shouldAdjust)
+            return;
+
         var target = isRejected
             ? Math.Max(0m, passingScore.Value - 1m)
             : Math.Min(100m, passingScore.Value + 1m);
@@ -1055,7 +1072,7 @@ public static class PerformanceDataSeeder
 
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var current = CalculateDiscNormalizedScore(stageAnswers, maximumScore);
+            var current = CalculateTestNormalizedScore(stageAnswers, maximumScore);
             if (isRejected ? current < target : current >= target)
                 break;
 
@@ -1072,8 +1089,8 @@ public static class PerformanceDataSeeder
         }
     }
 
-    private static decimal CalculateDiscNormalizedScore(
-        IReadOnlyList<(CandidateAnswer Answer, DiscQuestionTemplate Question)> stageAnswers,
+    private static decimal CalculateTestNormalizedScore(
+        IReadOnlyList<(CandidateAnswer Answer, TestQuestionTemplate Question)> stageAnswers,
         decimal maximumScore)
         => maximumScore <= 0 || stageAnswers.Count == 0
             ? 0m
@@ -1603,7 +1620,7 @@ public static class PerformanceDataSeeder
         List<SessionInterview> SessionInterviews,
         List<InterviewAssessment> Assessments);
 
-    private sealed record DiscQuestionTemplate(
+    private sealed record TestQuestionTemplate(
         string QuestionText,
         DiscType DiscType,
         List<QuestionOptions> Options);

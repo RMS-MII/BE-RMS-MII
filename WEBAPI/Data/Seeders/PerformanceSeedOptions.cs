@@ -41,8 +41,8 @@ public sealed class PerformanceSeedOptions
     /// <summary>Proporsi tahap wawancara yang memiliki sesi wawancara (0..1).</summary>
     public double InterviewSessionRatio { get; set; } = 0.35;
 
-    /// <summary>Proporsi tahap tes DISC yang memiliki jawaban (0..1).</summary>
-    public double CandidateAnswerRatio { get; set; } = 0.60;
+    /// <summary>Proporsi tahap tes yang memiliki jawaban (0..1). Default 1.0 agar stage selesai selalu punya jawaban.</summary>
+    public double CandidateAnswerRatio { get; set; } = 1.0;
 
     /// <summary>Seed RNG agar data deterministik antar-run.</summary>
     public int RandomSeed { get; set; } = 20261117;

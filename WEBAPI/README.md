@@ -42,7 +42,7 @@ Konfigurasi lengkap tersedia di section `Seed:Performance`. Nilai default
 | `EmailLogs` | `10000` | Log email |
 | `RescheduleRequests` | `500` | Permintaan reschedule |
 | `InterviewSessionRatio` | `0.35` | Proporsi tahap wawancara yang punya sesi |
-| `CandidateAnswerRatio` | `0.6` | Proporsi tahap DISC yang punya jawaban |
+| `CandidateAnswerRatio` | `1.0` | Proporsi tahap tes yang punya jawaban |
 | `RandomSeed` | `20261117` | Seed RNG agar data deterministik |
 
 Contoh mengecilkan volume untuk uji cepat:
@@ -56,7 +56,7 @@ dotnet run -- --seed-performance
 
 Untuk skala besar, naikkan `Candidates`, `ApplicationsPerCandidate`,
 `Batches`, dan `EmailLogs`. Perkiraan jumlah tahapan adalah
-`lamaran x rata-rata 3 tahap`; sesi wawancara dan jawaban DISC mengikuti rasio
+`lamaran x rata-rata 3 tahap`; sesi wawancara dan jawaban tes mengikuti rasio
 di atas.
 
 ### Data yang dibuat
@@ -68,9 +68,11 @@ di atas.
   `Active` per batch Open, serta penugasan pewawancara.
 - Lamaran (`BatchApplication`) beserta `ApplicationStage` untuk seluruh alur:
   tes, interview HR, interview user, sampai hasil akhir dan offering letter.
-- Jawaban DISC (snapshot `QuestionText`, `QuestionOptionText`, `DiscType`,
-  `Score`) hanya untuk stage Psikotes yang sudah selesai, sehingga
-  `DiscSummaryCalculator` tetap valid.
+- Jawaban tes (snapshot `QuestionText`, `QuestionOptionText`, `DiscType`,
+  `Score`) untuk stage Test yang sudah selesai, meliputi Psikotes, Logical Test,
+  dan Technical Test. `TotalScore` dihitung dari jawaban agar stage tidak punya
+  score tanpa jawaban. Pada stage non-DISC, `DiscType` menggunakan nilai default
+  dan tidak memengaruhi ringkasan DISC.
 - Sesi wawancara, panel `SessionInterview` (tepat satu lead per sesi), dan
   `InterviewAssessment` untuk sesi yang sudah selesai.
 - `RescheduleRequest` untuk sebagian sesi, termasuk status Pending/Approved/
