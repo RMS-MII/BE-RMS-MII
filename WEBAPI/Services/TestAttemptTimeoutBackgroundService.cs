@@ -50,13 +50,6 @@ public sealed class TestAttemptTimeoutBackgroundService(
 
                     if (TestAttemptPolicy.IsPastDeadline(stage, now))
                     {
-                        stage.Status = ApplicationStageStatus.Expired;
-                        stage.CompletedAt = now;
-                        stage.UpdatedAt = now;
-                        stage.BatchApplication.UpdatedAt = now;
-
-                        await db.SaveChangesAsync(stoppingToken);
-
                         // Batas waktu habis: tutup sesi lalu hitung skor dari jawaban
                         // yang berhasil tersimpan sebelum waktu habis.
                         await finalizer.FinalizeAsync(stage, now, stoppingToken);

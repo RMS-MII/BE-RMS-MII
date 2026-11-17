@@ -57,6 +57,7 @@ public sealed class PortalController(ISender sender) : ControllerBase
     }
 
     [HttpGet("{candidateId:guid}/stages/{id:guid}/test")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [ProducesResponseType<CandidateTestDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]

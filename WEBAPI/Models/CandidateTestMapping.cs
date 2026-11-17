@@ -7,7 +7,8 @@ public static class CandidateTestMapping
     public static CandidateTestDto ToCandidateTestDto(
         this ApplicationStage stage,
         IReadOnlyCollection<Question> questions,
-        DateTime now)
+        DateTime now,
+        int? totalQuestions = null)
     {
         var application = stage.BatchApplication;
         var batchStage = stage.BatchStage;
@@ -30,7 +31,7 @@ public static class CandidateTestMapping
             ServerTimeUtc = now,
             DurationTest = stage.DurationTest,
             IsAttempts = stage.IsAttempts,
-            TotalQuestions = questions.Count,
+            TotalQuestions = totalQuestions ?? questions.Count,
             Questions = questions
                 .OrderBy(question => question.SequenceNumber)
                 .ThenBy(question => question.Id)

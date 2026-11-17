@@ -1,4 +1,3 @@
-using System.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common;
@@ -14,8 +13,7 @@ namespace WEBAPI.Features.Portal.Commands.SubmitAnswer;
 
 public sealed class SubmitAnswerHandler(
     RmsDbContext db,
-    IDateTimeProvider dateTimeProvider,
-    ITestAttemptFinalizer finalizer)
+    IDateTimeProvider dateTimeProvider)
     : IRequestHandler<SubmitAnswerCommand, Result<SubmitAnswerResultDto>>
 {
     public async Task<Result<SubmitAnswerResultDto>> Handle(
@@ -85,22 +83,8 @@ public sealed class SubmitAnswerHandler(
 
         // Validasi ketat batas waktu dilakukan di server berbasis timestamp server.
         if (TestAttemptPolicy.IsPastDeadline(stage, now))
-        {
-            stage.Status = ApplicationStageStatus.Expired;
-            stage.CompletedAt = now;
-            stage.UpdatedAt = now;
-            application.UpdatedAt = now;
-
-            await db.SaveChangesAsync(ct);
-
-            // Batas waktu habis: sesi ditutup dan jawaban yang berhasil tersimpan
-            // tetap dipertahankan untuk dihitung skornya.
-            await finalizer.FinalizeAsync(stage, now, ct);
-
             return Result<SubmitAnswerResultDto>.Failure(
-                Error.BusinessRule(
-                    "The test duration has ended. The stage has been marked as expired."));
-        }
+                Error.BusinessRule("The test duration has ended."));
 
         var questions = await db.Questions
             .Where(question =>
@@ -116,7 +100,7 @@ public sealed class SubmitAnswerHandler(
             return Result<SubmitAnswerResultDto>.Failure(
                 Error.BusinessRule("No active questions are configured for this test."));
 
-        if (request.Answers is null || request.Answers.Count == 0)
+        if (request.Answers is null || (!request.IsDraft && request.Answers.Count == 0))
             return Result<SubmitAnswerResultDto>.Failure(
                 Error.Validation("At least one answer is required."));
 
@@ -143,14 +127,12 @@ public sealed class SubmitAnswerHandler(
             .FirstOrDefault(question =>
                 question.IsRequired && !answersByQuestion.ContainsKey(question.Id));
 
-        if (missingRequiredQuestion is not null)
+        if (!request.IsDraft && missingRequiredQuestion is not null)
             return Result<SubmitAnswerResultDto>.Failure(
                 Error.Validation(
                     "All required questions must be answered before submitting the test."));
 
         var candidateAnswers = new List<CandidateAnswer>();
-        decimal totalScore = 0;
-
         foreach (var answer in answersByQuestion.Values)
         {
             var question = questionsById[answer.QuestionId];
@@ -177,8 +159,6 @@ public sealed class SubmitAnswerHandler(
                     2,
                     MidpointRounding.AwayFromZero);
 
-                totalScore += answerScore;
-
                 candidateAnswers.Add(new CandidateAnswer
                 {
                     Id = Guid.CreateVersion7(),
@@ -192,13 +172,14 @@ public sealed class SubmitAnswerHandler(
             }
         }
 
-        var maxRawScore = TestScoreCalculator.CalculateMaxRawScore(questions);
-        stage.TotalScore = TestScoreCalculator.Normalize(totalScore, maxRawScore);
-        stage.UpdatedAt = now;
+        // Serialize saves and finalization on the attempt row before replacing its answers.
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var updated = await db.ApplicationStages
+            .Where(item => item.Id == stage.Id && !item.IsAttempts && item.Status == ApplicationStageStatus.InProgress)
+            .ExecuteUpdateAsync(update => update.SetProperty(item => item.UpdatedAt, now), ct);
+        if (updated == 0)
+            return Result<SubmitAnswerResultDto>.Failure(Error.BusinessRule("This test has already ended."));
 
-        // The client may retry after answers were saved but before finish succeeds.
-        // Replace the complete answer set atomically so a retry cannot double the score.
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         await db.CandidateAnswers
             .Where(answer => answer.ApplicationStageId == stage.Id)
             .ExecuteDeleteAsync(ct);
