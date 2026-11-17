@@ -193,6 +193,7 @@ public class ReviewRescheduleHandler(
         {
             try
             {
+                var isCandidate = string.Equals(recipient.Key, candidate?.Email, StringComparison.OrdinalIgnoreCase);
                 var content = EmailTemplates.InterviewRescheduled(
                     recipient.Value.Name,
                     session.SessionName,
@@ -203,7 +204,7 @@ public class ReviewRescheduleHandler(
                     session.MeetingUrl,
                     session.Location,
                     recipient.Value.ActionUrl,
-                    request.ReviewNotes);
+                    isCandidate && !request.RequestedByCandidate ? null : request.ReviewNotes);
 
                 await emailService.SendEmailAsync(
                     recipient.Key,

@@ -71,7 +71,7 @@ public sealed class PublicApplicationCodes(
         try
         {
             await emailService.SendVerificationEmailAsync(email, new EmailContent(
-                "Your RMS candidate sign-in code",
+                "Your Rekrutin candidate sign-in code",
                 $"Your verification code is {code}. It expires in 10 minutes. If you did not request this code, you can ignore this email."), ct);
         }
         catch (Exception exception) when (!ct.IsCancellationRequested)

@@ -11,7 +11,7 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    Log.Information("Starting RMS API");
+    Log.Information("Starting Rekrutin API");
     var builder = WebApplication.CreateBuilder(args);
 
     builder.AddRmsSerilog();
@@ -86,11 +86,11 @@ try
 }
 catch (Exception ex) when (ex is not HostAbortedException)
 {
-    Log.Fatal(ex, "RMS API terminated unexpectedly");
+    Log.Fatal(ex, "Rekrutin API terminated unexpectedly");
     Environment.ExitCode = 1;
 }
 finally
 {
-    Log.Information("RMS API stopped");
+    Log.Information("Rekrutin API stopped");
     Log.CloseAndFlush();
 }

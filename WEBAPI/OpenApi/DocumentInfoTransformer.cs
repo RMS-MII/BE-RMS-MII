@@ -10,9 +10,9 @@ public sealed class DocumentInfoTransformer(IConfiguration configuration) : IOpe
     {
         document.Info = new OpenApiInfo
         {
-            Title = "RMS API",
+            Title = "Rekrutin API",
             Version = "v1",   // the version of YOUR API, not of the OpenAPI specification
-            Description = "Recruitment Management System : departments, positions, employees, and accounts.",
+            Description = "Rekrutin recruitment API for departments, positions, employees, and accounts.",
             Contact = new OpenApiContact
             {
                 Name = "RMS Platform Team",

@@ -53,5 +53,6 @@ public class EmailLogConfiguration : IEntityTypeConfiguration<EmailLog>
             .HasMaxLength(1000);
 
         builder.HasIndex(x => x.AttemptedAt);
+        builder.HasIndex(x => new { x.Status, x.AttemptedAt });
     }
 }

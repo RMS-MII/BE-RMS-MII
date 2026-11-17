@@ -40,6 +40,9 @@ public class ApplicationStageConfiguration : IEntityTypeConfiguration<Applicatio
             .IsUnique();
 
         builder.HasIndex(a => a.BatchApplicationId);
+
+        builder.HasIndex(a => new { a.Status, a.AttemptStartedAt })
+            .HasFilter("[IsAttempts] = 0 AND [AttemptStartedAt] IS NOT NULL");
         
         //relationships
         builder.HasOne(a => a.BatchApplication)

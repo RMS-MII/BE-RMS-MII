@@ -9,5 +9,13 @@ public record RequestRescheduleCommand(
     DateTime ProposedStart,
     DateTime ProposedEnd,
     string Reason,
-    Guid? CandidateId = null) : IRequest<Result<RescheduleRequestDto>>;
+    Guid? CandidateId = null) : IRequest<Result<RescheduleRequestDto>>
+{
+    public DateTime ProposedStartUtc => ToUtc(ProposedStart);
+    public DateTime ProposedEndUtc => ToUtc(ProposedEnd);
+
+    private static DateTime ToUtc(DateTime time) => time.Kind == DateTimeKind.Local
+        ? time.ToUniversalTime()
+        : DateTime.SpecifyKind(time, DateTimeKind.Utc);
+}
 

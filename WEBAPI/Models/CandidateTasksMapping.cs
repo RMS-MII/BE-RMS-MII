@@ -103,7 +103,8 @@ public static class CandidateTasksMapping
         this InterviewSession session, DateTime now, IReadOnlyCollection<RescheduleRequest>? requests)
     {
         var changes = requests?.Where(r => r.InterviewSessionId == session.Id).ToList() ?? [];
-        var latest = changes.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
+        var latest = changes.Where(r => r.RequestedByCandidate)
+            .OrderByDescending(r => r.CreatedAt).FirstOrDefault();
         var pending = changes.Any(r => r.Status == RescheduleStatus.Pending);
         var submissionLocked = session.SessionInterviews.Any(interviewer =>
             interviewer.Status == SessionInterviewStatus.Completed || interviewer.InterviewAssessment is not null);

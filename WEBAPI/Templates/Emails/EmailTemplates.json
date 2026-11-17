@@ -34,7 +34,7 @@
     "subject": "Jadwal Sesi Wawancara - {{sessionName}}",
     "title": "Jadwal Sesi Wawancara",
     "greeting": "Halo {{recipientName}},",
-    "summary": "Anda telah dijadwalkan oleh HR untuk menjadi pewawancara pada sesi berikut. Silakan masuk ke aplikasi RMS untuk memeriksa jadwal dan mengonfirmasi kehadiran Anda.",
+    "summary": "Anda telah dijadwalkan oleh HR untuk menjadi pewawancara pada sesi berikut. Silakan masuk ke aplikasi Rekrutin untuk memeriksa jadwal dan mengonfirmasi kehadiran Anda.",
     "details": [
       { "label": "Nama Sesi", "value": "{{sessionName}}" },
       { "label": "Kandidat", "value": "{{candidateName}}" },
@@ -42,7 +42,7 @@
       { "label": "Waktu", "value": "{{scheduleText}}" },
       { "label": "Moda", "value": "{{modeText}}" }
     ],
-    "actionLabel": "Masuk ke Aplikasi RMS",
+    "actionLabel": "Masuk ke Aplikasi Rekrutin",
     "actionUrl": "{{appUrl}}",
     "note": "Pastikan Anda mengonfirmasi ketersediaan sebelum sesi wawancara berlangsung.",
     "closing": "Salam,\nTim Rekrutmen"
@@ -67,30 +67,30 @@
     "subject": "Undangan Penugasan Pewawancara - {{stageName}}",
     "title": "Undangan Penugasan Pewawancara",
     "greeting": "Halo {{recipientName}},",
-    "summary": "Anda telah ditugaskan sebagai pewawancara pada tahapan '{{stageName}}' untuk batch '{{batchName}}'. Silakan masuk ke aplikasi RMS untuk merespons ketersediaan jadwal Anda.",
+    "summary": "Anda telah ditugaskan sebagai pewawancara pada tahapan '{{stageName}}' untuk batch '{{batchName}}'. Silakan masuk ke aplikasi Rekrutin untuk merespons ketersediaan jadwal Anda.",
     "details": [
       { "label": "Batch", "value": "{{batchName}}" },
       { "label": "Tahap", "value": "{{stageName}}" },
       { "label": "Status", "value": "Penugasan Baru" }
     ],
-    "actionLabel": "Masuk ke Aplikasi RMS",
+    "actionLabel": "Masuk ke Aplikasi Rekrutin",
     "actionUrl": "{{appUrl}}",
-    "note": "Silakan konfirmasi ketersediaan Anda melalui menu undangan pada aplikasi RMS.",
+    "note": "Silakan konfirmasi ketersediaan Anda melalui menu undangan pada aplikasi Rekrutin.",
     "closing": "Salam,\nTim Rekrutmen"
   },
   "InterviewerReassignment": {
     "subject": "Undangan Penugasan Pewawancara - {{stageName}}",
     "title": "Undangan Penugasan Pewawancara",
     "greeting": "Halo {{recipientName}},",
-    "summary": "Anda kembali ditugaskan sebagai pewawancara pada tahapan '{{stageName}}' untuk batch '{{batchName}}'. Silakan masuk ke aplikasi RMS untuk merespons ketersediaan jadwal Anda.",
+    "summary": "Anda kembali ditugaskan sebagai pewawancara pada tahapan '{{stageName}}' untuk batch '{{batchName}}'. Silakan masuk ke aplikasi Rekrutin untuk merespons ketersediaan jadwal Anda.",
     "details": [
       { "label": "Batch", "value": "{{batchName}}" },
       { "label": "Tahap", "value": "{{stageName}}" },
       { "label": "Status", "value": "Penugasan Kembali" }
     ],
-    "actionLabel": "Masuk ke Aplikasi RMS",
+    "actionLabel": "Masuk ke Aplikasi Rekrutin",
     "actionUrl": "{{appUrl}}",
-    "note": "Silakan konfirmasi ketersediaan Anda melalui menu undangan pada aplikasi RMS.",
+    "note": "Silakan konfirmasi ketersediaan Anda melalui menu undangan pada aplikasi Rekrutin.",
     "closing": "Salam,\nTim Rekrutmen"
   },
   "TakeHome": {
@@ -201,20 +201,20 @@
     "closing": "Terima kasih,\nTim Rekrutmen"
   },
   "PasswordReset": {
-    "subject": "Reset Password Akun RMS",
+    "subject": "Reset Password Akun Rekrutin",
     "title": "Reset Password",
     "greeting": "Halo {{recipientName}},",
-    "summary": "Kami menerima permintaan untuk mengatur ulang password akun RMS Anda.",
+    "summary": "Kami menerima permintaan untuk mengatur ulang password akun Rekrutin Anda.",
     "actionLabel": "Atur Ulang Password",
     "actionUrl": "{{resetUrl}}",
     "note": "Tautan ini berlaku selama 30 menit dan hanya dapat digunakan sekali. Jika Anda tidak meminta reset password, abaikan email ini.",
-    "closing": "Salam,\nTim RMS"
+    "closing": "Salam,\nTim Rekrutin"
   },
   "InterviewerDeclined": {
     "subject": "Penolakan Penugasan Pewawancara - {{interviewerName}}",
     "title": "Penolakan Penugasan Pewawancara",
     "greeting": "Halo {{recipientName}},",
-    "summary": "Pewawancara {{interviewerName}} telah menolak penugasan pada tahapan '{{stageName}}' (Batch: {{batchName}}). Silakan tentukan pewawancara pengganti pada sistem RMS.",
+    "summary": "Pewawancara {{interviewerName}} telah menolak penugasan pada tahapan '{{stageName}}' (Batch: {{batchName}}). Silakan tentukan pewawancara pengganti pada sistem Rekrutin.",
     "details": [
       { "label": "Pewawancara", "value": "{{interviewerName}}" },
       { "label": "Tahap", "value": "{{stageName}}" },
