@@ -7,39 +7,36 @@ using WEBAPI.Models;
 namespace WEBAPI.Features.Batches.Queries.GetBatchDetail;
 
 public sealed class GetBatchDetailHandler(RmsDbContext db)
-    : IRequestHandler<GetBatchDetailQuery, Result<RecruitmentBatchDto>>
+    : IRequestHandler<GetBatchDetailQuery, Result<RecruitmentBatchDetailDto>>
 {
-    public async Task<Result<RecruitmentBatchDto>> Handle(
+    public async Task<Result<RecruitmentBatchDetailDto>> Handle(
         GetBatchDetailQuery request, CancellationToken ct)
     {
-        var batch = await db.RecruitmentBatches
+        var detail = await db.RecruitmentBatches
             .AsNoTracking()
-            .Include(b => b.Department)
-            .Include(b => b.BatchStages)
-                .ThenInclude(s => s.StageType)
-            .FirstOrDefaultAsync(b => b.Id == request.Id, ct);
+            .Where(batch => batch.Id == request.Id)
+            .Select(batch => new RecruitmentBatchDetailDto
+            {
+                Id = batch.Id,
+                DepartmentId = batch.DepartmentId,
+                DepartmentName = batch.Department.Name,
+                BatchCode = batch.BatchCode,
+                Name = batch.Name,
+                Description = batch.Description,
+                StartDate = batch.StartDate,
+                EndDate = batch.EndDate,
+                ApplicationDeadlineAt = batch.ApplicationDeadlineAt,
+                Status = batch.Status,
+                CreatedBy = batch.CreatedBy,
+                CreatedAt = batch.CreatedAt,
+                UpdatedAt = batch.UpdatedAt
+            })
+            .FirstOrDefaultAsync(ct);
 
-        if (batch is null)
-            return Result<RecruitmentBatchDto>.Failure(
+        if (detail is null)
+            return Result<RecruitmentBatchDetailDto>.Failure(
                 Error.NotFound("Batch was not found."));
 
-        var stageIds = batch.BatchStages.Select(stage => stage.Id).ToArray();
-        var candidateCounts = await db.ApplicationStages
-            .AsNoTracking()
-            .Where(stage => stageIds.Contains(stage.BatchStageId))
-            .GroupBy(stage => stage.BatchStageId)
-            .Select(group => new { StageId = group.Key, Count = group.Count() })
-            .ToDictionaryAsync(item => item.StageId, item => item.Count, ct);
-
-        var dto = batch.ToDto();
-        dto.BatchStages = dto.BatchStages
-            .Select(stage =>
-            {
-                stage.CandidateCount = candidateCounts.GetValueOrDefault(stage.Id);
-                return stage;
-            })
-            .ToList();
-
-        return Result<RecruitmentBatchDto>.Success(dto);
+        return Result<RecruitmentBatchDetailDto>.Success(detail);
     }
 }
