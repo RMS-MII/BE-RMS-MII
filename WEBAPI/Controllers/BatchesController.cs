@@ -15,6 +15,7 @@ using WEBAPI.Features.Batches.Queries.GetBatchDetail;
 using WEBAPI.Features.Batches.Queries.GetBatchSummary;
 using WEBAPI.Features.Batches.Queries.GetBatchStageFlow;
 using WEBAPI.Features.Batches.Queries.GetInterviewCandidates;
+using WEBAPI.Features.Batches.Queries.GetAvailableTalentCandidates;
 using WEBAPI.Features.Batches.Queries.GetBatches;
 using WEBAPI.Features.Batches.Queries.GetBatchInterviewSessions;
 using WEBAPI.Features.Batches.Queries.GetBatchStages;
@@ -255,15 +256,32 @@ public sealed class BatchesController(ISender sender) : ControllerBase
     }
 
     /// <summary>
-    /// Mencari maksimal lima kandidat yang dapat dijadwalkan untuk interview (Khusus HR).
+    /// Mengambil kandidat yang dapat dijadwalkan untuk interview, lima per halaman (Khusus HR).
     /// </summary>
     [HttpGet("{id:guid}/interview-candidates")]
-    [ProducesResponseType<IReadOnlyCollection<InterviewCandidateOptionDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<InterviewCandidatesPageDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetInterviewCandidates(
-        Guid id, [FromQuery] string? search, CancellationToken ct)
+        Guid id, [FromQuery] string? search, [FromQuery] int page = 1,
+        CancellationToken ct = default)
     {
-        var result = await sender.Send(new GetInterviewCandidatesQuery(id, search), ct);
+        var result = await sender.Send(new GetInterviewCandidatesQuery(id, search, page), ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengambil kandidat talent pool yang belum terdaftar pada batch secara bertahap (Khusus HR).
+    /// </summary>
+    [HttpGet("{id:guid}/available-talent-candidates")]
+    [ProducesResponseType<AvailableTalentCandidatesPageDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAvailableTalentCandidates(
+        Guid id, [FromQuery] string? search, [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 5, CancellationToken ct = default)
+    {
+        var result = await sender.Send(new GetAvailableTalentCandidatesQuery(id, search, page, pageSize), ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
