@@ -44,11 +44,62 @@ public sealed class GetApplicationsHandler(RmsDbContext db)
 
         var totalItems = await query.CountAsync(ct);
 
-        var applications = await query
+        var descending = string.Equals(request.Order, "desc", StringComparison.OrdinalIgnoreCase);
+        var sorted = request.SortBy?.ToLowerInvariant() switch
+        {
+            "name" => descending ? query.OrderByDescending(application => application.Candidate.FullName)
+                : query.OrderBy(application => application.Candidate.FullName),
+            "code" => descending ? query.OrderByDescending(application => application.CodeApplication)
+                : query.OrderBy(application => application.CodeApplication),
+            "stage" => descending
+                ? query.OrderByDescending(application => application.ApplicationStages
+                    .Where(stage => !request.StageId.HasValue || stage.BatchStageId == request.StageId.Value)
+                    .OrderByDescending(stage => stage.BatchStage.StartDate)
+                    .ThenByDescending(stage => stage.BatchStage.CreatedAt)
+                    .ThenByDescending(stage => stage.StartedAt)
+                    .Select(stage => stage.BatchStage.StageName).FirstOrDefault())
+                : query.OrderBy(application => application.ApplicationStages
+                    .Where(stage => !request.StageId.HasValue || stage.BatchStageId == request.StageId.Value)
+                    .OrderByDescending(stage => stage.BatchStage.StartDate)
+                    .ThenByDescending(stage => stage.BatchStage.CreatedAt)
+                    .ThenByDescending(stage => stage.StartedAt)
+                    .Select(stage => stage.BatchStage.StageName).FirstOrDefault()),
+            "status" when !request.StageId.HasValue => descending
+                ? query.OrderByDescending(application => application.Status)
+                    .ThenByDescending(application => application.ApplicationStages
+                        .OrderByDescending(stage => stage.BatchStage.StartDate)
+                        .ThenByDescending(stage => stage.BatchStage.CreatedAt)
+                        .ThenByDescending(stage => stage.StartedAt)
+                        .Select(stage => (int?)stage.Status).FirstOrDefault())
+                : query.OrderBy(application => application.Status)
+                    .ThenBy(application => application.ApplicationStages
+                        .OrderByDescending(stage => stage.BatchStage.StartDate)
+                        .ThenByDescending(stage => stage.BatchStage.CreatedAt)
+                        .ThenByDescending(stage => stage.StartedAt)
+                        .Select(stage => (int?)stage.Status).FirstOrDefault()),
+            "status" => descending
+                ? query.OrderByDescending(application => application.ApplicationStages
+                    .Where(stage => !request.StageId.HasValue || stage.BatchStageId == request.StageId.Value)
+                    .OrderByDescending(stage => stage.BatchStage.StartDate)
+                    .ThenByDescending(stage => stage.BatchStage.CreatedAt)
+                    .ThenByDescending(stage => stage.StartedAt)
+                    .Select(stage => (int?)stage.Status).FirstOrDefault())
+                : query.OrderBy(application => application.ApplicationStages
+                    .Where(stage => !request.StageId.HasValue || stage.BatchStageId == request.StageId.Value)
+                    .OrderByDescending(stage => stage.BatchStage.StartDate)
+                    .ThenByDescending(stage => stage.BatchStage.CreatedAt)
+                    .ThenByDescending(stage => stage.StartedAt)
+                    .Select(stage => (int?)stage.Status).FirstOrDefault()),
+            "appliedat" => descending ? query.OrderByDescending(application => application.AppliedAt)
+                : query.OrderBy(application => application.AppliedAt),
+            _ => query.OrderByDescending(application => application.AppliedAt)
+        };
+
+        var applications = await sorted
+            .ThenBy(application => application.Id)
             .Include(application => application.Candidate)
             .Include(application => application.ApplicationStages)
                 .ThenInclude(stage => stage.BatchStage)
-            .OrderByDescending(application => application.AppliedAt)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(ct);

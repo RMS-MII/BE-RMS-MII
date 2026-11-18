@@ -10,6 +10,8 @@ public sealed record GetBatchesQuery : IRequest<Result<PagedResult<RecruitmentBa
     public BatchStatus? Status { get; init; }
     public Guid? DepartmentId { get; init; }
     public string? Search { get; init; }
+    public string? SortBy { get; init; }
+    public string? Order { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 10;
 }

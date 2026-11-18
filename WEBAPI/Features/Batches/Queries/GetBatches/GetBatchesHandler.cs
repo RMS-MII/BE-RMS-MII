@@ -30,8 +30,30 @@ public sealed class GetBatchesHandler(RmsDbContext db)
 
         var totalItems = await query.CountAsync(ct);
 
-        var batches = await query
-            .OrderByDescending(b => b.CreatedAt)
+        var descending = string.Equals(request.Order, "desc", StringComparison.OrdinalIgnoreCase);
+        var sorted = request.SortBy?.ToLowerInvariant() switch
+        {
+            "code" => descending ? query.OrderByDescending(b => b.BatchCode) : query.OrderBy(b => b.BatchCode),
+            "name" => descending ? query.OrderByDescending(b => b.Name) : query.OrderBy(b => b.Name),
+            "stage" => descending
+                ? query.OrderByDescending(b => b.BatchStages
+                    .Where(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Active)
+                    .OrderBy(stage => stage.StartDate)
+                    .Select(stage => stage.StageName).FirstOrDefault())
+                : query.OrderBy(b => b.BatchStages
+                    .Where(stage => stage.LifecycleStatus == BatchStageLifecycleStatus.Active)
+                    .OrderBy(stage => stage.StartDate)
+                    .Select(stage => stage.StageName).FirstOrDefault()),
+            "candidates" => descending
+                ? query.OrderByDescending(b => b.BatchApplications.Count(application => application.Status == ApplicationStatus.InProcess))
+                : query.OrderBy(b => b.BatchApplications.Count(application => application.Status == ApplicationStatus.InProcess)),
+            "period" => descending ? query.OrderByDescending(b => b.StartDate) : query.OrderBy(b => b.StartDate),
+            "status" => descending ? query.OrderByDescending(b => b.Status) : query.OrderBy(b => b.Status),
+            _ => query.OrderByDescending(b => b.CreatedAt)
+        };
+
+        var batches = await sorted
+            .ThenBy(b => b.Id)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(ct);
