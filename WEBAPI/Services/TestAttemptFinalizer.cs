@@ -59,11 +59,15 @@ public sealed class TestAttemptFinalizer(
         stage.IsAttempts = true;
         application.UpdatedAt = now;
 
-        stage.Status = stage.BatchStage.PassingScore is decimal passingScore
-            ? totalScore >= passingScore
-                ? ApplicationStageStatus.Considered
-                : ApplicationStageStatus.Rejected
-            : ApplicationStageStatus.Submitted;
+        // Standalone applications are evaluated by HR after the test is submitted.
+        // The score is stored now, but the passing threshold must not publish a decision.
+        stage.Status = application.IsStandalone
+            ? ApplicationStageStatus.Submitted
+            : stage.BatchStage.PassingScore is decimal passingScore
+                ? totalScore >= passingScore
+                    ? ApplicationStageStatus.Considered
+                    : ApplicationStageStatus.Rejected
+                : ApplicationStageStatus.Submitted;
 
         if (stage.Status == ApplicationStageStatus.Rejected)
             application.Status = ApplicationStatus.Rejected;

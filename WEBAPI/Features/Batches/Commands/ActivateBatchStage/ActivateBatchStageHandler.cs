@@ -1,5 +1,6 @@
 using System.Data;
 using MediatR;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Data;
@@ -208,7 +209,7 @@ public sealed class ActivateBatchStageHandler(
                     Error.BusinessRule(
                         "Every active candidate must be assigned to the current stage before advancing."));
 
-            if (currentParticipants.Any(item => !item.Stage.Status.IsTerminalStage()))
+            if (currentParticipants.Any(item => !item.Stage.Status.IsTerminalStage() && !item.Application.IsStandalone))
                 return Result<BatchStageTransitionDto>.Failure(
                     Error.BusinessRule(
                         "Evaluate every candidate in the current stage before activating the next stage."));

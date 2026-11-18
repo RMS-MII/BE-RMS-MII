@@ -22,6 +22,16 @@ public sealed class GetApplicationsValidator : AbstractValidator<GetApplications
         RuleFor(x => x.Search)
             .MaximumLength(100);
 
+        RuleFor(x => x.SortBy)
+            .Must(value => value is null || new[] { "name", "code", "stage", "status", "appliedAt" }
+                .Contains(value, StringComparer.OrdinalIgnoreCase))
+            .WithMessage("SortBy is invalid.");
+
+        RuleFor(x => x.Order)
+            .Must(value => value is null || new[] { "asc", "desc" }
+                .Contains(value, StringComparer.OrdinalIgnoreCase))
+            .WithMessage("Order is invalid.");
+
         RuleFor(x => x.Status)
             .Must(status => status is null || Enum.IsDefined(status.Value))
             .WithMessage("Status is invalid.");

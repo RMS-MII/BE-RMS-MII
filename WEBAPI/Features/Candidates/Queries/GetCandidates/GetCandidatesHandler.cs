@@ -24,6 +24,19 @@ public sealed class GetCandidatesHandler(RmsDbContext db)
             query = query.Where(c => c.BatchApplications.Any(ba => ba.RecruitmentBatchId == request.BatchId.Value));
         }
 
+        if (request.Gender.HasValue)
+            query = query.Where(c => c.Gender == request.Gender.Value);
+
+        switch (request.BatchStatus?.ToLowerInvariant())
+        {
+            case "applied":
+                query = query.Where(c => c.BatchApplications.Any());
+                break;
+            case "pool":
+                query = query.Where(c => !c.BatchApplications.Any());
+                break;
+        }
+
         var search = request.Search?.Trim();
         if (!string.IsNullOrEmpty(search))
         {
@@ -35,8 +48,23 @@ public sealed class GetCandidatesHandler(RmsDbContext db)
 
         var totalItems = await query.CountAsync(ct);
 
-        var candidates = await query
-            .OrderByDescending(c => c.CreatedAt)
+        var descending = string.Equals(request.Order, "desc", StringComparison.OrdinalIgnoreCase);
+        var sorted = request.SortBy?.ToLowerInvariant() switch
+        {
+            "name" => descending ? query.OrderByDescending(c => c.FullName) : query.OrderBy(c => c.FullName),
+            "education" => descending
+                ? query.OrderByDescending(c => c.Education).ThenByDescending(c => c.Institution)
+                : query.OrderBy(c => c.Education).ThenBy(c => c.Institution),
+            "gpa" => descending ? query.OrderByDescending(c => c.Gpa) : query.OrderBy(c => c.Gpa),
+            "salary" => descending ? query.OrderByDescending(c => c.ExpectedSalary) : query.OrderBy(c => c.ExpectedSalary),
+            "batches" => descending ? query.OrderByDescending(c => c.BatchApplications.Count)
+                : query.OrderBy(c => c.BatchApplications.Count),
+            "createdat" => descending ? query.OrderByDescending(c => c.CreatedAt) : query.OrderBy(c => c.CreatedAt),
+            _ => query.OrderByDescending(c => c.CreatedAt)
+        };
+
+        var candidates = await sorted
+            .ThenBy(c => c.Id)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(ct);

@@ -198,12 +198,14 @@ public sealed class SubmitTestHandler(
         stage.IsAttempts = true;
         application.UpdatedAt = now;
 
-        // Existing batches without a threshold still require an HR decision.
-        stage.Status = stage.BatchStage.PassingScore is decimal passingScore
-            ? normalizedTotalScore >= passingScore
-                ? ApplicationStageStatus.Considered
-                : ApplicationStageStatus.Rejected
-            : ApplicationStageStatus.Submitted;
+        // Standalone applications wait for an HR decision even when a passing score is configured.
+        stage.Status = application.IsStandalone
+            ? ApplicationStageStatus.Submitted
+            : stage.BatchStage.PassingScore is decimal passingScore
+                ? normalizedTotalScore >= passingScore
+                    ? ApplicationStageStatus.Considered
+                    : ApplicationStageStatus.Rejected
+                : ApplicationStageStatus.Submitted;
 
         if (stage.Status == ApplicationStageStatus.Rejected)
             application.Status = ApplicationStatus.Rejected;
