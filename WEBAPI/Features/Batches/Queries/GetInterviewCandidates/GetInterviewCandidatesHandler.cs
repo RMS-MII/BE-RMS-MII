@@ -8,14 +8,19 @@ using WEBAPI.Models;
 namespace WEBAPI.Features.Batches.Queries.GetInterviewCandidates;
 
 public sealed class GetInterviewCandidatesHandler(RmsDbContext db)
-    : IRequestHandler<GetInterviewCandidatesQuery, Result<IReadOnlyCollection<InterviewCandidateOptionDto>>>
+    : IRequestHandler<GetInterviewCandidatesQuery, Result<InterviewCandidatesPageDto>>
 {
-    public async Task<Result<IReadOnlyCollection<InterviewCandidateOptionDto>>> Handle(
+    public async Task<Result<InterviewCandidatesPageDto>> Handle(
         GetInterviewCandidatesQuery request, CancellationToken ct)
     {
+        const int pageSize = 5;
+        if (request.Page < 1 || (long)(request.Page - 1) * pageSize > int.MaxValue)
+            return Result<InterviewCandidatesPageDto>.Failure(
+                Error.Validation("Page must be a positive number."));
+
         if (!await db.RecruitmentBatches.AsNoTracking()
                 .AnyAsync(batch => batch.Id == request.BatchId, ct))
-            return Result<IReadOnlyCollection<InterviewCandidateOptionDto>>.Failure(
+            return Result<InterviewCandidatesPageDto>.Failure(
                 Error.NotFound("Batch was not found."));
 
         var query = db.BatchApplications.AsNoTracking()
@@ -41,6 +46,7 @@ public sealed class GetInterviewCandidatesHandler(RmsDbContext db)
         var candidates = await query
             .OrderBy(application => application.Candidate.FullName)
             .ThenBy(application => application.Id)
+            .Skip((request.Page - 1) * pageSize)
             .Select(application => new InterviewCandidateOptionDto
             {
                 ApplicationId = application.Id,
@@ -48,9 +54,13 @@ public sealed class GetInterviewCandidatesHandler(RmsDbContext db)
                 CandidateName = application.Candidate.FullName,
                 CandidateEmail = application.Candidate.Email
             })
-            .Take(5)
+            .Take(pageSize + 1)
             .ToListAsync(ct);
 
-        return Result<IReadOnlyCollection<InterviewCandidateOptionDto>>.Success(candidates);
+        return Result<InterviewCandidatesPageDto>.Success(new InterviewCandidatesPageDto
+        {
+            Items = candidates.Take(pageSize).ToList(),
+            HasMore = candidates.Count > pageSize
+        });
     }
 }
