@@ -5,19 +5,21 @@ namespace WEBAPI.Models;
 
 public static class BatchApplicationMapping
 {
-    public static BatchApplicationDto ToDto(this BatchApplication application)
-        => Map(application, application.Candidate);
+    public static BatchApplicationDto ToDto(this BatchApplication application, Guid? stageId = null)
+        => Map(application, application.Candidate, stageId);
 
     public static BatchApplicationDto ToDto(this BatchApplication application, Candidate candidate)
         => Map(application, candidate);
 
     public static IReadOnlyCollection<BatchApplicationDto> ToDtoList(
-        this IEnumerable<BatchApplication> applications)
-        => applications.Select(ToDto).ToList();
+        this IEnumerable<BatchApplication> applications, Guid? stageId = null)
+        => applications.Select(application => Map(application, application.Candidate, stageId)).ToList();
 
-    private static BatchApplicationDto Map(BatchApplication application, Candidate? candidate)
+    private static BatchApplicationDto Map(
+        BatchApplication application, Candidate? candidate, Guid? stageId = null)
     {
         var currentStage = application.ApplicationStages
+            .Where(stage => !stageId.HasValue || stage.BatchStageId == stageId.Value)
             .OrderBy(stage => stage.BatchStage?.StartDate ?? stage.StartedAt)
             .ThenBy(stage => stage.BatchStage?.CreatedAt ?? stage.CreatedAt)
             .ThenBy(stage => stage.StartedAt)

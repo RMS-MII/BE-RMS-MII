@@ -24,6 +24,12 @@ public sealed class GetApplicationsHandler(RmsDbContext db)
             .AsNoTracking()
             .Where(application => application.RecruitmentBatchId == request.BatchId);
 
+        if (request.StageId.HasValue)
+        {
+            query = query.Where(application =>
+                application.ApplicationStages.Any(stage => stage.BatchStageId == request.StageId.Value));
+        }
+
         if (request.Status.HasValue)
             query = query.Where(application => application.Status == request.Status.Value);
 
@@ -48,7 +54,7 @@ public sealed class GetApplicationsHandler(RmsDbContext db)
             .ToListAsync(ct);
 
         var result = new PagedResult<BatchApplicationDto>(
-            applications.ToDtoList(),
+            applications.ToDtoList(request.StageId),
             request.Page,
             request.PageSize,
             totalItems);

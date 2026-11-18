@@ -9,6 +9,10 @@ public sealed class GetApplicationsValidator : AbstractValidator<GetApplications
         RuleFor(x => x.BatchId)
             .NotEmpty();
 
+        RuleFor(x => x.StageId)
+            .Must(stageId => stageId is null || stageId.Value != Guid.Empty)
+            .WithMessage("StageId is invalid.");
+
         RuleFor(x => x.Page)
             .GreaterThanOrEqualTo(1);
 
