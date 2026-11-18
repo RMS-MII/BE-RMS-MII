@@ -234,6 +234,9 @@ public sealed class ActivateBatchStageHandler(
                         candidatesDropped++;
                         break;
                     case ApplicationStageStatus.InProgress:
+                        item.Stage.Status = ApplicationStageStatus.Dropped;
+                        item.Stage.CompletedAt = now;
+                        item.Stage.UpdatedAt = now;
                         item.Application.Status = ApplicationStatus.Dropped;
                         item.Application.UpdatedAt = now;
                         rejectedApplications.Add((item.Application, item.Stage));
