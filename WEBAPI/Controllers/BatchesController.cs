@@ -12,6 +12,9 @@ using WEBAPI.Features.Batches.Commands.CompleteBatchStage;
 using WEBAPI.Features.Batches.Commands.CreateBatch;
 using WEBAPI.Features.Batches.Commands.UpdateBatchStatus;
 using WEBAPI.Features.Batches.Queries.GetBatchDetail;
+using WEBAPI.Features.Batches.Queries.GetBatchSummary;
+using WEBAPI.Features.Batches.Queries.GetBatchStageFlow;
+using WEBAPI.Features.Batches.Queries.GetInterviewCandidates;
 using WEBAPI.Features.Batches.Queries.GetBatches;
 using WEBAPI.Features.Batches.Queries.GetBatchInterviewSessions;
 using WEBAPI.Features.Batches.Queries.GetBatchStages;
@@ -43,12 +46,12 @@ public sealed class BatchesController(ISender sender) : ControllerBase
     }
 
     /// <summary>
-    /// Mengambil detail satu batch rekrutmen beserta seluruh tahapan seleksi yang telah dikonfigurasi (Khusus HR).
+    /// Mengambil informasi dasar satu batch rekrutmen tanpa tahapan seleksi (Khusus HR).
     /// </summary>
     /// <param name="id">ID Batch rekrutmen</param>
     /// <param name="ct">Cancellation token</param>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType<RecruitmentBatchDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<RecruitmentBatchDetailDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
@@ -56,6 +59,32 @@ public sealed class BatchesController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetBatchDetail(Guid id, CancellationToken ct)
     {
         var result = await sender.Send(new GetBatchDetailQuery(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengambil ringkasan kandidat dan penanggung jawab batch untuk tab Summary (Khusus HR).
+    /// </summary>
+    [HttpGet("{id:guid}/summary")]
+    [ProducesResponseType<BatchDetailSummaryDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSummary(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetBatchSummaryQuery(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mengambil urutan dan status tahapan untuk pipeline tanpa data pewawancara (Khusus HR).
+    /// </summary>
+    [HttpGet("{id:guid}/stage-flow")]
+    [ProducesResponseType<IReadOnlyCollection<BatchStageFlowDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStageFlow(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetBatchStageFlowQuery(id), ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
@@ -222,6 +251,19 @@ public sealed class BatchesController(ISender sender) : ControllerBase
         Guid id, [FromQuery] GetApplicationsQuery query, CancellationToken ct)
     {
         var result = await sender.Send(query with { BatchId = id }, ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
+    /// <summary>
+    /// Mencari maksimal lima kandidat yang dapat dijadwalkan untuk interview (Khusus HR).
+    /// </summary>
+    [HttpGet("{id:guid}/interview-candidates")]
+    [ProducesResponseType<IReadOnlyCollection<InterviewCandidateOptionDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetInterviewCandidates(
+        Guid id, [FromQuery] string? search, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetInterviewCandidatesQuery(id, search), ct);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
