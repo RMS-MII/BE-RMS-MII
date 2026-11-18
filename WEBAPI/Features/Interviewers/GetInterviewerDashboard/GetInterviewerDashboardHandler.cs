@@ -72,11 +72,12 @@ public class GetInterviewerDashboardHandler(
             session.InterviewSession.SessionInterviews = panelsBySession.GetValueOrDefault(session.InterviewSessionId) ?? [];
         }
 
-        // 3. Filter sesi mendatang (upcoming)
+        // 3. Sesi yang belum selesai, termasuk yang sedang berlangsung.
         var upcomingSessions = mySessionInterviews
             .Where(si => si.InterviewSession.ScheduledEnd >= now
                       && si.Status != SessionInterviewStatus.Cancelled
-                      && si.InterviewSession.Status != InterviewSessionStatus.Rescheduled)
+                      && si.InterviewSession.Status != InterviewSessionStatus.Rescheduled
+                      && si.InterviewSession.ApplicationStage.BatchStage.RecruitmentBatch.Status != BatchStatus.Closed)
             .OrderBy(si => si.InterviewSession.ScheduledStart)
             .ToList();
 
@@ -154,11 +155,6 @@ public class GetInterviewerDashboardHandler(
                 {
                     tasks.Add(sessionInterview.ToSessionConfirmationTask(now));
                 }
-                else if (!hasEnded)
-                {
-                    tasks.Add(sessionInterview.ToUpcomingSessionTask(now));
-                }
-
                 continue;
             }
 
@@ -174,36 +170,15 @@ public class GetInterviewerDashboardHandler(
                 continue;
             }
 
-            if (!hasEnded)
-            {
-                tasks.Add(sessionInterview.ToUpcomingSessionTask(now));
-            }
         }
 
         var orderedTasks = tasks
+            .Where(task => task.IsActionable)
             .OrderByDescending(task => task.IsOverdue)
-            .ThenByDescending(task => task.IsActionable)
             .ThenBy(task => task.DueAt ?? DateTime.MaxValue)
             .ThenBy(task => task.ScheduledStart ?? DateTime.MaxValue)
             .ThenBy(task => task.TaskType)
             .ToList();
-
-        // Batasi task informasi agar payload dashboard tetap ringkas.
-        // Seluruh sesi mendatang tetap tersedia di UpcomingSessions.
-        const int maxInformationalTasks = 5;
-        var limitedTasks = new List<InterviewerActiveTaskDto>(orderedTasks.Count);
-        var informationalCount = 0;
-        foreach (var task in orderedTasks)
-        {
-            if (!task.IsActionable)
-            {
-                if (informationalCount >= maxInformationalTasks) continue;
-                informationalCount++;
-            }
-
-            limitedTasks.Add(task);
-        }
-
-        return limitedTasks;
+        return orderedTasks;
     }
 }
