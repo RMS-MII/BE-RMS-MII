@@ -2,7 +2,6 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Data;
-using WEBAPI.Entities;
 using WEBAPI.Entities.Enums;
 using WEBAPI.Models;
 
@@ -15,33 +14,28 @@ public sealed class GetBatchDashboardHandler(RmsDbContext db)
         GetBatchDashboardQuery request,
         CancellationToken ct)
     {
-        var totalCandidates = await db.BatchApplications
-            .AsNoTracking()
-            .CountAsync(ct);
+        var counts = await db.BatchApplications.AsNoTracking()
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                Total = group.Count(),
+                InProcess = group.Count(application => application.Status == ApplicationStatus.InProcess),
+                Accepted = group.Count(application => application.Status == ApplicationStatus.Accepted),
+                Rejected = group.Count(application => application.Status == ApplicationStatus.Rejected),
+                Dropped = group.Count(application => application.Status == ApplicationStatus.Dropped)
+            })
+            .FirstOrDefaultAsync(ct);
 
-        var acceptedCandidates = await db.BatchApplications
-            .AsNoTracking()
-            .CountAsync(
-                application =>
-                    application.Status == ApplicationStatus.Accepted,
-                ct);
-
-        var notPassedCandidates = await db.BatchApplications
-            .AsNoTracking()
-            .CountAsync(
-                application =>
-                    application.FinalResultStatus == FinalResultStatus.Rejected,
-                ct);
-
-        var employeeCount = await db.StageEmployees
-            .AsNoTracking()
-            .CountAsync(ct);
+        var employeeCount = await db.Employees.AsNoTracking()
+            .CountAsync(employee => employee.IsActive, ct);
 
         var dto = new GetBatchDashboardDto
         {
-            TotalCandidates = totalCandidates,
-            AcceptedCandidates = acceptedCandidates,
-            NotPassedCandidates = notPassedCandidates,
+            TotalApplications = counts?.Total ?? 0,
+            InProcessApplications = counts?.InProcess ?? 0,
+            AcceptedApplications = counts?.Accepted ?? 0,
+            RejectedApplications = counts?.Rejected ?? 0,
+            DroppedApplications = counts?.Dropped ?? 0,
             EmployeeCount = employeeCount
         };
 
