@@ -26,6 +26,14 @@ public static class BatchApplicationMapping
             .ToList()
             .LastOrDefault();
 
+        // Standalone candidate yang belum di-start belum punya ApplicationStage.
+        // Saat daftar difilter oleh stage, tampilkan identitas stage dari konfigurasi batch.
+        var unstartedStage = currentStage is null && application.ApplicationStages.Count == 0 &&
+                             stageId.HasValue
+            ? application.RecruitmentBatch?.BatchStages
+                .FirstOrDefault(stage => stage.Id == stageId.Value)
+            : null;
+
         return new BatchApplicationDto
         {
             Id = application.Id,
@@ -42,8 +50,8 @@ public static class BatchApplicationMapping
             FileOfferingLetter = application.FileOfferingLetter,
             CreatedAt = application.CreatedAt,
             UpdatedAt = application.UpdatedAt,
-            CurrentStageId = currentStage?.BatchStageId,
-            CurrentStageName = currentStage?.BatchStage?.StageName,
+            CurrentStageId = currentStage?.BatchStageId ?? unstartedStage?.Id,
+            CurrentStageName = currentStage?.BatchStage?.StageName ?? unstartedStage?.StageName,
             CurrentStageStatus = currentStage?.Status,
             Candidate = candidate?.ToDto()
         };

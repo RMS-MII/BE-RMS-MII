@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Data;
+using WEBAPI.Features.Batches;
 using WEBAPI.Models;
 
 namespace WEBAPI.Features.Applications.Queries.GetApplications;
@@ -26,8 +27,29 @@ public sealed class GetApplicationsHandler(RmsDbContext db)
 
         if (request.StageId.HasValue)
         {
+            var stageId = request.StageId.Value;
+            var hasUnstartedStandalone = await db.BatchApplications
+                .AsNoTracking()
+                .AnyAsync(application => application.RecruitmentBatchId == request.BatchId &&
+                                         application.IsStandalone &&
+                                         !application.ApplicationStages.Any(), ct);
+
+            Guid? firstStageId = null;
+            if (hasUnstartedStandalone)
+            {
+                var batchStages = await db.BatchStages
+                    .AsNoTracking()
+                    .Where(stage => stage.RecruitmentBatchId == request.BatchId)
+                    .ToListAsync(ct);
+                firstStageId = BatchStageSequence.GetOrderedStages(batchStages).FirstOrDefault()?.Id;
+            }
+
+            // Kandidat standalone yang baru didaftarkan belum punya ApplicationStage sampai HR menekan Start.
+            // Tampilkan mereka di filter stage pertama agar tidak hilang dari daftar, tanpa menjalankan stage lebih awal.
             query = query.Where(application =>
-                application.ApplicationStages.Any(stage => stage.BatchStageId == request.StageId.Value));
+                application.ApplicationStages.Any(stage => stage.BatchStageId == stageId) ||
+                (firstStageId == stageId && application.IsStandalone &&
+                 !application.ApplicationStages.Any()));
         }
 
         if (request.Status.HasValue)
@@ -98,6 +120,8 @@ public sealed class GetApplicationsHandler(RmsDbContext db)
         var applications = await sorted
             .ThenBy(application => application.Id)
             .Include(application => application.Candidate)
+            .Include(application => application.RecruitmentBatch)
+                .ThenInclude(batch => batch.BatchStages)
             .Include(application => application.ApplicationStages)
                 .ThenInclude(stage => stage.BatchStage)
             .Skip((request.Page - 1) * request.PageSize)
