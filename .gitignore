@@ -25,3 +25,12 @@ Docs/
 ## Testing
 tests/
 checks/
+
+## Docker Desktop local credentials
+.env
+/.dockerignore
+/DockerFile
+/WEBAPI/Dockerfile
+/docker-compose.yaml
+/compose.windows-db.yaml
+/DOCKER.local.md

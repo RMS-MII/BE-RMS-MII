@@ -52,6 +52,24 @@ public sealed class ExamController(ISender sender) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
     }
 
+    [HttpPost("development/answers/{outcome}")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public async Task<IActionResult> GenerateDevelopmentAnswers(
+        Guid candidateId, Guid stageId, string outcome,
+        [FromServices] IWebHostEnvironment environment, CancellationToken ct)
+    {
+        if (!environment.IsDevelopment() || outcome is not ("pass" or "fail"))
+            return NotFound();
+
+        var result = await sender.Send(new SubmitAnswerCommand
+        {
+            CandidateId = candidateId,
+            StageId = stageId,
+            DevelopmentPass = outcome == "pass"
+        }, ct);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblemDetails(this);
+    }
+
     [HttpPost("finish")]
     [ProducesResponseType<FinishTestResultDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

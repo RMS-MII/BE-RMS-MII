@@ -441,7 +441,7 @@ public static class DataSeeder
         var bankTechnical = new QuestionBank
         {
             Id = QBankTechnicalId,
-            DepartmentId = DeptSoftwareEngId,
+            DepartmentId = DeptTechId,
             StageTypeId = StageTypeTechnicalTestId,
             CreatedBy = EmpLeadDevId,
             DurationInMinutes = 45,

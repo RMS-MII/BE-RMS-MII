@@ -30,7 +30,7 @@ public static class PsychologyTestSeeder
             bank = new QuestionBank
             {
                 Id = DataSeeder.QBankPsikotesId,
-                DepartmentId = DataSeeder.DeptHrId,
+                DepartmentId = DataSeeder.DeptTechId,
                 StageTypeId = DataSeeder.StageTypePsikotesId,
                 CreatedBy = DataSeeder.EmpHrManagerId,
                 DurationInMinutes = PsychologyTestDurationInMinutes,

@@ -100,14 +100,23 @@ public sealed class SubmitAnswerHandler(
             return Result<SubmitAnswerResultDto>.Failure(
                 Error.BusinessRule("No active questions are configured for this test."));
 
-        if (request.Answers is null || (!request.IsDraft && request.Answers.Count == 0))
+        var answers = request.Answers;
+        if (request.DevelopmentPass is bool shouldPass)
+        {
+            if (questions.Any(q => !q.QuestionOptions.Any(option => option.IsActive)))
+                return Result<SubmitAnswerResultDto>.Failure(Error.BusinessRule(
+                    "Every question must have an active option to generate a full test submission."));
+            answers = questions.Select(q => GenerateDevelopmentAnswer(q, shouldPass)).ToList();
+        }
+
+        if (answers is null || (!request.IsDraft && answers.Count == 0))
             return Result<SubmitAnswerResultDto>.Failure(
                 Error.Validation("At least one answer is required."));
 
         var questionsById = questions.ToDictionary(question => question.Id);
         var answersByQuestion = new Dictionary<Guid, SubmitTestAnswerItem>();
 
-        foreach (var answer in request.Answers)
+        foreach (var answer in answers)
         {
             if (!questionsById.ContainsKey(answer.QuestionId))
                 return Result<SubmitAnswerResultDto>.Failure(
@@ -172,6 +181,15 @@ public sealed class SubmitAnswerHandler(
             }
         }
 
+        if (request.DevelopmentPass is bool expectedPass && stage.BatchStage.PassingScore is decimal threshold)
+        {
+            var score = TestScoreCalculator.Normalize(candidateAnswers.Sum(a => a.Score),
+                TestScoreCalculator.CalculateMaxRawScore(questions));
+            if ((score >= threshold) != expectedPass)
+                return Result<SubmitAnswerResultDto>.Failure(Error.BusinessRule(
+                    "The available options cannot produce the requested result at this passing score."));
+        }
+
         // Serialize saves and finalization on the attempt row before replacing its answers.
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var updated = await db.ApplicationStages
@@ -195,5 +213,19 @@ public sealed class SubmitAnswerHandler(
             SubmittedAnswerCount = answersByQuestion.Count,
             ServerTimeUtc = now
         });
+    }
+
+    private static SubmitTestAnswerItem GenerateDevelopmentAnswer(Question question, bool pass)
+    {
+        var options = question.QuestionOptions.Where(o => o.IsActive)
+            .OrderByDescending(o => pass ? o.Score * question.Weight : -o.Score * question.Weight)
+            .ThenBy(o => o.SequenceNumber).ThenBy(o => o.Id).ToList();
+        var selected = question.QuestionType == QuestionType.MultipleChoice
+            ? options.Where(o => pass ? o.Score * question.Weight > 0 : o.Score * question.Weight < 0)
+                .Select(o => o.Id).ToList()
+            : [];
+        if (selected.Count == 0)
+            selected.Add(options[0].Id);
+        return new SubmitTestAnswerItem { QuestionId = question.Id, SelectedOptionIds = selected };
     }
 }

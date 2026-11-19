@@ -13,7 +13,7 @@ public static class SeederExtension
         using var scope = app.Services.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<RmsDbContext>>();
         var resetOnStartup = app.Configuration.GetValue<bool>("Seed:ResetToCheckpointOnStartup", false);
-        var isResetRequested = resetOnStartup || (args != null && (args.Contains("--seed-reset") || args.Contains("--reset-checkpoint")));
+        var isResetRequested = resetOnStartup || (args != null && (args.Contains("--seed-reset") || args.Contains("--reset-checkpoint") || args.Contains("--reset-checkpoint-only")));
         var includeSampleBatch = app.Configuration.GetValue<bool>("Seed:IncludeSampleBatch", false);
 
         var performanceOptions = app.Configuration

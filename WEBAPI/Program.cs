@@ -56,7 +56,15 @@ try
 
     if (app.Environment.IsDevelopment())
     {
+        if (app.Configuration.GetValue<bool>("Database:InitializeOnStartup"))
+        {
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<WEBAPI.Data.RmsDbContext>();
+            await db.Database.EnsureCreatedAsync();
+        }
         await app.SeedDatabaseAsync(args);
+        if (args.Contains("--reset-checkpoint-only"))
+            return;
     }
 
     // Outermost middleware: log every request (including 4xx/5xx, 404 and unhandled exceptions)

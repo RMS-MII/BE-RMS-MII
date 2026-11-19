@@ -9,6 +9,7 @@ public sealed record SubmitAnswerCommand : IRequest<Result<SubmitAnswerResultDto
 {
     public Guid CandidateId { get; init; }
     public Guid StageId { get; init; }
+    public bool? DevelopmentPass { get; init; }
     public bool IsDraft { get; init; }
     public IReadOnlyList<SubmitTestAnswerItem> Answers { get; init; } = [];
 }

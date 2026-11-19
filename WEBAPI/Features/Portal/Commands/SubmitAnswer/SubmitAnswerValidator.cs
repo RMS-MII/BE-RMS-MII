@@ -19,7 +19,7 @@ public sealed class SubmitAnswerValidator : AbstractValidator<SubmitAnswerComman
         RuleFor(x => x.Answers)
             .NotEmpty()
             .WithMessage("At least one answer is required.")
-            .When(x => !x.IsDraft);
+            .When(x => !x.IsDraft && x.DevelopmentPass is null);
 
         RuleFor(x => x.Answers)
             .Must(HaveUniqueQuestionIds)
