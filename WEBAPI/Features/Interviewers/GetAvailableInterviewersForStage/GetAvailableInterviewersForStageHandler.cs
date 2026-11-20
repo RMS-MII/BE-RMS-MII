@@ -26,13 +26,13 @@ public sealed class GetAvailableInterviewersForStageHandler(RmsDbContext db)
         if (appStage is null)
         {
             return Result<IReadOnlyCollection<AssignedInterviewerDto>>.Failure(
-                Error.NotFound($"ApplicationStage dengan ID '{request.ApplicationStageId}' tidak ditemukan."));
+                Error.NotFound($"ApplicationStage with ID '{request.ApplicationStageId}' was not found."));
         }
 
         if (appStage.BatchStage.StageType.StageCategory != StageCategory.Interview)
         {
             return Result<IReadOnlyCollection<AssignedInterviewerDto>>.Failure(
-                Error.BusinessRule($"Tahapan '{appStage.BatchStage.StageName}' bukan bertipe Wawancara."));
+                Error.BusinessRule($"Stage '{appStage.BatchStage.StageName}' is not an interview stage."));
         }
 
         var availableInterviewers = appStage.BatchStage.StageEmployees

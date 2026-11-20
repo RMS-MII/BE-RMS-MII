@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace WEBAPI.Features.Interviewers.AssignInterviewers;
 
@@ -7,15 +7,15 @@ public class AssignInterviewersValidator : AbstractValidator<AssignInterviewersC
     public AssignInterviewersValidator()
     {
         RuleFor(x => x.BatchId)
-            .NotEmpty().WithMessage("Batch ID wajib diisi.");
+            .NotEmpty().WithMessage("Batch ID is required.");
 
         RuleFor(x => x.StageId)
-            .NotEmpty().WithMessage("Stage ID wajib diisi.");
+            .NotEmpty().WithMessage("Stage ID is required.");
 
         RuleFor(x => x.InterviewerEmployeeIds)
-            .NotEmpty().WithMessage("Daftar ID pewawancara minimal harus berisi 1 orang.");
+            .NotEmpty().WithMessage("At least one interviewer ID is required.");
 
         RuleForEach(x => x.InterviewerEmployeeIds)
-            .NotEmpty().WithMessage("ID karyawan pewawancara tidak boleh kosong.");
+            .NotEmpty().WithMessage("Interviewer employee ID must not be empty.");
     }
 }

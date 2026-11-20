@@ -19,7 +19,7 @@ public sealed class GetStageTypeByIdHandler(RmsDbContext db)
         if (stageType is null)
         {
             return Result<StageTypeDto>.Failure(
-                Error.NotFound($"Tipe tahapan dengan ID '{request.Id}' tidak ditemukan."));
+                Error.NotFound($"Stage type with ID '{request.Id}' was not found."));
         }
 
         return Result<StageTypeDto>.Success(stageType.ToDto());

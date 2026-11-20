@@ -8,29 +8,29 @@ public class AssignTakeHomeValidator : AbstractValidator<AssignTakeHomeCommand>
     {
         RuleFor(x => x.InterviewSessionId)
             .NotEmpty()
-            .WithMessage("ID sesi wawancara wajib diisi.");
+            .WithMessage("Interview session ID is required.");
 
         RuleFor(x => x.EndedSubmissionAt)
             .Must(deadline => deadline > DateTime.UtcNow)
-            .WithMessage("Batas waktu pengumpulan take-home test harus lebih besar dari waktu saat ini.");
+            .WithMessage("The take-home test submission deadline must be in the future.");
 
         RuleFor(x => x.FileTakeHome)
-            .NotEmpty().WithMessage("Tautan tugas wajib diisi.")
-            .MaximumLength(200).WithMessage("Tautan tugas maksimal 200 karakter.")
+            .NotEmpty().WithMessage("Task link is required.")
+            .MaximumLength(200).WithMessage("Task link must not exceed 200 characters.")
             .Must(url => Uri.TryCreate(url?.Trim(), UriKind.Absolute, out var uri)
                          && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
-            .WithMessage("Tautan tugas harus berupa URL HTTP atau HTTPS.");
+            .WithMessage("Task link must be an HTTP or HTTPS URL.");
 
         RuleFor(x => x.TaskTitle)
             .NotEmpty()
-            .WithMessage("Judul tugas wajib diisi.")
+            .WithMessage("Task title is required.")
             .MaximumLength(150)
-            .WithMessage("Judul tugas maksimal 150 karakter.");
+            .WithMessage("Task title must not exceed 150 characters.");
 
         RuleFor(x => x.Instructions)
             .NotEmpty()
-            .WithMessage("Instruksi tugas wajib diisi.")
+            .WithMessage("Task instructions are required.")
             .MaximumLength(4000)
-            .WithMessage("Instruksi tugas maksimal 4000 karakter.");
+            .WithMessage("Task instructions must not exceed 4000 characters.");
     }
 }

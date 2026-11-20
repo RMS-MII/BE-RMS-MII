@@ -23,7 +23,7 @@ public class RespondInvitationHandler(
         if (!employeeId.HasValue)
         {
             return Result<RespondInvitationResponse>.Failure(
-                Error.Unauthorized("Akun Anda tidak terhubung dengan profil karyawan."));
+                Error.Unauthorized("Your account is not linked to an employee profile."));
         }
 
         var assignment = await db.StageEmployees
@@ -35,13 +35,13 @@ public class RespondInvitationHandler(
         if (assignment is null)
         {
             return Result<RespondInvitationResponse>.Failure(
-                Error.NotFound($"Undangan penugasan dengan ID '{command.InvitationId}' tidak ditemukan."));
+                Error.NotFound($"Assignment invitation with ID '{command.InvitationId}' was not found."));
         }
 
         if (assignment.EmployeeId != employeeId.Value)
         {
             return Result<RespondInvitationResponse>.Failure(
-                Error.Forbidden("Anda tidak memiliki izin untuk merespons penugasan milik pewawancara lain."));
+                Error.Forbidden("You do not have permission to respond to an assignment belonging to another interviewer."));
         }
 
         if (assignment.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
@@ -55,7 +55,7 @@ public class RespondInvitationHandler(
         if (hasActiveSessions && command.Response == StageEmployeeStatus.Declined)
         {
             return Result<RespondInvitationResponse>.Failure(
-                Error.BusinessRule("Penugasan ini tidak dapat ditolak karena Anda sudah dijadwalkan pada sesi wawancara yang sedang berjalan. Hubungi HR untuk pembatalan jadwal."));
+                Error.BusinessRule("This assignment cannot be declined because you are already scheduled for an ongoing interview session. Contact HR to cancel the schedule."));
         }
 
         var now = DateTime.UtcNow;

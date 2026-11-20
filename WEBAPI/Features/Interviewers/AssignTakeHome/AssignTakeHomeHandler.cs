@@ -27,7 +27,7 @@ public class AssignTakeHomeHandler(
         if (currentEmployeeId is null || currentEmployeeId == Guid.Empty)
         {
             return Result<AssignTakeHomeResponse>.Failure(
-                Error.Forbidden("Akun Anda tidak terhubung dengan profil pegawai pewawancara."));
+                Error.Forbidden("Your account is not linked to an interviewer employee profile."));
         }
 
         // 1. Ambil InterviewSession beserta relasi ApplicationStage, Candidate, SessionInterviews
@@ -47,7 +47,7 @@ public class AssignTakeHomeHandler(
         if (session is null)
         {
             return Result<AssignTakeHomeResponse>.Failure(
-                Error.NotFound($"Sesi wawancara dengan ID '{command.InterviewSessionId}' tidak ditemukan."));
+                Error.NotFound($"Interview session with ID '{command.InterviewSessionId}' was not found."));
         }
 
         // 2. Validasi pewawancara ditugaskan pada sesi ini
@@ -57,21 +57,21 @@ public class AssignTakeHomeHandler(
         if (assignment is null)
         {
             return Result<AssignTakeHomeResponse>.Failure(
-                Error.Forbidden("Anda tidak memiliki hak akses untuk memberikan tugas take-home pada sesi wawancara ini."));
+                Error.Forbidden("You do not have permission to assign a take-home task to this interview session."));
         }
 
         // 3. Validasi status sesi
         if (session.Status == InterviewSessionStatus.Rescheduled)
         {
             return Result<AssignTakeHomeResponse>.Failure(
-                Error.BusinessRule("Tidak dapat menetapkan tugas take-home karena sesi ini telah dijadwalkan ulang."));
+                Error.BusinessRule("A take-home task cannot be assigned because this session has been rescheduled."));
         }
 
         var now = DateTime.UtcNow;
 
         if (session.Status != InterviewSessionStatus.AcceptedByCandidate || !CandidateActionPolicy.IsActive(session.ApplicationStage))
             return Result<AssignTakeHomeResponse>.Failure(
-                Error.BusinessRule("Take-home hanya dapat diberikan setelah jadwal dikonfirmasi kandidat, selama tahap masih aktif."));
+                Error.BusinessRule("A take-home task can only be assigned after the candidate confirms the schedule and while the stage is still active."));
 
         var fileTakeHome = command.FileTakeHome.Trim();
         var updated = await db.InterviewSessions
@@ -88,7 +88,7 @@ public class AssignTakeHomeHandler(
 
         if (updated == 0)
             return Result<AssignTakeHomeResponse>.Failure(
-                Error.BusinessRule("Take-home tidak dapat diubah setelah penilaian dikirim atau sesi berubah."));
+                Error.BusinessRule("A take-home task cannot be changed after the assessment is submitted or the session is changed."));
 
         session.FileTakeHome = fileTakeHome;
         session.EndedSubmissionAt = command.EndedSubmissionAt;

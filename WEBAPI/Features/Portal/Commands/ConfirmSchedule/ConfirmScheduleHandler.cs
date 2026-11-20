@@ -60,7 +60,7 @@ public sealed class ConfirmScheduleHandler(
 
         var pending = await db.RescheduleRequests.AnyAsync(r => r.InterviewSessionId == session.Id && r.Status == RescheduleStatus.Pending, ct);
         if (pending || !CandidateActionPolicy.CanConfirm(session, now))
-            return Result<ConfirmScheduleResultDto>.Failure(Error.BusinessRule("Jadwal ini tidak dapat dikonfirmasi lagi."));
+            return Result<ConfirmScheduleResultDto>.Failure(Error.BusinessRule("This schedule can no longer be confirmed."));
 
         session.Status = InterviewSessionStatus.AcceptedByCandidate;
         session.UpdatedAt = now;

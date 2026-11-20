@@ -7,15 +7,15 @@ public class UploadSubmissionValidator : AbstractValidator<UploadSubmissionComma
     public UploadSubmissionValidator()
     {
         RuleFor(x => x.CandidateId)
-            .NotEmpty().WithMessage("ID kandidat wajib diisi.");
+            .NotEmpty().WithMessage("Candidate ID is required.");
 
         RuleFor(x => x.InterviewSessionId)
-            .NotEmpty().WithMessage("ID sesi wawancara wajib diisi.");
+            .NotEmpty().WithMessage("Interview session ID is required.");
 
         RuleFor(x => x.FileSubmission)
-            .NotEmpty().WithMessage("Tautan berkas Google Drive wajib diisi.")
-            .MaximumLength(200).WithMessage("Tautan berkas tidak boleh melebihi 200 karakter.")
-            .Must(BeAValidUrl).WithMessage("Tautan berkas harus berupa URL yang valid (contoh: https://drive.google.com/...).");
+            .NotEmpty().WithMessage("Google Drive file link is required.")
+            .MaximumLength(200).WithMessage("File link must not exceed 200 characters.")
+            .Must(BeAValidUrl).WithMessage("File link must be a valid URL (e.g. https://drive.google.com/...).");
     }
 
     private static bool BeAValidUrl(string url)

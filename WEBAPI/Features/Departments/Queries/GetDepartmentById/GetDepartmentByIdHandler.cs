@@ -20,7 +20,7 @@ public sealed class GetDepartmentByIdHandler(RmsDbContext db)
         if (department is null)
         {
             return Result<DepartmentDto>.Failure(
-                Error.NotFound($"Departemen dengan ID '{request.Id}' tidak ditemukan."));
+                Error.NotFound($"Department with ID '{request.Id}' was not found."));
         }
 
         return Result<DepartmentDto>.Success(department.ToDto());

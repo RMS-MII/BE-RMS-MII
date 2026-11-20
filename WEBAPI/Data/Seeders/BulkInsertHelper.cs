@@ -24,7 +24,7 @@ internal static class BulkInsertHelper
 
         var connectionString = context.Database.GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
-            throw new InvalidOperationException("Connection string SQL Server tidak tersedia untuk SqlBulkCopy.");
+            throw new InvalidOperationException("SQL Server connection string is not available for SqlBulkCopy.");
 
         await using var bulkConnection = new SqlConnection(connectionString);
         await bulkConnection.OpenAsync(ct);

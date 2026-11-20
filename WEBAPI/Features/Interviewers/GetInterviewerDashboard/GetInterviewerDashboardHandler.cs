@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -21,7 +21,7 @@ public class GetInterviewerDashboardHandler(
         if (currentEmployeeId is null || currentEmployeeId == Guid.Empty)
         {
             return Result<InterviewerDashboardDto>.Failure(
-                Error.Forbidden("Akun Anda tidak terhubung dengan profil pegawai pewawancara."));
+                Error.Forbidden("Your account is not linked to an interviewer employee profile."));
         }
 
         var now = DateTime.UtcNow;

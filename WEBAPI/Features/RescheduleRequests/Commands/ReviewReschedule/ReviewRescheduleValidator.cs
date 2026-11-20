@@ -8,14 +8,14 @@ public class ReviewRescheduleValidator : AbstractValidator<ReviewRescheduleComma
     public ReviewRescheduleValidator()
     {
         RuleFor(x => x.RescheduleRequestId)
-            .NotEmpty().WithMessage("ID permohonan reschedule wajib diisi.");
+            .NotEmpty().WithMessage("Reschedule request ID is required.");
 
         RuleFor(x => x.Decision)
             .Must(d => d is RescheduleStatus.Approved or RescheduleStatus.Rejected)
-            .WithMessage("Keputusan tinjauan hanya boleh 'Approved' atau 'Rejected'.");
+            .WithMessage("Review decision must be either 'Approved' or 'Rejected'.");
 
         RuleFor(x => x.ReviewNotes)
-            .MaximumLength(100).WithMessage("Catatan tinjauan tidak boleh melebihi 100 karakter.");
+            .MaximumLength(100).WithMessage("Review note must not exceed 100 characters.");
     }
 }
 

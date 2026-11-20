@@ -8,7 +8,7 @@ public class GetRescheduleRequestsValidator : AbstractValidator<GetRescheduleReq
     {
         RuleFor(x => x.SessionId)
             .Must(id => !id.HasValue || id.Value != Guid.Empty)
-            .WithMessage("ID sesi wawancara tidak valid.");
+            .WithMessage("Interview session ID is invalid.");
     }
 }
 

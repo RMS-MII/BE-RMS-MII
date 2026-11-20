@@ -21,7 +21,7 @@ public sealed class GetCandidateByIdHandler(RmsDbContext db)
         if (candidate is null)
         {
             return Result<CandidateWithBatchesDto>.Failure(
-                Error.NotFound($"Kandidat dengan ID '{request.Id}' tidak ditemukan."));
+                Error.NotFound($"Candidate with ID '{request.Id}' was not found."));
         }
 
         return Result<CandidateWithBatchesDto>.Success(candidate.ToWithBatchesDto());

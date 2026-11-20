@@ -89,7 +89,7 @@ public sealed class ActivateBatchStageHandler(
             if (acceptedInterviewers.Count == 0)
                 return Result<BatchStageTransitionDto>.Failure(
                     Error.BusinessRule(
-                        $"Tahapan wawancara '{targetStage.StageName}' belum dapat dimulai karena belum ada pewawancara yang menyetujui penugasan (Accepted)."));
+                        $"The interview stage '{targetStage.StageName}' cannot start yet because no interviewer has accepted the assignment (Accepted)."));
         }
 
         var orderedStages = BatchStageSequence.GetOrderedStages(stages);

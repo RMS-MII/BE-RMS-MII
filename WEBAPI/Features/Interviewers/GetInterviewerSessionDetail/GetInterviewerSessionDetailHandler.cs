@@ -20,7 +20,7 @@ public sealed class GetInterviewerSessionDetailHandler(
         var employeeId = currentUser.EmployeeId;
         if (employeeId is null || employeeId == Guid.Empty)
             return Result<InterviewerSessionDetailDto>.Failure(
-                Error.Unauthorized("Akun pewawancara tidak terhubung dengan profil pegawai."));
+                Error.Unauthorized("The interviewer account is not linked to an employee profile."));
 
         var assignment = await db.SessionInterviews
             .AsNoTracking()
@@ -39,7 +39,7 @@ public sealed class GetInterviewerSessionDetailHandler(
 
         if (assignment is null)
             return Result<InterviewerSessionDetailDto>.Failure(
-                Error.NotFound("Sesi wawancara tidak ditemukan untuk akun ini."));
+                Error.NotFound("No interview session was found for this account."));
 
         var session = assignment.InterviewSession;
         var panel = await db.SessionInterviews
@@ -56,7 +56,7 @@ public sealed class GetInterviewerSessionDetailHandler(
             .FirstOrDefaultAsync(c => c.Id == candidateId, ct);
         if (candidate is null)
             return Result<InterviewerSessionDetailDto>.Failure(
-                Error.NotFound("Profil kandidat untuk sesi wawancara ini tidak ditemukan."));
+                Error.NotFound("The candidate profile for this interview session was not found."));
 
         var batch = session.ApplicationStage.BatchStage.RecruitmentBatch;
         var canAssess = assignment.Status != SessionInterviewStatus.Cancelled

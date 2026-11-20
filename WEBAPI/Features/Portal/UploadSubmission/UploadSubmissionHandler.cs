@@ -33,7 +33,7 @@ public class UploadSubmissionHandler(
         if (session is null)
         {
             return Result<SubmissionDto>.Failure(
-                Error.NotFound($"Sesi wawancara dengan ID '{command.InterviewSessionId}' tidak ditemukan."));
+                Error.NotFound($"Interview session with ID '{command.InterviewSessionId}' was not found."));
         }
 
         // 1. Verifikasi kepemilikan sesi oleh kandidat (Portal security)
@@ -41,21 +41,21 @@ public class UploadSubmissionHandler(
         if (candidateId != command.CandidateId)
         {
             return Result<SubmissionDto>.Failure(
-                Error.Forbidden("Sesi wawancara ini bukan milik kandidat yang bersangkutan."));
+                Error.Forbidden("This interview session does not belong to the candidate."));
         }
 
         // 2. Validasi status sesi
         if (session.Status == InterviewSessionStatus.Rescheduled)
         {
             return Result<SubmissionDto>.Failure(
-                Error.BusinessRule("Sesi wawancara ini telah dijadwalkan ulang."));
+                Error.BusinessRule("This interview session has been rescheduled."));
         }
 
         // 3. Validasi penugasan take-home
         if (!session.EndedSubmissionAt.HasValue)
         {
             return Result<SubmissionDto>.Failure(
-                Error.BusinessRule("Sesi wawancara ini tidak memiliki penugasan take-home test."));
+                Error.BusinessRule("This interview session has no take-home test assignment."));
         }
 
         // 4. Validasi batas waktu pengumpulan
@@ -63,11 +63,11 @@ public class UploadSubmissionHandler(
         if (now > session.EndedSubmissionAt.Value)
         {
             return Result<SubmissionDto>.Failure(
-                Error.BusinessRule("Batas waktu pengumpulan tugas take-home test telah berakhir."));
+                Error.BusinessRule("The take-home test submission deadline has passed."));
         }
 
         if (!CandidateActionPolicy.CanSubmit(session, now))
-            return Result<SubmissionDto>.Failure(Error.BusinessRule("Pengumpulan tugas sudah ditutup."));
+            return Result<SubmissionDto>.Failure(Error.BusinessRule("The submission is already closed."));
 
         // 5. Simpan tautan berkas
         var submissionFile = command.FileSubmission.Trim();
@@ -87,7 +87,7 @@ public class UploadSubmissionHandler(
                 .SetProperty(item => item.UpdatedAt, now), ct);
         if (updated == 0)
             return Result<SubmissionDto>.Failure(Error.BusinessRule(
-                "Tautan pengumpulan tidak dapat diubah setelah penilaian dikirim atau pengumpulan berubah."));
+                "The submission link cannot be changed after the assessment is submitted or the submission is updated."));
 
         session.SubmissionFile = submissionFile;
         session.UpdatedAt = now;

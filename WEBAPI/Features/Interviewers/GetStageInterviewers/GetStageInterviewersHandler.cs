@@ -25,7 +25,7 @@ public sealed class GetStageInterviewersHandler(RmsDbContext db)
         if (stage is null)
         {
             return Result<AssignInterviewersResponse>.Failure(
-                Error.NotFound($"Tahapan dengan ID '{request.StageId}' pada batch '{request.BatchId}' tidak ditemukan."));
+                Error.NotFound($"Stage with ID '{request.StageId}' in batch '{request.BatchId}' was not found."));
         }
 
         var stageEmployees = stage.StageEmployees.AsEnumerable();

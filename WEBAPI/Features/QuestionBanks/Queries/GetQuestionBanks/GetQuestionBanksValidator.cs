@@ -7,9 +7,9 @@ public sealed class GetQuestionBanksValidator : AbstractValidator<GetQuestionBan
     public GetQuestionBanksValidator()
     {
         RuleFor(x => x.Page)
-            .GreaterThanOrEqualTo(1).WithMessage("Page minimal bernilai 1.");
+            .GreaterThanOrEqualTo(1).WithMessage("Page must be at least 1.");
 
         RuleFor(x => x.PageSize)
-            .InclusiveBetween(1, 100).WithMessage("PageSize harus antara 1 sampai 100.");
+            .InclusiveBetween(1, 100).WithMessage("PageSize must be between 1 and 100.");
     }
 }

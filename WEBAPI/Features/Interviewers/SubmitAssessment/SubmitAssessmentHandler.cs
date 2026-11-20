@@ -25,7 +25,7 @@ public class SubmitAssessmentHandler(
         if (currentEmployeeId is null || currentEmployeeId == Guid.Empty)
         {
             return Result<AssessmentDto>.Failure(
-                Error.Forbidden("Akun Anda tidak terhubung dengan profil pegawai pewawancara."));
+                Error.Forbidden("Your account is not linked to an interviewer employee profile."));
         }
 
         // 1. Ambil SessionInterview beserta relasi InterviewSession, ApplicationStage, Candidate, Assessment
@@ -46,26 +46,26 @@ public class SubmitAssessmentHandler(
         if (sessionInterview is null)
         {
             return Result<AssessmentDto>.Failure(
-                Error.NotFound($"Sesi wawancara dengan ID '{command.SessionInterviewId}' tidak ditemukan."));
+                Error.NotFound($"Interview session with ID '{command.SessionInterviewId}' was not found."));
         }
 
         // 2. Validasi kepemilikan sesi
         if (sessionInterview.StageEmployee.EmployeeId != currentEmployeeId.Value)
         {
             return Result<AssessmentDto>.Failure(
-                Error.Forbidden("Anda tidak memiliki hak akses untuk memberikan penilaian pada sesi wawancara pewawancara lain."));
+                Error.Forbidden("You do not have permission to submit an assessment for another interviewer's session."));
         }
 
         // 3. Validasi status sesi
         if (sessionInterview.Status == SessionInterviewStatus.Cancelled || sessionInterview.InterviewSession.Status == InterviewSessionStatus.Rescheduled)
         {
             return Result<AssessmentDto>.Failure(
-                Error.BusinessRule("Tidak dapat memberikan penilaian karena sesi wawancara ini telah dibatalkan atau dijadwalkan ulang."));
+                Error.BusinessRule("An assessment cannot be submitted because this interview session has been cancelled or rescheduled."));
         }
 
         if (sessionInterview.InterviewSession.Status != InterviewSessionStatus.AcceptedByCandidate)
             return Result<AssessmentDto>.Failure(
-                Error.BusinessRule("Penilaian tersedia setelah kandidat mengonfirmasi jadwal wawancara."));
+                Error.BusinessRule("Assessment is available after the candidate confirms the interview schedule."));
 
         if (sessionInterview.InterviewSession.ApplicationStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
             return Result<AssessmentDto>.Failure(

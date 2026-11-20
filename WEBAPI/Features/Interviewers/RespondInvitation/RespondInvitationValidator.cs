@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using WEBAPI.Entities.Enums;
 
 namespace WEBAPI.Features.Interviewers.RespondInvitation;
@@ -9,17 +9,17 @@ public class RespondInvitationValidator : AbstractValidator<RespondInvitationCom
     {
         RuleFor(x => x.InvitationId)
             .NotEmpty()
-            .WithMessage("ID undangan penugasan pewawancara wajib diisi.");
+            .WithMessage("Interviewer assignment invitation ID is required.");
 
         RuleFor(x => x.Response)
             .Must(r => r == StageEmployeeStatus.Accepted || r == StageEmployeeStatus.Declined)
-            .WithMessage("Respon hanya boleh bernilai 'Accepted' (Bersedia) atau 'Declined' (Menolak).");
+            .WithMessage("Response must be either 'Accepted' or 'Declined'.");
 
         RuleFor(x => x.Note)
             .NotEmpty()
             .When(x => x.Response == StageEmployeeStatus.Declined)
-            .WithMessage("Alasan penolakan (Note) wajib diisi jika menolak penugasan.")
+            .WithMessage("A rejection reason (Note) is required when declining an assignment.")
             .MaximumLength(500)
-            .WithMessage("Catatan tidak boleh lebih dari 500 karakter.");
+            .WithMessage("Note must not exceed 500 characters.");
     }
 }

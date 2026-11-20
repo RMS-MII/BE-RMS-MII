@@ -39,7 +39,7 @@ public class ScheduleInterviewSessionHandler(
         if (appStage is null)
         {
             return Result<InterviewSessionDto>.Failure(
-                Error.NotFound($"ApplicationStage dengan ID '{command.ApplicationStageId}' tidak ditemukan."));
+                Error.NotFound($"ApplicationStage with ID '{command.ApplicationStageId}' was not found."));
         }
 
         if (appStage.BatchStage.RecruitmentBatch.Status != BatchStatus.Open ||
@@ -54,14 +54,14 @@ public class ScheduleInterviewSessionHandler(
         if (appStage.BatchStage.StageType.StageCategory != StageCategory.Interview)
         {
             return Result<InterviewSessionDto>.Failure(
-                Error.BusinessRule($"Tahapan '{appStage.BatchStage.StageName}' bertipe {appStage.BatchStage.StageType.StageCategory}. Penjadwalan sesi wawancara hanya berlaku untuk tahapan bertipe Wawancara."));
+                Error.BusinessRule($"Stage '{appStage.BatchStage.StageName}' has category {appStage.BatchStage.StageType.StageCategory}. Interview sessions can only be scheduled for interview stages."));
         }
 
         // 3. Validasi status ApplicationStage
         if (appStage.Status != ApplicationStageStatus.InProgress)
         {
             return Result<InterviewSessionDto>.Failure(
-                Error.BusinessRule($"Tidak dapat menjadwalkan wawancara karena status tahapan kandidat saat ini adalah '{appStage.Status.ToDisplayName()}'."));
+                Error.BusinessRule($"An interview cannot be scheduled because the candidate stage status is currently '{appStage.Status.ToDisplayName()}'."));
         }
 
         // 4. Validasi ketersediaan dan status pewawancara yang dipilih
@@ -70,14 +70,14 @@ public class ScheduleInterviewSessionHandler(
         if (distinctEmployeeIds.Count == 0)
         {
             return Result<InterviewSessionDto>.Failure(
-                Error.BusinessRule("Minimal harus memilih satu pewawancara untuk sesi wawancara."));
+                Error.BusinessRule("At least one interviewer must be selected for the interview session."));
         }
 
         if (command.LeadEmployeeId.HasValue &&
             !distinctEmployeeIds.Contains(command.LeadEmployeeId.Value))
         {
             return Result<InterviewSessionDto>.Failure(
-                Error.BusinessRule("Lead interviewer harus termasuk dalam daftar pewawancara yang dipilih."));
+                Error.BusinessRule("The lead interviewer must be included in the selected interviewers."));
         }
 
         // Jika lead tidak ditentukan, pewawancara pertama otomatis menjadi lead
@@ -94,13 +94,13 @@ public class ScheduleInterviewSessionHandler(
                 var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId, ct);
                 var empName = employee?.FullName ?? employeeId.ToString();
                 return Result<InterviewSessionDto>.Failure(
-                    Error.NotFound($"Pewawancara '{empName}' belum ditugaskan pada tahapan '{appStage.BatchStage.StageName}'."));
+                    Error.NotFound($"Interviewer '{empName}' is not assigned to stage '{appStage.BatchStage.StageName}'."));
             }
 
             if (stageEmployee.Status != StageEmployeeStatus.Accepted)
             {
                 return Result<InterviewSessionDto>.Failure(
-                    Error.BusinessRule($"Pewawancara '{stageEmployee.Employee.FullName}' belum menyetujui penugasan pada tahapan ini (Status saat ini: {stageEmployee.Status.ToDisplayName()}). Sesi hanya dapat dijadwalkan dengan pewawancara yang sudah berstatus 'Bersedia' (Accepted)."));
+                    Error.BusinessRule($"Interviewer '{stageEmployee.Employee.FullName}' has not accepted the assignment for this stage (current status: {stageEmployee.Status.ToDisplayName()}). Sessions can only be scheduled with interviewers whose status is 'Accepted'."));
             }
 
             matchedStageEmployees.Add(stageEmployee);
@@ -123,7 +123,7 @@ public class ScheduleInterviewSessionHandler(
         {
             var conflict = conflictingSessions.First();
             return Result<InterviewSessionDto>.Failure(
-                Error.Conflict($"Pewawancara '{conflict.StageEmployee.Employee.FullName}' memiliki jadwal wawancara lain ('{conflict.InterviewSession.SessionName}') yang bertabrakan pada rentang waktu {conflict.InterviewSession.ScheduledStart:dd MMM yyyy HH:mm} - {conflict.InterviewSession.ScheduledEnd:HH:mm}."));
+                Error.Conflict($"Interviewer '{conflict.StageEmployee.Employee.FullName}' has another interview ('{conflict.InterviewSession.SessionName}') that overlaps during {conflict.InterviewSession.ScheduledStart:dd MMM yyyy HH:mm} - {conflict.InterviewSession.ScheduledEnd:HH:mm}."));
         }
 
         var now = DateTime.UtcNow;

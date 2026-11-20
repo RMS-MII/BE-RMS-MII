@@ -10,25 +10,25 @@ public class RequestRescheduleValidator : AbstractValidator<RequestRescheduleCom
     public RequestRescheduleValidator()
     {
         RuleFor(x => x.InterviewSessionId)
-            .NotEmpty().WithMessage("ID sesi wawancara wajib diisi.");
+            .NotEmpty().WithMessage("Interview session ID is required.");
 
         RuleFor(x => x.ProposedStart)
-            .NotEmpty().WithMessage("Waktu mulai yang diusulkan wajib diisi.")
+            .NotEmpty().WithMessage("Proposed start time is required.")
             .Must((request, _) => request.ProposedStartUtc > DateTime.UtcNow)
-            .WithMessage("Waktu mulai yang diusulkan harus di masa mendatang.");
+            .WithMessage("Proposed start time must be in the future.");
 
         RuleFor(x => x.ProposedEnd)
-            .NotEmpty().WithMessage("Waktu selesai yang diusulkan wajib diisi.")
+            .NotEmpty().WithMessage("Proposed end time is required.")
             .Must((request, _) => request.ProposedEndUtc > request.ProposedStartUtc)
-            .WithMessage("Waktu selesai harus lebih besar dari waktu mulai.");
+            .WithMessage("End time must be after start time.");
 
         RuleFor(x => x)
             .Must(x => ToWibDate(x.ProposedStartUtc) == ToWibDate(x.ProposedEndUtc))
-            .WithMessage("Waktu mulai dan selesai harus berada pada tanggal WIB yang sama.");
+            .WithMessage("Start and end times must be on the same WIB date.");
 
         RuleFor(x => x.Reason)
-            .NotEmpty().WithMessage("Alasan pengajuan reschedule wajib diisi.")
-            .MaximumLength(100).WithMessage("Alasan tidak boleh melebihi 100 karakter.");
+            .NotEmpty().WithMessage("A reschedule reason is required.")
+            .MaximumLength(100).WithMessage("Reason must not exceed 100 characters.");
     }
 
     private static DateOnly ToWibDate(DateTime utc) =>

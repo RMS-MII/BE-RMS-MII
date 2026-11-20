@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace WEBAPI.Features.Interviewers.ConfirmSession;
 
@@ -8,6 +8,6 @@ public class ConfirmSessionValidator : AbstractValidator<ConfirmSessionCommand>
     {
         RuleFor(x => x.SessionInterviewId)
             .NotEmpty()
-            .WithMessage("ID sesi wawancara wajib diisi.");
+            .WithMessage("Interview session ID is required.");
     }
 }

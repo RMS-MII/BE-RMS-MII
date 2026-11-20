@@ -27,7 +27,7 @@ public class ConfirmSessionHandler(
         if (currentEmployeeId is null || currentEmployeeId == Guid.Empty)
         {
             return Result<ConfirmSessionResponse>.Failure(
-                Error.Forbidden("Akun Anda tidak terhubung dengan profil pegawai pewawancara."));
+                Error.Forbidden("Your account is not linked to an interviewer employee profile."));
         }
 
         // 2. Ambil SessionInterview beserta relasi InterviewSession, ApplicationStage, Candidate, Stage
@@ -48,20 +48,20 @@ public class ConfirmSessionHandler(
         if (sessionInterview is null)
         {
             return Result<ConfirmSessionResponse>.Failure(
-                Error.NotFound($"Sesi wawancara dengan ID '{command.SessionInterviewId}' tidak ditemukan."));
+                Error.NotFound($"Interview session with ID '{command.SessionInterviewId}' was not found."));
         }
 
         // 3. Validasi kepemilikan: hanya pewawancara yang ditugaskan pada sesi ini yang boleh konfirmasi
         if (sessionInterview.StageEmployee.EmployeeId != currentEmployeeId.Value)
         {
             return Result<ConfirmSessionResponse>.Failure(
-                Error.Forbidden("Anda tidak memiliki hak akses untuk mengonfirmasi sesi wawancara milik pewawancara lain."));
+                Error.Forbidden("You do not have permission to confirm an interview session assigned to another interviewer."));
         }
 
         if (!sessionInterview.IsLead)
         {
             return Result<ConfirmSessionResponse>.Failure(
-                Error.Forbidden("Hanya lead interviewer yang dapat mengonfirmasi jadwal wawancara."));
+                Error.Forbidden("Only the lead interviewer can confirm the interview schedule."));
         }
 
         if (sessionInterview.InterviewSession.ApplicationStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
@@ -74,13 +74,13 @@ public class ConfirmSessionHandler(
         if (sessionInterview.Status == SessionInterviewStatus.Cancelled || session.Status == InterviewSessionStatus.Rescheduled)
         {
             return Result<ConfirmSessionResponse>.Failure(
-                Error.BusinessRule("Sesi wawancara ini sudah dibatalkan atau telah dijadwalkan ulang."));
+                Error.BusinessRule("This interview session has been cancelled or rescheduled."));
         }
 
         if (sessionInterview.Status == SessionInterviewStatus.Completed)
         {
             return Result<ConfirmSessionResponse>.Failure(
-                Error.BusinessRule("Sesi wawancara ini sudah selesai dilaksanakan."));
+                Error.BusinessRule("This interview session has already been completed."));
         }
 
         // 5. Cek apakah sudah pernah dikonfirmasi sebelumnya

@@ -21,7 +21,7 @@ public sealed class CreateStageTypeHandler(RmsDbContext db, IDateTimeProvider da
         if (exists)
         {
             return Result<StageTypeDto>.Failure(
-                Error.Conflict($"Tipe tahapan dengan nama '{trimmedName}' sudah terdaftar."));
+                Error.Conflict($"A stage type with the name '{trimmedName}' is already registered."));
         }
 
         var now = dateTimeProvider.GetUtcNow().UtcDateTime;

@@ -31,11 +31,11 @@ public class AssignInterviewersHandler(
 
         if (stage is null)
             return Result<AssignInterviewersResponse>.Failure(
-                Error.NotFound($"Tahapan dengan ID '{command.StageId}' tidak ditemukan."));
+                Error.NotFound($"Stage with ID '{command.StageId}' was not found."));
 
         if (stage.RecruitmentBatchId != command.BatchId)
             return Result<AssignInterviewersResponse>.Failure(
-                Error.Conflict($"Tahapan '{stage.StageName}' tidak terdaftar pada Batch yang ditentukan."));
+                Error.Conflict($"Stage '{stage.StageName}' is not registered in the specified batch."));
 
         if (stage.RecruitmentBatch.Status == BatchStatus.Closed)
             return Result<AssignInterviewersResponse>.Failure(
@@ -44,7 +44,7 @@ public class AssignInterviewersHandler(
         // 2. Validasi apakah tahapan adalah tipe Interview
         if (stage.StageType.StageCategory != StageCategory.Interview)
             return Result<AssignInterviewersResponse>.Failure(
-                Error.BusinessRule($"Tahapan '{stage.StageName}' bukan merupakan tahapan Wawancara (Kategori: {stage.StageType.StageCategory}). Penugasan pewawancara hanya berlaku untuk tahapan Wawancara."));
+                Error.BusinessRule($"Stage '{stage.StageName}' is not an interview stage (Category: {stage.StageType.StageCategory}). Interviewer assignment only applies to interview stages."));
 
         var assignedDtos = new List<AssignedInterviewerDto>();
         var emailsToSend = new List<(string Recipient, EmailContent Content)>();
@@ -59,7 +59,7 @@ public class AssignInterviewersHandler(
 
             if (employee is null)
                 return Result<AssignInterviewersResponse>.Failure(
-                    Error.NotFound($"Karyawan dengan ID '{employeeId}' tidak ditemukan."));
+                    Error.NotFound($"Employee with ID '{employeeId}' was not found."));
 
             var existingAssignment = stage.StageEmployees
                 .FirstOrDefault(se => se.EmployeeId == employeeId);

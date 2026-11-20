@@ -29,7 +29,7 @@ public static class SeederExtension
             if (!await db.Database.CanConnectAsync())
             {
                 if (isResetRequested)
-                    throw new InvalidOperationException("Database tidak dapat dihubungi untuk reset checkpoint.");
+                    throw new InvalidOperationException("The database cannot be reached to reset the checkpoint.");
 
                 logger.LogWarning("Database tidak dapat dihubungi; seeder dilewati");
                 return;

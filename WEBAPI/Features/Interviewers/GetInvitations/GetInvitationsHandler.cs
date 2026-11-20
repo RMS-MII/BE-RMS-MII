@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -19,7 +19,7 @@ public class GetInvitationsHandler(
         if (!employeeId.HasValue)
         {
             return Result<List<InterviewerInvitationDto>>.Failure(
-                Error.Unauthorized("Akun Anda tidak terhubung dengan profil karyawan."));
+                Error.Unauthorized("Your account is not linked to an employee profile."));
         }
 
         var dbQuery = db.StageEmployees

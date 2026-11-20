@@ -38,7 +38,7 @@ public class RequestRescheduleHandler(
         if (session?.ApplicationStage is not { } stage)
         {
             return Result<RescheduleRequestDto>.Failure(
-                Error.NotFound($"Sesi wawancara dengan ID '{command.InterviewSessionId}' tidak ditemukan."));
+                Error.NotFound($"Interview session with ID '{command.InterviewSessionId}' was not found."));
         }
 
         if (stage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
@@ -49,7 +49,7 @@ public class RequestRescheduleHandler(
         if (session.Status == InterviewSessionStatus.Rescheduled)
         {
             return Result<RescheduleRequestDto>.Failure(
-                Error.BusinessRule("Sesi wawancara ini sudah pernah dijadwalkan ulang sebelumnya."));
+                Error.BusinessRule("This interview session has already been rescheduled."));
         }
 
         string requesterEmail;
@@ -62,11 +62,11 @@ public class RequestRescheduleHandler(
             if (candidate is null || candidate.Id != command.CandidateId.Value)
             {
                 return Result<RescheduleRequestDto>.Failure(
-                    Error.Forbidden("Sesi wawancara ini bukan milik kandidat yang bersangkutan."));
+                    Error.Forbidden("This interview session does not belong to the candidate."));
             }
 
             if (!WEBAPI.Features.Portal.CandidateActionPolicy.CanReschedule(session, dateTimeProvider.GetUtcNow().UtcDateTime))
-                return Result<RescheduleRequestDto>.Failure(Error.BusinessRule("Pengajuan hanya tersedia setelah interviewer menerima jadwal, sebelum sesi dimulai, dan selama tahap masih aktif."));
+                return Result<RescheduleRequestDto>.Failure(Error.BusinessRule("A reschedule request is only available after the interviewer accepts the schedule, before the session starts, and while the stage is still active."));
 
             requesterEmail = candidate.Email;
             requesterName = candidate.FullName;
@@ -76,7 +76,7 @@ public class RequestRescheduleHandler(
             if (!currentUser.IsAuthenticated)
             {
                 return Result<RescheduleRequestDto>.Failure(
-                    Error.Unauthorized("Autentikasi diperlukan untuk mengajukan reschedule."));
+                    Error.Unauthorized("Authentication is required to request a reschedule."));
             }
 
             var isHr = currentUser.IsInRole(RmsRoles.Hr);
@@ -88,14 +88,14 @@ public class RequestRescheduleHandler(
             if (!isHr && !isSessionLead)
             {
                 return Result<RescheduleRequestDto>.Failure(
-                    Error.Forbidden("Reschedule hanya dapat diajukan oleh Lead Interviewer pada sesi ini atau HR."));
+                    Error.Forbidden("A reschedule can only be requested by the lead interviewer of this session or by HR."));
             }
 
             var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == currentUser.EmployeeId, ct);
             if (employee is null)
             {
                 return Result<RescheduleRequestDto>.Failure(
-                    Error.NotFound("Profil data pegawai pemohon tidak ditemukan."));
+                    Error.NotFound("The employee profile of the requester was not found."));
             }
 
             requesterEmail = employee.Email;
@@ -107,7 +107,7 @@ public class RequestRescheduleHandler(
             session.ScheduledStart <= now ||
             session.SessionInterviews.Any(interviewer => interviewer.Status == SessionInterviewStatus.Completed))
             return Result<RescheduleRequestDto>.Failure(
-                Error.BusinessRule("Reschedule hanya dapat diajukan sebelum interview dimulai dan selama tahap masih aktif."));
+                Error.BusinessRule("A reschedule can only be requested before the interview starts and while the stage is still active."));
 
         // 3. Cegah duplikasi permohonan pending pada sesi yang sama
         var hasPendingRequest = await db.RescheduleRequests.AnyAsync(
@@ -116,7 +116,7 @@ public class RequestRescheduleHandler(
         if (hasPendingRequest)
         {
             return Result<RescheduleRequestDto>.Failure(
-                Error.Conflict("Masih terdapat permohonan reschedule yang berstatus Pending untuk sesi wawancara ini."));
+                Error.Conflict("There is still a pending reschedule request for this interview session."));
         }
 
         // 4. Simpan permohonan baru
@@ -141,7 +141,7 @@ public class RequestRescheduleHandler(
         catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
             return Result<RescheduleRequestDto>.Failure(
-                Error.Conflict("Masih terdapat permohonan reschedule yang berstatus Pending untuk sesi wawancara ini."));
+                Error.Conflict("There is still a pending reschedule request for this interview session."));
         }
 
         // 5. Kirim email notifikasi permohonan reschedule

@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using WEBAPI.Common.Results;
 using WEBAPI.Common.Security;
@@ -31,7 +31,7 @@ public class GetSubmissionHandler(
         if (session is null)
         {
             return Result<SubmissionDto>.Failure(
-                Error.NotFound($"Sesi wawancara dengan ID '{query.InterviewSessionId}' tidak ditemukan."));
+                Error.NotFound($"Interview session with ID '{query.InterviewSessionId}' was not found."));
         }
 
         // Validasi otorisasi: HR atau Pewawancara yang ditugaskan pada sesi ini
@@ -45,7 +45,7 @@ public class GetSubmissionHandler(
             if (!isAssigned)
             {
                 return Result<SubmissionDto>.Failure(
-                    Error.Forbidden("Anda tidak memiliki hak akses untuk melihat pengumpulan berkas pada sesi wawancara ini."));
+                    Error.Forbidden("You do not have permission to view the submission for this interview session."));
             }
         }
 

@@ -32,14 +32,14 @@ public class ReviewRescheduleHandler(
         if (request is null)
         {
             return Result<RescheduleRequestDto>.Failure(
-                Error.NotFound($"Permohonan reschedule dengan ID '{command.RescheduleRequestId}' tidak ditemukan."));
+                Error.NotFound($"Reschedule request with ID '{command.RescheduleRequestId}' was not found."));
         }
 
         // 1. Validasi transisi status (hanya status Pending yang dapat di-review)
         if (!request.Status.CanReview(command.Decision))
         {
             return Result<RescheduleRequestDto>.Failure(
-                Error.BusinessRule("Permohonan reschedule ini sudah ditinjau sebelumnya dan tidak dapat diubah kembali."));
+                Error.BusinessRule("This reschedule request has already been reviewed and cannot be changed."));
         }
 
         // 2. Ambil sesi wawancara terkait beserta relasinya
@@ -58,7 +58,7 @@ public class ReviewRescheduleHandler(
         if (session is null)
         {
             return Result<RescheduleRequestDto>.Failure(
-                Error.NotFound($"Sesi wawancara dengan ID '{request.InterviewSessionId}' tidak ditemukan."));
+                Error.NotFound($"Interview session with ID '{request.InterviewSessionId}' was not found."));
         }
 
         if (session.ApplicationStage.BatchStage.RecruitmentBatch.Status == BatchStatus.Closed)
@@ -73,14 +73,14 @@ public class ReviewRescheduleHandler(
         {
             if (request.ProposedStart <= now || request.ProposedEnd <= request.ProposedStart)
                 return Result<RescheduleRequestDto>.Failure(
-                    Error.BusinessRule("Usulan jadwal sudah lewat atau rentang waktunya tidak valid. Ajukan jadwal baru."));
+                    Error.BusinessRule("The proposed schedule has passed or its time range is invalid. Submit a new schedule."));
 
             if (!WEBAPI.Features.Portal.CandidateActionPolicy.IsActive(session.ApplicationStage) ||
                 session.Status == InterviewSessionStatus.Rescheduled ||
                 session.ScheduledStart <= now ||
                 session.SessionInterviews.Any(si => si.Status == SessionInterviewStatus.Completed))
                 return Result<RescheduleRequestDto>.Failure(
-                    Error.BusinessRule("Reschedule hanya dapat disetujui sebelum interview dimulai dan selama tahap masih aktif."));
+                    Error.BusinessRule("A reschedule can only be approved before the interview starts and while the stage is still active."));
 
             var interviewerEmployeeIds = session.SessionInterviews
                 .Where(si => si.Status != SessionInterviewStatus.Cancelled)
@@ -105,7 +105,7 @@ public class ReviewRescheduleHandler(
                 var conflict = conflictingSessions[0];
                 return Result<RescheduleRequestDto>.Failure(
                     Error.Conflict(
-                        $"Pewawancara '{conflict.StageEmployee.Employee.FullName}' memiliki jadwal wawancara lain ('{conflict.InterviewSession.SessionName}') yang bertabrakan pada rentang waktu {conflict.InterviewSession.ScheduledStart:dd MMM yyyy HH:mm} - {conflict.InterviewSession.ScheduledEnd:HH:mm}."));
+                        $"Interviewer '{conflict.StageEmployee.Employee.FullName}' has another interview ('{conflict.InterviewSession.SessionName}') that overlaps during {conflict.InterviewSession.ScheduledStart:dd MMM yyyy HH:mm} - {conflict.InterviewSession.ScheduledEnd:HH:mm}."));
             }
         }
 

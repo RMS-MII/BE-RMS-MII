@@ -23,7 +23,7 @@ public sealed class GetQuestionBankByIdHandler(RmsDbContext db)
         if (questionBank is null)
         {
             return Result<QuestionBankDetailDto>.Failure(
-                Error.NotFound($"Bank soal dengan ID '{request.Id}' tidak ditemukan."));
+                Error.NotFound($"Question bank with ID '{request.Id}' was not found."));
         }
 
         return Result<QuestionBankDetailDto>.Success(questionBank.ToDetailDto());

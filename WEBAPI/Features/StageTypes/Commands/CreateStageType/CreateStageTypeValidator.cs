@@ -7,14 +7,14 @@ public sealed class CreateStageTypeValidator : AbstractValidator<CreateStageType
     public CreateStageTypeValidator()
     {
         RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("Nama tipe tahapan wajib diisi.")
-            .MaximumLength(30).WithMessage("Nama tipe tahapan maksimal 30 karakter.");
+            .NotEmpty().WithMessage("Stage type name is required.")
+            .MaximumLength(30).WithMessage("Stage type name must not exceed 30 characters.");
 
         RuleFor(x => x.Description)
-            .MaximumLength(100).WithMessage("Deskripsi maksimal 100 karakter.");
+            .MaximumLength(100).WithMessage("Description must not exceed 100 characters.");
 
         RuleFor(x => x.StageCategory)
-            .IsInEnum().WithMessage("Kategori tahapan tidak valid.");
+            .IsInEnum().WithMessage("Stage category is invalid.");
     }
 }
 

@@ -19,7 +19,7 @@ public sealed class GetInterviewerSessionsHandler(
         if (employeeId is null)
         {
             return Result<IReadOnlyCollection<DashboardInterviewSessionDto>>.Failure(
-                Error.Unauthorized("Autentikasi akun karyawan pewawancara diperlukan."));
+                Error.Unauthorized("Authentication as an interviewer employee account is required."));
         }
 
         var query = db.SessionInterviews

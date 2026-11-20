@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace WEBAPI.Features.Interviewers.ScheduleInterviewSession;
 
@@ -8,50 +8,50 @@ public class ScheduleInterviewSessionValidator : AbstractValidator<ScheduleInter
     {
         RuleFor(x => x.ApplicationStageId)
             .NotEmpty()
-            .WithMessage("ID ApplicationStage wajib diisi.");
+            .WithMessage("ApplicationStage ID is required.");
 
         RuleFor(x => x.SessionName)
             .NotEmpty()
-            .WithMessage("Nama sesi wawancara wajib diisi.")
+            .WithMessage("Interview session name is required.")
             .MaximumLength(200)
-            .WithMessage("Nama sesi wawancara maksimal 200 karakter.");
+            .WithMessage("Interview session name must not exceed 200 characters.");
 
         RuleFor(x => x.ScheduledStart)
             .NotEmpty()
-            .WithMessage("Waktu mulai sesi wawancara wajib diisi.");
+            .WithMessage("Interview session start time is required.");
 
         RuleFor(x => x.ScheduledEnd)
             .NotEmpty()
-            .WithMessage("Waktu selesai sesi wawancara wajib diisi.")
+            .WithMessage("Interview session end time is required.")
             .GreaterThan(x => x.ScheduledStart)
-            .WithMessage("Waktu selesai harus lebih besar dari waktu mulai.");
+            .WithMessage("End time must be after start time.");
 
         When(x => x.IsOnline, () =>
         {
             RuleFor(x => x.MeetingUrl)
                 .NotEmpty()
-                .WithMessage("Tautan meeting (MeetingUrl) wajib diisi untuk wawancara daring (online).")
+                .WithMessage("A meeting link (MeetingUrl) is required for an online interview.")
                 .Must(uri => Uri.TryCreate(uri, UriKind.Absolute, out _))
-                .WithMessage("Format tautan meeting (MeetingUrl) tidak valid.");
+                .WithMessage("Meeting link (MeetingUrl) format is invalid.");
         });
 
         When(x => !x.IsOnline, () =>
         {
             RuleFor(x => x.Location)
                 .NotEmpty()
-                .WithMessage("Lokasi ruangan/kantor wajib diisi untuk wawancara tatap muka (offline).")
+                .WithMessage("A room/office location is required for an onsite (offline) interview.")
                 .MaximumLength(255)
-                .WithMessage("Lokasi maksimal 255 karakter.");
+                .WithMessage("Location must not exceed 255 characters.");
         });
 
         RuleFor(x => x.InterviewerEmployeeIds)
             .NotEmpty()
-            .WithMessage("Minimal harus memilih satu pewawancara untuk sesi wawancara.");
+            .WithMessage("At least one interviewer must be selected for the interview session.");
 
         RuleFor(x => x.LeadEmployeeId)
             .Must((command, leadEmployeeId) =>
                 !leadEmployeeId.HasValue ||
                 command.InterviewerEmployeeIds.Contains(leadEmployeeId.Value))
-            .WithMessage("Lead interviewer harus termasuk dalam daftar pewawancara yang dipilih.");
+            .WithMessage("The lead interviewer must be included in the selected interviewers.");
     }
 }

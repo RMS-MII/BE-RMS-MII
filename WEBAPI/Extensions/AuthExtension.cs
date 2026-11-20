@@ -19,12 +19,12 @@ public static class AuthExtension
         services.Configure<RefreshSessionOptions>(configuration.GetSection(RefreshSessionOptions.SectionName));
 
         var settings = section.Get<JwtSettings>()
-            ?? throw new InvalidOperationException("Konfigurasi 'Jwt' tidak ditemukan.");
+            ?? throw new InvalidOperationException("'Jwt' configuration was not found.");
 
         if (string.IsNullOrWhiteSpace(settings.Key))
         {
             throw new InvalidOperationException(
-                "Jwt:Key belum diatur. Gunakan user-secrets atau environment variable (Jwt__Key).");
+                "Jwt:Key is not configured. Use user-secrets or an environment variable (Jwt__Key).");
         }
 
         services.AddHttpContextAccessor();
